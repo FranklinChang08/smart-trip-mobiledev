@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/home_page.dart';
+import 'package:frontend/pages/loading_page.dart';
 
 // import 'pages/loading_page.dart';
 
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'SmartTrip',
       theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.blue)),
-      home: const HomePage(),
+      home: const LoadingPage(),
     );
   }
 }

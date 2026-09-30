@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/pages/home_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'login_page.dart';
@@ -17,7 +18,7 @@ class _LoadingPageState extends State<LoadingPage> {
     Future.delayed(const Duration(seconds: 5), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
+        MaterialPageRoute(builder: (context) => const HomePage()),
       );
     });
   }
