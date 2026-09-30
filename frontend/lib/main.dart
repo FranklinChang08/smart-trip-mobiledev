@@ -15,6 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'SmartTrip',
       theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.blue)),
       home: const LoadingPage(),

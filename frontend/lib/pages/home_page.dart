@@ -15,21 +15,53 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
+  bool isBellHovered = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
+        toolbarHeight: 60,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.arrow_back),
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 45,
+                      height: 45,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+
+                        image: const DecorationImage(
+                          image: AssetImage('assets/images/profile.jpg'),
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                        ),
+                      ),
+                    ),
+
+                    Positioned(
+                      bottom: -2,
+                      right: -2,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D9488),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -63,9 +95,43 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.person_2_rounded),
+
+            MouseRegion(
+              onEnter: (_) {
+                setState(() {
+                  isBellHovered = true;
+                });
+              },
+              onExit: (_) {
+                setState(() {
+                  isBellHovered = false;
+                });
+              },
+              child: Stack(
+                children: [
+                  IconButton(
+                    onPressed: () {},
+                    icon: Icon(
+                      isBellHovered
+                          ? CupertinoIcons.bell_fill
+                          : CupertinoIcons.bell,
+                    ),
+                  ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC05400),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -75,7 +141,7 @@ class _HomePageState extends State<HomePage> {
           : currentIndex == 1
           ? const Center(child: Text('Explore'))
           : currentIndex == 2
-          ? const Center(child: Text('Saved'))
+          ? const Center(child: Text('Itenary'))
           : const Center(child: Text('Profile')),
       bottomNavigationBar: Stack(
         clipBehavior: Clip.none,
@@ -160,9 +226,9 @@ class _HomePageState extends State<HomePage> {
             index: 1,
           ),
           _buildNavItem(
-            icon: Icons.bookmark_outline,
-            selectedIcon: Icons.bookmark,
-            label: 'Saved',
+            icon: Icons.calendar_month_outlined,
+            selectedIcon: Icons.calendar_month,
+            label: 'Itenary',
             index: 2,
           ),
           _buildNavItem(
