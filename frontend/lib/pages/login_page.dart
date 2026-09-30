@@ -126,6 +126,7 @@ class _LoginPageState extends State<LoginPage> {
                         fillColor: Colors.grey.shade100,
                       ),
                     ),
+                    const SizedBox(height: 25),
                     MouseRegion(
                       cursor: SystemMouseCursors.click,
                       child: GestureDetector(
