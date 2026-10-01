@@ -6,6 +6,7 @@ class ManropeFont extends StatelessWidget {
   final TextStyle? style;
   final int? maxLines;
   final TextOverflow? overflow;
+  final TextAlign? textAlign;
 
   const ManropeFont(
     this.text, {
@@ -13,6 +14,7 @@ class ManropeFont extends StatelessWidget {
     this.style,
     this.maxLines,
     this.overflow,
+    this.textAlign,
   });
 
   @override
@@ -21,6 +23,7 @@ class ManropeFont extends StatelessWidget {
       text,
       maxLines: maxLines,
       overflow: overflow,
+      textAlign: textAlign,
       style: GoogleFonts.manrope(textStyle: style),
     );
   }
