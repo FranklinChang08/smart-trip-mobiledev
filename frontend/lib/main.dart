@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/pages/home_page.dart';
 import 'package:frontend/pages/loading_page.dart';
 
 // import 'pages/loading_page.dart';
