@@ -2,7 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/components/font/bebas_neue_font.dart';
 import 'package:frontend/components/font/manrope_font.dart';
+import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/pages/home_page.dart';
+import 'package:frontend/pages/login_page.dart';
+import 'package:frontend/pages/register_page.dart';
 
 class LoadingPage extends StatefulWidget {
   const LoadingPage({super.key});
@@ -34,7 +37,7 @@ class _LoadingPageState extends State<LoadingPage>
   void startJourney() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const HomePage()),
+      MaterialPageRoute(builder: (context) => const LoginPage()),
     );
   }
 
@@ -64,7 +67,7 @@ class _LoadingPageState extends State<LoadingPage>
                             borderRadius: BorderRadius.circular(100),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF00685F).withAlpha(50),
+                                color: AppColors.primary.withAlpha(50),
                                 spreadRadius: 10,
                                 blurRadius: 10,
                               ),
@@ -91,7 +94,7 @@ class _LoadingPageState extends State<LoadingPage>
                               borderRadius: BorderRadius.circular(50),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF00685F).withAlpha(50),
+                                  color: AppColors.primary.withAlpha(50),
                                   spreadRadius: 5,
                                   blurRadius: 10,
                                   offset: const Offset(0, 8),
@@ -106,7 +109,7 @@ class _LoadingPageState extends State<LoadingPage>
                                   width: 5,
                                   height: 10,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFC05400),
+                                    color: AppColors.tertiary,
                                     borderRadius: BorderRadius.circular(50),
                                   ),
                                 ),
@@ -117,14 +120,14 @@ class _LoadingPageState extends State<LoadingPage>
                                       '1.1301° N',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w800,
-                                        color: Color(0xFF00685F),
+                                        color: AppColors.primary,
                                       ),
                                     ),
                                     ManropeFont(
                                       '104.0529° E',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w800,
-                                        color: Color(0xFF00685F),
+                                        color: AppColors.primary,
                                       ),
                                     ),
                                   ],
@@ -138,9 +141,6 @@ class _LoadingPageState extends State<LoadingPage>
 
                     const SizedBox(height: 50),
 
-                    // ==========================================
-                    // LOCATION
-                    // ==========================================
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -149,7 +149,7 @@ class _LoadingPageState extends State<LoadingPage>
                       decoration: BoxDecoration(
                         color: const Color(0xFF89F5E7).withAlpha(40),
                         border: Border.all(
-                          color: const Color(0xFF00685F).withAlpha(40),
+                          color: AppColors.primary.withAlpha(40),
                         ),
                         borderRadius: BorderRadius.circular(50),
                       ),
@@ -159,12 +159,12 @@ class _LoadingPageState extends State<LoadingPage>
                         children: [
                           const Icon(
                             CupertinoIcons.compass,
-                            color: Color(0xFF00685F),
+                            color: AppColors.primary,
                           ),
                           ManropeFont(
                             'Batam',
                             style: const TextStyle(
-                              color: Color(0xFF00685F),
+                              color: AppColors.primary,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -172,14 +172,14 @@ class _LoadingPageState extends State<LoadingPage>
                             width: 5,
                             height: 5,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00685F),
+                              color: AppColors.primary,
                               borderRadius: BorderRadius.circular(100),
                             ),
                           ),
                           ManropeFont(
                             'Kepulauan Riau',
                             style: const TextStyle(
-                              color: Color(0xFF00685F),
+                              color: AppColors.primary,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -206,7 +206,7 @@ class _LoadingPageState extends State<LoadingPage>
                             BebasNeueFont(
                               'Trip',
                               style: const TextStyle(
-                                color: Color(0xFF00685F),
+                                color: AppColors.primary,
                                 fontSize: 50,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -219,7 +219,7 @@ class _LoadingPageState extends State<LoadingPage>
                           child: ManropeFont(
                             'Smart Travel Recommendation',
                             style: const TextStyle(
-                              color: Color(0xFF006399),
+                              color: AppColors.secondary,
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
                             ),
@@ -334,7 +334,7 @@ class _LoadingPageState extends State<LoadingPage>
                                   ? 'Siap memulai perjalanan'
                                   : 'Menyiapkan perjalanan...',
                               style: const TextStyle(
-                                color: Color(0xFF00685F),
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -342,7 +342,7 @@ class _LoadingPageState extends State<LoadingPage>
                             ManropeFont(
                               '$progress%',
                               style: const TextStyle(
-                                color: Color(0xFF00685F),
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -358,7 +358,7 @@ class _LoadingPageState extends State<LoadingPage>
                             minHeight: 8,
                             backgroundColor: Colors.grey.shade200,
                             valueColor: const AlwaysStoppedAnimation<Color>(
-                              Color(0xFF00685F),
+                              AppColors.primary,
                             ),
                           ),
                         ),
@@ -385,7 +385,7 @@ class _LoadingPageState extends State<LoadingPage>
                     child: ElevatedButton(
                       onPressed: isCompleted ? startJourney : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFC05400),
+                        backgroundColor: AppColors.tertiary,
                         disabledBackgroundColor: Colors.grey.shade200,
                         foregroundColor: Colors.white,
                         disabledForegroundColor: Colors.grey.shade500,
