@@ -7,6 +7,7 @@ import 'package:frontend/pages/home_page.dart';
 import 'package:frontend/pages/login_page.dart';
 import 'package:frontend/pages/register_page.dart';
 
+
 class LoadingPage extends StatefulWidget {
   const LoadingPage({super.key});
 
@@ -35,6 +36,7 @@ class _LoadingPageState extends State<LoadingPage>
   }
 
   void startJourney() {
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -47,9 +49,6 @@ class _LoadingPageState extends State<LoadingPage>
       body: SafeArea(
         child: Column(
           children: [
-            // ==========================================
-            // CONTENT
-            // ==========================================
             Expanded(
               child: Center(
                 child: Column(
@@ -60,11 +59,12 @@ class _LoadingPageState extends State<LoadingPage>
                       alignment: Alignment.center,
                       children: [
                         Container(
-                          width: 150,
-                          height: 150,
+                          width: 125,
+                          height: 125,
+                          margin: const EdgeInsets.only(bottom: 14),
                           decoration: BoxDecoration(
+                            shape: BoxShape.circle,
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(100),
                             boxShadow: [
                               BoxShadow(
                                 color: AppColors.primary.withAlpha(50),
@@ -72,10 +72,12 @@ class _LoadingPageState extends State<LoadingPage>
                                 blurRadius: 10,
                               ),
                             ],
-                            image: const DecorationImage(
-                              image: AssetImage('assets/icon_apps.png'),
+                          ),
+                          padding: const EdgeInsets.all(18),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/logo_smarttrip.png',
                               fit: BoxFit.contain,
-                              alignment: Alignment.topCenter,
                             ),
                           ),
                         ),
@@ -187,9 +189,6 @@ class _LoadingPageState extends State<LoadingPage>
                       ),
                     ),
 
-                    // ==========================================
-                    // BRAND
-                    // ==========================================
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -237,9 +236,6 @@ class _LoadingPageState extends State<LoadingPage>
 
                         const SizedBox(height: 48),
 
-                        // ==========================================
-                        // TAGS
-                        // ==========================================
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           spacing: 16,
@@ -305,10 +301,6 @@ class _LoadingPageState extends State<LoadingPage>
                 ),
               ),
             ),
-
-            // ==========================================
-            // LOADING BAR
-            // ==========================================
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: AnimatedBuilder(
@@ -369,9 +361,6 @@ class _LoadingPageState extends State<LoadingPage>
               ),
             ),
 
-            // ==========================================
-            // BUTTON
-            // ==========================================
             AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
