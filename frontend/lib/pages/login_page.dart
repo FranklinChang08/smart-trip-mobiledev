@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:frontend/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/auth_service.dart';
 import 'home_page.dart';
 import 'register_page.dart';
-class AppColors {
-  static const Color primaryOrange = Color(0xFFC05400);
-  static const Color primaryTeal = Color(0xFF00685F);
-  static const Color oceanBlue = Color(0xFF006399);
-  static const Color textDark = Color(0xFF1E293B);
-  static const Color textMuted = Color(0xFF64748B);
-  static const Color borderLight = Color(0xFFD1D5DB);
-  static const Color errorRed = Color(0xFFDC2626);
-}
 
 /// Halaman Login 
 class LoginPage extends StatefulWidget {
@@ -152,7 +144,7 @@ class _LoginPageState extends State<LoginPage> {
         children: [
           IconButton(
             onPressed: () => Navigator.maybePop(context),
-            icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+            icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           ),
           Row(
             children: [
@@ -167,14 +159,14 @@ class _LoginPageState extends State<LoginPage> {
                 style: GoogleFonts.lora(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primaryTeal,
+                  color: AppColors.primary,
                 ),
               ),
             ],
           ),
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.help_outline, color: AppColors.textDark),
+            icon: const Icon(Icons.help_outline, color: AppColors.textPrimary),
           ),
         ],
       ),
@@ -218,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.textDark, width: 1.2),
+              border: Border.all(color: AppColors.textPrimary, width: 1.2),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -227,7 +219,7 @@ class _LoginPageState extends State<LoginPage> {
                   width: 4,
                   height: 10,
                   decoration: BoxDecoration(
-                    color: AppColors.textDark,
+                    color: AppColors.textPrimary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -237,7 +229,7 @@ class _LoginPageState extends State<LoginPage> {
                   style: GoogleFonts.manrope(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -257,7 +249,7 @@ class _LoginPageState extends State<LoginPage> {
           style: GoogleFonts.lora(
             fontSize: 22,
             fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
+            color: AppColors.textPrimary,
             height: 1.25,
           ),
         ),
@@ -277,7 +269,7 @@ class _LoginPageState extends State<LoginPage> {
               style: GoogleFonts.manrope(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
+                color: AppColors.textPrimary,
               ),
             ),
             Text(
@@ -285,7 +277,7 @@ class _LoginPageState extends State<LoginPage> {
               style: GoogleFonts.manrope(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primaryTeal,
+                color: AppColors.primary,
               ),
             ),
           ],
@@ -314,7 +306,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             prefixIcon: const Icon(
               Icons.mail_outline_rounded,
-              color: AppColors.textDark,
+              color: AppColors.textPrimary,
               size: 20,
             ),
             filled: true,
@@ -323,11 +315,11 @@ class _LoginPageState extends State<LoginPage> {
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderLight, width: 1.2),
+              borderSide: const BorderSide(color: AppColors.surface, width: 1.2),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primaryOrange, width: 1.5),
+              borderSide: const BorderSide(color: AppColors.tertiary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -352,7 +344,7 @@ class _LoginPageState extends State<LoginPage> {
           style: GoogleFonts.manrope(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 6),
@@ -363,7 +355,7 @@ class _LoginPageState extends State<LoginPage> {
           style: TextStyle(
             fontSize: _obscurePassword ? 13 : 14,
             letterSpacing: _obscurePassword ? 2.5 : 0.0,
-            color: AppColors.textDark,
+            color: AppColors.textPrimary,
             fontFamily: _obscurePassword ? null : GoogleFonts.manrope().fontFamily,
           ),
           onChanged: (_) {
@@ -385,7 +377,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             prefixIcon: const Icon(
               Icons.lock_outline_rounded,
-              color: AppColors.textDark,
+              color: AppColors.textPrimary,
               size: 20,
             ),
             suffixIcon: IconButton(
@@ -394,7 +386,7 @@ class _LoginPageState extends State<LoginPage> {
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
                 size: 20,
-                color: AppColors.textDark,
+                color: AppColors.textPrimary,
               ),
               onPressed: () =>
                   setState(() => _obscurePassword = !_obscurePassword),
@@ -405,11 +397,11 @@ class _LoginPageState extends State<LoginPage> {
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderLight, width: 1.2),
+              borderSide: const BorderSide(color: AppColors.surface, width: 1.2),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primaryOrange, width: 1.5),
+              borderSide: const BorderSide(color: AppColors.tertiary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -437,11 +429,11 @@ class _LoginPageState extends State<LoginPage> {
               width: 20,
               child: Checkbox(
                 value: _rememberMe,
-                activeColor: AppColors.primaryTeal,
+                activeColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(4),
                 ),
-                side: const BorderSide(color: AppColors.borderLight, width: 1.5),
+                side: const BorderSide(color: AppColors.surface, width: 1.5),
                 onChanged: (val) => setState(() => _rememberMe = val ?? false),
               ),
             ),
@@ -453,7 +445,7 @@ class _LoginPageState extends State<LoginPage> {
                 style: GoogleFonts.manrope(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textMuted,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ),
@@ -466,7 +458,7 @@ class _LoginPageState extends State<LoginPage> {
             style: GoogleFonts.manrope(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.oceanBlue,
+              color: AppColors.secondary,
             ),
           ),
         ),
@@ -481,9 +473,9 @@ class _LoginPageState extends State<LoginPage> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleLogin,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryOrange,
+          backgroundColor: AppColors.tertiary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.primaryOrange.withValues(alpha: 0.6),
+          disabledBackgroundColor: AppColors.tertiary.withValues(alpha: 0.6),
           elevation: 1,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -519,7 +511,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildDivider() {
     return Row(
       children: [
-        const Expanded(child: Divider(color: AppColors.borderLight)),
+        const Expanded(child: Divider(color: AppColors.surface)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
@@ -527,11 +519,11 @@ class _LoginPageState extends State<LoginPage> {
             style: GoogleFonts.manrope(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppColors.textMuted,
+              color: AppColors.textSecondary,
             ),
           ),
         ),
-        const Expanded(child: Divider(color: AppColors.borderLight)),
+        const Expanded(child: Divider(color: AppColors.surface)),
       ],
     );
   }
@@ -543,8 +535,8 @@ class _LoginPageState extends State<LoginPage> {
       child: OutlinedButton(
         onPressed: () {}, // TODO: implementasi Google OAuth
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textDark,
-          side: const BorderSide(color: AppColors.borderLight, width: 1.2),
+          foregroundColor: AppColors.textPrimary,
+          side: const BorderSide(color: AppColors.surface, width: 1.2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -584,10 +576,10 @@ class _LoginPageState extends State<LoginPage> {
           );
         },
         style: OutlinedButton.styleFrom(
-          backgroundColor: AppColors.primaryTeal.withValues(alpha: 0.06),
-          foregroundColor: AppColors.primaryTeal,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.06),
+          foregroundColor: AppColors.primary,
           side: BorderSide(
-            color: AppColors.primaryTeal.withValues(alpha: 0.25),
+            color: AppColors.primary.withValues(alpha: 0.25),
             width: 1.2,
           ),
           shape: RoundedRectangleBorder(
@@ -614,7 +606,7 @@ class _LoginPageState extends State<LoginPage> {
           'Belum punya akun SmartTrip? ',
           style: GoogleFonts.manrope(
             fontSize: 13,
-            color: AppColors.textMuted,
+            color: AppColors.textSecondary,
           ),
         ),
         GestureDetector(
@@ -624,7 +616,7 @@ class _LoginPageState extends State<LoginPage> {
             style: GoogleFonts.manrope(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: AppColors.primaryTeal,
+              color: AppColors.primary,
             ),
           ),
         ),
@@ -646,7 +638,7 @@ class _LoginPageState extends State<LoginPage> {
           const Icon(
             Icons.verified_user_rounded,
             size: 15,
-            color: AppColors.primaryTeal,
+            color: AppColors.primary,
           ),
           const SizedBox(width: 6),
           Text(
@@ -654,7 +646,7 @@ class _LoginPageState extends State<LoginPage> {
             style: GoogleFonts.manrope(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: AppColors.textMuted,
+              color: AppColors.textSecondary,
             ),
           ),
         ],

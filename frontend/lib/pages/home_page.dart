@@ -5,6 +5,7 @@ import 'package:frontend/components/font/bebas_neue_font.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/components/font/noto_font.dart';
 import 'package:frontend/components/slider_home.dart';
+import 'package:frontend/core/theme/app_colors.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -484,7 +485,7 @@ Widget _buildHomePage() {
           ),
           const ManropeFont(
             'Pilihan Kuliner',
-            style: TextStyle(color: Color(0xFF994100), fontSize: 16),
+            style: TextStyle(color: AppColors.tertiary, fontSize: 16),
           ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -772,7 +773,7 @@ Widget _buildFoodCard(
                           Icon(
                             CupertinoIcons.clock,
                             size: 16,
-                            color: Color(0xFF994100),
+                            color: AppColors.tertiary,
                           ),
                           ManropeFont(jam),
                         ],
@@ -799,7 +800,7 @@ Widget _buildFoodCard(
                       ManropeFont(
                         price,
                         style: const TextStyle(
-                          color: Color(0xFF994100),
+                          color: AppColors.tertiary,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -807,7 +808,7 @@ Widget _buildFoodCard(
                       const ManropeFont(
                         '/ Porsi',
                         style: TextStyle(
-                          color: Color(0xFF994100),
+                          color: AppColors.tertiary,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),

@@ -5,9 +5,9 @@ import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/components/font/noto_font.dart';
 import 'package:frontend/components/text_field_v1.dart';
 import 'package:frontend/core/theme/app_colors.dart';
+import 'package:frontend/pages/login_page.dart';
 import 'package:frontend/services/auth/register_services.dart';
-
-import 'login_page.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -20,6 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   // STATE DI SINI
 
   bool isBellHovered = false;
+  bool _isLoading = false;
 
   final nameController = TextEditingController();
   final emailController = TextEditingController();
@@ -34,17 +35,18 @@ class _RegisterPageState extends State<RegisterPage> {
   String? confirmPasswordError;
 
   final AuthService authService = AuthService();
-
   Future<void> register() async {
-    try {
-      setState(() {
-        nameError = null;
-        emailError = null;
-        phoneError = null;
-        passwordError = null;
-        confirmPasswordError = null;
-      });
+    setState(() {
+      _isLoading = true;
 
+      nameError = null;
+      emailError = null;
+      phoneError = null;
+      passwordError = null;
+      confirmPasswordError = null;
+    });
+
+    try {
       final result = await authService.register(
         name: nameController.text,
         email: emailController.text,
@@ -65,6 +67,8 @@ class _RegisterPageState extends State<RegisterPage> {
           phoneError = errors['phone']?[0];
           passwordError = errors['password']?[0];
           confirmPasswordError = errors['password_confirmation']?[0];
+
+          _isLoading = false;
         });
 
         return;
@@ -75,13 +79,29 @@ class _RegisterPageState extends State<RegisterPage> {
 
         if (!mounted) return;
 
+        setState(() {
+          _isLoading = false;
+        });
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const LoginPage()),
         );
+
+        return;
       }
+
+      setState(() {
+        _isLoading = false;
+      });
     } catch (e) {
       print('Error: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -262,76 +282,165 @@ class _RegisterPageState extends State<RegisterPage> {
 
               const SizedBox(height: 25),
 
-              AppTextField(
-                label: 'Full Name',
-                hintText: 'Your Full Name',
-                prefixIcon: Icons.person_2_outlined,
-                controller: nameController,
-                errorText: nameError,
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    AppTextField(
+                      label: 'Full Name',
+                      hintText: 'Your Full Name',
+                      prefixIcon: Icons.person_2_outlined,
+                      controller: nameController,
+                      errorText: nameError,
+                    ),
+                    const SizedBox(height: 25),
+
+                    AppTextField(
+                      label: 'Alamat Email',
+                      hintText: 'nama@email.com',
+                      prefixIcon: Icons.email_outlined,
+                      controller: emailController,
+                      errorText: emailError,
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    AppTextField(
+                      label: 'Phone Number',
+                      hintText: '+62 8xx xxxx xxxx',
+                      prefixIcon: Icons.phone_android_outlined,
+                      controller: phoneController,
+                      errorText: phoneError,
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    AppTextField(
+                      label: 'Kata Sandi',
+                      hintText: 'Minimal 8 karakter',
+                      prefixIcon: Icons.lock_outline,
+                      controller: passwordController,
+                      obscureText: true,
+                      errorText: passwordError,
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    AppTextField(
+                      label: 'Konfirmasi Kata Sandi',
+                      hintText: 'Ulangi kata sandi Anda',
+                      prefixIcon: Icons.shield_outlined,
+                      controller: confirmPasswordController,
+                      obscureText: true,
+                      errorText: confirmPasswordError,
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : register,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.tertiary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ManropeFont(
+                                    'Buat Akun Wisatawan',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Icon(Icons.chevron_right),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 25),
-
-              AppTextField(
-                label: 'Alamat Email',
-                hintText: 'nama@email.com',
-                prefixIcon: Icons.email_outlined,
-                controller: emailController,
-                errorText: emailError,
-              ),
-
-              const SizedBox(height: 25),
-
-              AppTextField(
-                label: 'Phone Number',
-                hintText: '+62 8xx xxxx xxxx',
-                prefixIcon: Icons.phone_android_outlined,
-                controller: phoneController,
-                errorText: phoneError,
-              ),
-
-              const SizedBox(height: 25),
-
-              AppTextField(
-                label: 'Kata Sandi',
-                hintText: 'Minimal 8 karakter',
-                prefixIcon: Icons.lock_outline,
-                controller: passwordController,
-                obscureText: true,
-                errorText: passwordError,
-              ),
-
-              const SizedBox(height: 25),
-
-              AppTextField(
-                label: 'Konfirmasi Kata Sandi',
-                hintText: 'Ulangi kata sandi Anda',
-                prefixIcon: Icons.shield_outlined,
-                controller: confirmPasswordController,
-                obscureText: true,
-                errorText: confirmPasswordError,
-              ),
-
               const SizedBox(height: 30),
-
+              Row(
+                children: [
+                  const Expanded(child: Divider(color: AppColors.surface)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: ManropeFont(
+                      'ATAU DAFTAR LEBIH CEPAT DENGAN',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const Expanded(child: Divider(color: AppColors.surface)),
+                ],
+              ),
+              const SizedBox(height: 30),
               SizedBox(
                 width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: register,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.tertiary,
-                    foregroundColor: Colors.white,
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: () {}, // TODO: implementasi Google OAuth
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.textPrimary,
+                    side: const BorderSide(color: Colors.white, width: 1.2),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    elevation: 0,
+                    elevation: 3,
+                    shadowColor: Colors.black26,
                   ),
-                  child: ManropeFont(
-                    'Buat Akun Wisatawan',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const FaIcon(
+                        FontAwesomeIcons.google,
+                        size: 16,
+                        color: Color(0xFFEA4335),
+                      ),
+                      const SizedBox(width: 10),
+                      ManropeFont(
+                        'Register With Google',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

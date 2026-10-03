@@ -25,9 +25,12 @@ class RegisterController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
+        $token = $user->createToken('smarttrip-token')->plainTextToken;
+
         return response()->json([
             'message' => 'Registrasi berhasil',
             'user' => $user,
+            'token' => $token,
         ], 201);
     }
 }
