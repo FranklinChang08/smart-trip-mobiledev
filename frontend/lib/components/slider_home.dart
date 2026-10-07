@@ -19,10 +19,8 @@ class _AutoSliderState extends State<AutoSlider> {
     'assets/images/banner1.jpeg',
     'assets/images/banner2.webp',
     'assets/images/banner3.jpg',
-    // Tambahkan sampai lebih dari 5 jika diperlukan
     'assets/images/chengho.jpg',
     'assets/images/vihara.jpg',
-    // 'assets/images/banner6.jpg',
   ];
 
   @override

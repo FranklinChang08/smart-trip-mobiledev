@@ -4,7 +4,6 @@ import 'package:frontend/components/font/bebas_neue_font.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/pages/login_page.dart';
-import 'package:frontend/pages/register_page.dart';
 
 class LoadingPage extends StatefulWidget {
   const LoadingPage({super.key});
@@ -46,9 +45,7 @@ class _LoadingPageState extends State<LoadingPage>
       body: SafeArea(
         child: Column(
           children: [
-            // ==========================================
-            // CONTENT
-            // ==========================================
+           
             Expanded(
               child: Center(
                 child: Column(
@@ -186,9 +183,6 @@ class _LoadingPageState extends State<LoadingPage>
                       ),
                     ),
 
-                    // ==========================================
-                    // BRAND
-                    // ==========================================
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -236,9 +230,6 @@ class _LoadingPageState extends State<LoadingPage>
 
                         const SizedBox(height: 48),
 
-                        // ==========================================
-                        // TAGS
-                        // ==========================================
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           spacing: 16,
@@ -305,9 +296,6 @@ class _LoadingPageState extends State<LoadingPage>
               ),
             ),
 
-            // ==========================================
-            // LOADING BAR
-            // ==========================================
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: AnimatedBuilder(
@@ -368,9 +356,6 @@ class _LoadingPageState extends State<LoadingPage>
               ),
             ),
 
-            // ==========================================
-            // BUTTON
-            // ==========================================
             AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {

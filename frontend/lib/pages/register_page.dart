@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/components/app_notification.dart';
 import 'package:frontend/components/font/bebas_neue_font.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/components/font/noto_font.dart';
@@ -17,7 +18,6 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  // STATE DI SINI
 
   bool isBellHovered = false;
   bool _isLoading = false;
@@ -35,53 +35,126 @@ class _RegisterPageState extends State<RegisterPage> {
   String? confirmPasswordError;
 
   final AuthService authService = AuthService();
-  Future<void> register() async {
-    setState(() {
-      _isLoading = true;
 
-      nameError = null;
-      emailError = null;
-      phoneError = null;
-      passwordError = null;
-      confirmPasswordError = null;
+  Future<void> register() async {
+    final name = nameController.text.trim();
+    final email = emailController.text.trim();
+    final phone = phoneController.text.trim();
+    final password = passwordController.text;
+    final confirmPassword = confirmPasswordController.text;
+
+    final emailRegex = RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$');
+
+    setState(() {
+      nameError = name.isEmpty ? 'Nama lengkap wajib diisi' : null;
+
+      if (email.isEmpty) {
+        emailError = 'Alamat email wajib diisi';
+      } else if (!emailRegex.hasMatch(email)) {
+        emailError = 'Format email tidak valid';
+      } else {
+        emailError = null;
+      }
+
+      phoneError = phone.isEmpty ? 'Nomor telepon wajib diisi' : null;
+
+      if (password.isEmpty) {
+        passwordError = 'Kata sandi wajib diisi';
+      } else if (password.length < 8) {
+        passwordError = 'Kata sandi minimal 8 karakter';
+      } else {
+        passwordError = null;
+      }
+
+      if (confirmPassword.isEmpty) {
+        confirmPasswordError = 'Konfirmasi kata sandi wajib diisi';
+      } else if (confirmPassword != password) {
+        confirmPasswordError = 'Konfirmasi kata sandi tidak cocok';
+      } else {
+        confirmPasswordError = null;
+      }
     });
+
+    if (nameError != null ||
+        emailError != null ||
+        phoneError != null ||
+        passwordError != null ||
+        confirmPasswordError != null) {
+      AppNotification.showError(
+        context,
+        title: 'Form Belum Lengkap',
+        message: 'Silakan lengkapi kolom yang ditandai merah.',
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
 
     try {
       final result = await authService.register(
-        name: nameController.text,
-        email: emailController.text,
-        phone: phoneController.text,
-        password: passwordController.text,
-        passwordConfirmation: confirmPasswordController.text,
+        name: name,
+        email: email,
+        phone: phone,
+        password: password,
+        passwordConfirmation: confirmPassword,
       );
 
       final statusCode = result['statusCode'];
       final data = result['data'];
 
       if (statusCode == 422) {
-        final errors = data['errors'];
+        final errors = data['errors'] as Map<String, dynamic>?;
+
+        String? parseError(dynamic fieldError) {
+          if (fieldError == null) return null;
+          final msg = (fieldError is List && fieldError.isNotEmpty)
+              ? fieldError[0].toString()
+              : fieldError.toString();
+          if (msg.contains('already been taken')) {
+            return 'Sudah terdaftar. Silakan gunakan yang lain.';
+          }
+          if (msg.contains('must be at least')) {
+            return 'Minimal 8 karakter.';
+          }
+          if (msg.contains('confirmation does not match')) {
+            return 'Konfirmasi kata sandi tidak cocok.';
+          }
+          return msg;
+        }
 
         setState(() {
-          nameError = errors['name']?[0];
-          emailError = errors['email']?[0];
-          phoneError = errors['phone']?[0];
-          passwordError = errors['password']?[0];
-          confirmPasswordError = errors['password_confirmation']?[0];
-
+          nameError = parseError(errors?['name']);
+          emailError = parseError(errors?['email']);
+          phoneError = parseError(errors?['phone']);
+          passwordError = parseError(errors?['password']);
+          confirmPasswordError = parseError(errors?['password_confirmation']);
           _isLoading = false;
         });
+
+        if (!mounted) return;
+        AppNotification.showError(
+          context,
+          title: 'Registrasi Ditolak',
+          message: 'Email atau nomor telepon sudah terdaftar.',
+        );
 
         return;
       }
 
       if (statusCode == 201) {
-        print('Registrasi berhasil');
-
         if (!mounted) return;
 
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
+
+        AppNotification.showSuccess(
+          context,
+          title: 'Akun Berhasil Dibuat!',
+          message: 'Pendaftaran sukses. Mengalihkan ke halaman masuk...',
+        );
+
+        await Future.delayed(const Duration(milliseconds: 900));
+
+        if (!mounted) return;
 
         Navigator.pushReplacement(
           context,
@@ -91,17 +164,26 @@ class _RegisterPageState extends State<RegisterPage> {
         return;
       }
 
-      setState(() {
-        _isLoading = false;
-      });
-    } catch (e) {
-      print('Error: $e');
+      setState(() => _isLoading = false);
 
+      final msg = data['message'] ?? 'Terjadi kesalahan saat pendaftaran.';
+      if (mounted) {
+        AppNotification.showError(
+          context,
+          title: 'Pendaftaran Gagal',
+          message: msg.toString(),
+        );
+      }
+    } catch (e) {
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
+
+      AppNotification.showError(
+        context,
+        title: 'Koneksi Terputus',
+        message: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
+      );
     }
   }
 
@@ -242,8 +324,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.white.withOpacity(0),
-                            Colors.white.withOpacity(0.5),
+                            Colors.white.withValues(alpha: 0),
+                            Colors.white.withValues(alpha: 0.5),
                             Colors.white,
                           ],
                           stops: const [0, 0.1, 0.2],
@@ -303,6 +385,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       prefixIcon: Icons.person_2_outlined,
                       controller: nameController,
                       errorText: nameError,
+                      onChanged: (_) {
+                        if (nameError != null) setState(() => nameError = null);
+                      },
                     ),
                     const SizedBox(height: 25),
 
@@ -311,7 +396,11 @@ class _RegisterPageState extends State<RegisterPage> {
                       hintText: 'nama@email.com',
                       prefixIcon: Icons.email_outlined,
                       controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
                       errorText: emailError,
+                      onChanged: (_) {
+                        if (emailError != null) setState(() => emailError = null);
+                      },
                     ),
 
                     const SizedBox(height: 25),
@@ -321,7 +410,11 @@ class _RegisterPageState extends State<RegisterPage> {
                       hintText: '+62 8xx xxxx xxxx',
                       prefixIcon: Icons.phone_android_outlined,
                       controller: phoneController,
+                      keyboardType: TextInputType.phone,
                       errorText: phoneError,
+                      onChanged: (_) {
+                        if (phoneError != null) setState(() => phoneError = null);
+                      },
                     ),
 
                     const SizedBox(height: 25),
@@ -333,6 +426,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: passwordController,
                       obscureText: true,
                       errorText: passwordError,
+                      onChanged: (_) {
+                        if (passwordError != null) setState(() => passwordError = null);
+                      },
                     ),
 
                     const SizedBox(height: 25),
@@ -344,6 +440,11 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: confirmPasswordController,
                       obscureText: true,
                       errorText: confirmPasswordError,
+                      onChanged: (_) {
+                        if (confirmPasswordError != null) {
+                          setState(() => confirmPasswordError = null);
+                        }
+                      },
                     ),
 
                     const SizedBox(height: 30),

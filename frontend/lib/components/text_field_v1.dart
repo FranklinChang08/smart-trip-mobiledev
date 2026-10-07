@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
@@ -13,6 +12,7 @@ class AppTextField extends StatelessWidget {
   final TextEditingController? controller;
   final bool obscureText;
   final TextInputType? keyboardType;
+  final ValueChanged<String>? onChanged;
 
   const AppTextField({
     super.key,
@@ -25,6 +25,7 @@ class AppTextField extends StatelessWidget {
     this.controller,
     this.obscureText = false,
     this.keyboardType,
+    this.onChanged,
   });
 
   @override
@@ -32,19 +33,10 @@ class AppTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ManropeFont(
+        ManropeFont(
               label,
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             ),
-            ManropeFont(
-              'Wajib',
-              style: const TextStyle(color: AppColors.primary, fontSize: 14),
-            ),
-          ],
-        ),
 
         const SizedBox(height: 8),
 
@@ -52,6 +44,7 @@ class AppTextField extends StatelessWidget {
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
+          onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: TextStyle(color: Colors.grey.shade400),

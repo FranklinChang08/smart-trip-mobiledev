@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:frontend/components/app_notification.dart';
+import 'package:frontend/components/text_field_v1.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -56,6 +58,11 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     if (_emailError != null || _passwordError != null) {
+      AppNotification.showError(
+        context,
+        title: 'Form Belum Lengkap',
+        message: 'Mohon isi email dan kata sandi Anda dengan benar.',
+      );
       return;
     }
 
@@ -67,6 +74,15 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = false);
 
     if (result.success) {
+      AppNotification.showSuccess(
+        context,
+        title: 'Login Berhasil',
+        message: 'Selamat datang kembali di SmartTrip!',
+      );
+
+      await Future.delayed(const Duration(milliseconds: 700));
+      if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
@@ -80,6 +96,11 @@ class _LoginPageState extends State<LoginPage> {
           _passwordError = errorMsg;
         }
       });
+      AppNotification.showError(
+        context,
+        title: 'Gagal Masuk',
+        message: errorMsg,
+      );
     }
   }
 
@@ -258,162 +279,38 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildEmailInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Alamat Email',
-              style: GoogleFonts.manrope(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            Text(
-              'Wajib',
-              style: GoogleFonts.manrope(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
-          style: GoogleFonts.manrope(fontSize: 14),
-          onChanged: (_) {
-            if (_emailError != null) {
-              setState(() => _emailError = null);
-            }
-          },
-          decoration: InputDecoration(
-            hintText: 'nama@email.com',
-            hintStyle: GoogleFonts.manrope(
-              fontSize: 14,
-              color: Colors.grey.shade400,
-            ),
-            errorText: _emailError,
-            errorStyle: GoogleFonts.manrope(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.errorRed,
-            ),
-            prefixIcon: const Icon(
-              Icons.mail_outline_rounded,
-              color: AppColors.textPrimary,
-              size: 20,
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.surface, width: 1.2),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.tertiary, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.errorRed, width: 1.2),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.errorRed, width: 1.5),
-            ),
-          ),
-        ),
-      ],
+    return AppTextField(
+      label: 'Alamat Email',
+      hintText: 'nama@email.com',
+      prefixIcon: Icons.email_outlined,
+      controller: _emailController,
+      keyboardType: TextInputType.emailAddress,
+      errorText: _emailError,
+      onChanged: (_) {
+        if (_emailError != null) {
+          setState(() => _emailError = null);
+        }
+      },
     );
   }
 
   Widget _buildPasswordInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Kata Sandi',
-          style: GoogleFonts.manrope(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: _passwordController,
-          obscureText: _obscurePassword,
-          obscuringCharacter: '●',
-          style: TextStyle(
-            fontSize: _obscurePassword ? 13 : 14,
-            letterSpacing: _obscurePassword ? 2.5 : 0.0,
-            color: AppColors.textPrimary,
-            fontFamily: _obscurePassword ? null : GoogleFonts.manrope().fontFamily,
-          ),
-          onChanged: (_) {
-            if (_passwordError != null) {
-              setState(() => _passwordError = null);
-            }
-          },
-          decoration: InputDecoration(
-            hintText: 'Masukkan kata sandi',
-            hintStyle: GoogleFonts.manrope(
-              fontSize: 14,
-              color: Colors.grey.shade400,
-            ),
-            errorText: _passwordError,
-            errorStyle: GoogleFonts.manrope(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.errorRed,
-            ),
-            prefixIcon: const Icon(
-              Icons.lock_outline_rounded,
-              color: AppColors.textPrimary,
-              size: 20,
-            ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                size: 20,
-                color: AppColors.textPrimary,
-              ),
-              onPressed: () =>
-                  setState(() => _obscurePassword = !_obscurePassword),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.surface, width: 1.2),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.tertiary, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.errorRed, width: 1.2),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.errorRed, width: 1.5),
-            ),
-          ),
-        ),
-      ],
+    return AppTextField(
+      label: 'Kata Sandi',
+      hintText: 'Masukkan kata sandi',
+      prefixIcon: Icons.lock_outline,
+      controller: _passwordController,
+      obscureText: _obscurePassword,
+      errorText: _passwordError,
+      suffixIcon: _obscurePassword
+          ? Icons.visibility_outlined
+          : Icons.visibility_off_outlined,
+      onSuffixTap: () => setState(() => _obscurePassword = !_obscurePassword),
+      onChanged: (_) {
+        if (_passwordError != null) {
+          setState(() => _passwordError = null);
+        }
+      },
     );
   }
 
@@ -533,7 +430,7 @@ class _LoginPageState extends State<LoginPage> {
       width: double.infinity,
       height: 48,
       child: OutlinedButton(
-        onPressed: () {}, // TODO: implementasi Google OAuth
+        onPressed: () {},
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
           side: const BorderSide(color: AppColors.surface, width: 1.2),
@@ -569,7 +466,6 @@ class _LoginPageState extends State<LoginPage> {
       height: 48,
       child: OutlinedButton.icon(
         onPressed: () {
-          // Tamu langsung ke HomePage tanpa token
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const HomePage()),
