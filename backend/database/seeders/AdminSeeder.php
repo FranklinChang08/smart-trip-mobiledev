@@ -13,19 +13,19 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        $existingPhoneUser = User::where('phone', '085819808954')
+        $existingPhoneUser = User::where('no_hp', '085819808954')
             ->where('email', '!=', 'admin@gmail.com')
             ->first();
 
         if ($existingPhoneUser) {
-            $existingPhoneUser->update(['phone' => '085819808950']);
+            $existingPhoneUser->update(['no_hp' => '085819808950']);
         }
 
         User::updateOrCreate(
             ['email' => 'admin@gmail.com'],
             [
-                'name' => 'Admin',
-                'phone' => '085819808954',
+                'nama_pengguna' => 'Admin',
+                'no_hp' => '085819808954',
                 'role' => 'admin',
                 'password' => Hash::make('admin123'),
             ]

@@ -6,21 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Admin Dashboard') - SmartTrip</title>
 
-    <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+    @vite('resources/css/app.css')
 </head>
 
-<body>
+<body class="min-h-screen flex bg-background text-textPrimary antialiased font-manrope">
 
     <!-- A. Sidebar (Kiri) -->
-    @include('layouts.admin.sidebar')
 
+    @include('components.sidebar')
     <!-- B. Main Content Area -->
-    <div class="layout-main">
+    <div class="flex flex-col flex-1 min-w-0">
         <!-- Topbar -->
-        @include('layouts.admin.topbar')
+        @include('components.topbar')
 
         <!-- Main Body -->
-        <main class="page-body">
+        <main class="p-8 flex-1">
             @yield('content')
         </main>
     </div>

@@ -7,88 +7,13 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>SmartTrip - Login Admin</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;0,700;1,600&family=Manrope:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        lora: ['"Lora"', 'serif'],
-                        manrope: ['"Manrope"', 'sans-serif'],
-                        sans: ['"Manrope"', 'sans-serif'],
-                    },
-                    colors: {
-                        app: {
-                            primary: '#00685F',
-                            secondary: '#0369A1',
-                            tertiary: '#F97316',
-                            background: '#F8FAFC',
-                            textPrimary: '#111827',
-                            textSecondary: '#6B7280',
-                            border: '#E5E7EB',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        body {
-            font-family: 'Manrope', sans-serif;
-            background-color: #F8FAFC;
-            color: #111827;
-        }
-
-        .heading-lora {
-            font-family: 'Lora', serif;
-        }
-
-        .input-field {
-            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-        }
-
-        .input-field:focus {
-            border-color: #00685F !important;
-            box-shadow: 0 0 0 3px rgba(0, 104, 95, 0.12);
-            outline: none;
-        }
-
-        .input-error {
-            border-color: #DC2626 !important;
-        }
-
-        .input-error:focus {
-            border-color: #DC2626 !important;
-            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
-        }
-
-        .btn-login {
-            background-color: #F97316;
-            transition: all 0.2s ease;
-        }
-
-        .btn-login:hover {
-            background-color: #EA580C;
-            box-shadow: 0 4px 14px rgba(249, 115, 22, 0.28);
-        }
-
-        .btn-login:active {
-            transform: scale(0.99);
-        }
-    </style>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body
-    class="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-slate-50 selection:bg-teal-600 selection:text-white">
+    class="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-background selection:bg-teal-600 selection:text-white">
 
-    <div class="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl border border-gray-200/90 shadow-sm p-6 sm:p-8">
+    <div class="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl border border-border/90 shadow-sm p-6 sm:p-8">
 
         <!-- Logo & Header -->
         <div class="flex flex-col items-center">
@@ -100,19 +25,19 @@
                 </div>
 
                 <div
-                    class="-mt-3 bg-white px-3 py-1 rounded-full border-[1.2px] border-[#111827] shadow-sm flex items-center gap-1.5 z-10">
-                    <span class="w-1 h-2.5 rounded-sm bg-[#111827]"></span>
-                    <span class="text-[10px] font-bold tracking-tight text-[#111827]">
+                    class="-mt-3 bg-white px-3 py-1 rounded-full border-[1.2px] border-textPrimary shadow-sm flex items-center gap-1.5 z-10">
+                    <span class="w-1 h-2.5 rounded-sm bg-textPrimary"></span>
+                    <span class="text-[10px] font-bold tracking-tight text-textPrimary">
                         1.1301° N, 104.0529° E
                     </span>
                 </div>
             </div>
 
             <div class="text-center mt-1 mb-6">
-                <h1 class="heading-lora text-2xl font-bold text-[#111827] leading-snug">
+                <h1 class="font-noto text-2xl font-bold text-textPrimary leading-snug">
                     Selamat Datang, Admin
                 </h1>
-                <p class="text-xs text-[#6B7280] font-medium mt-1.5">
+                <p class="text-xs text-textSecondary font-medium mt-1.5">
                     Masuk untuk mengelola data destinasi SmartTrip
                 </p>
             </div>
@@ -120,7 +45,8 @@
 
         <!-- Feedback Messages (Success / Status) -->
         @if (session('status'))
-            <div class="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+            <div
+                class="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
                 <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
@@ -129,7 +55,8 @@
         @endif
 
         @if (session('success'))
-            <div class="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+            <div
+                class="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
                 <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
@@ -138,7 +65,8 @@
         @endif
 
         @if (session('error'))
-            <div class="mb-4 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+            <div
+                class="mb-4 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
                 <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -147,13 +75,13 @@
             </div>
         @endif
 
-        <!-- Form Login (novalidate digunakan untuk mematikan tooltip bawaan browser 'Please fill out this field') -->
-        <form action="{{ route('admin.login.submit') }}" method="POST" id="loginForm" class="space-y-4" novalidate>
+        <!-- Form Login -->
+        <form action="{{ route('login.submit') }}" method="POST" id="loginForm" class="space-y-4" novalidate>
             @csrf
 
             <!-- Input Alamat Email -->
             <div>
-                <label for="email" class="block text-sm font-semibold text-[#111827] mb-2">
+                <label for="email" class="block text-sm font-semibold text-textPrimary mb-2">
                     Alamat Email
                 </label>
                 <div class="relative">
@@ -166,16 +94,17 @@
                     </div>
                     <input type="text" id="email" name="email" value="{{ old('email') }}" autofocus
                         placeholder="nama@email.com"
-                        class="input-field w-full pl-11 pr-4 py-3 rounded-xl bg-white border {{ $errors->has('email') ? 'input-error' : 'border-gray-300' }} text-sm text-[#111827] placeholder-gray-400 font-sans">
+                        class="w-full pl-11 pr-4 py-3 rounded-xl bg-white border {{ $errors->has('email') ? 'border-red-600 focus:border-red-600 focus:ring-3 focus:ring-red-600/12' : 'border-gray-300 focus:border-primary focus:ring-3 focus:ring-primary/12' }} text-sm text-textPrimary placeholder-gray-400 font-sans outline-none transition-all duration-150">
                 </div>
-                <p id="emailError" class="text-xs text-[#DC2626] mt-1.5 ml-1 font-medium {{ $errors->has('email') ? '' : 'hidden' }}">
+                <p id="emailError"
+                    class="text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('email') ? '' : 'hidden' }}">
                     {{ $errors->first('email') }}
                 </p>
             </div>
 
             <!-- Input Kata Sandi -->
             <div>
-                <label for="password" class="block text-sm font-semibold text-[#111827] mb-2">
+                <label for="password" class="block text-sm font-semibold text-textPrimary mb-2">
                     Kata Sandi
                 </label>
                 <div class="relative">
@@ -187,7 +116,8 @@
                         </svg>
                     </div>
                     <input type="password" id="password" name="password" placeholder="Masukkan kata sandi"
-                        class="input-field w-full pl-11 pr-11 py-3 rounded-xl bg-white border {{ $errors->has('password') ? 'input-error' : 'border-gray-300' }} text-sm text-[#111827] placeholder-gray-400 font-sans">
+                        class="w-full pl-11 pr-11 py-3 rounded-xl bg-white border {{ $errors->has('password') ? 'border-red-600 focus:border-red-600 focus:ring-3 focus:ring-red-600/12' : 'border-gray-300 focus:border-primary focus:ring-3 focus:ring-primary/12' }} text-sm text-textPrimary placeholder-gray-400 font-sans outline-none transition-all duration-150">
+
                     <!-- Tombol Hide Password -->
                     <button type="button" id="togglePasswordBtn"
                         class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -207,7 +137,8 @@
                         </svg>
                     </button>
                 </div>
-                <p id="passwordError" class="text-xs text-[#DC2626] mt-1.5 ml-1 font-medium {{ $errors->has('password') ? '' : 'hidden' }}">
+                <p id="passwordError"
+                    class="text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('password') ? '' : 'hidden' }}">
                     {{ $errors->first('password') }}
                 </p>
             </div>
@@ -215,7 +146,7 @@
             <!-- Tombol login -->
             <div class="pt-2">
                 <button type="submit" id="submitBtn"
-                    class="btn-login w-full h-12 rounded-[10px] text-white font-bold text-[15px] flex items-center justify-center gap-2 shadow-sm">
+                    class="w-full h-12 rounded-[10px] text-white font-bold text-[15px] flex items-center justify-center gap-2 shadow-sm bg-tertiary hover:bg-orange-600 hover:shadow-lg hover:shadow-orange-500/25 active:scale-[0.99] transition-all duration-200">
                     <span id="btnText" class="flex items-center gap-2">
                         <span>Login</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,7 +156,8 @@
                     </span>
                     <span id="btnLoading" class="hidden items-center gap-2">
                         <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                stroke-width="4">
                             </circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                         </svg>
@@ -259,20 +191,20 @@
         const btnText = document.getElementById('btnText');
         const btnLoading = document.getElementById('btnLoading');
 
-        // Bersihkan pesan error saat user mulai mengetik
         emailInput.addEventListener('input', () => {
-            emailInput.classList.remove('input-error');
+            emailInput.classList.remove('border-red-600', 'focus:ring-red-600/12');
+            emailInput.classList.add('border-gray-300', 'focus:border-primary', 'focus:ring-primary/12');
             emailError.textContent = '';
             emailError.classList.add('hidden');
         });
 
         passwordInput.addEventListener('input', () => {
-            passwordInput.classList.remove('input-error');
+            passwordInput.classList.remove('border-red-600', 'focus:ring-red-600/12');
+            passwordInput.classList.add('border-gray-300', 'focus:border-primary', 'focus:ring-primary/12');
             passwordError.textContent = '';
             passwordError.classList.add('hidden');
         });
 
-        // Validasi saat form disubmit
         form.addEventListener('submit', (e) => {
             let hasError = false;
 
@@ -280,28 +212,31 @@
             const passwordVal = passwordInput.value;
 
             if (!emailVal) {
-                emailInput.classList.add('input-error');
+                emailInput.classList.remove('border-gray-300', 'focus:border-primary', 'focus:ring-primary/12');
+                emailInput.classList.add('border-red-600', 'focus:ring-red-600/12');
                 emailError.textContent = 'Alamat email wajib diisi';
                 emailError.classList.remove('hidden');
                 hasError = true;
             } else {
-                emailInput.classList.remove('input-error');
+                emailInput.classList.remove('border-red-600', 'focus:ring-red-600/12');
+                emailInput.classList.add('border-gray-300', 'focus:border-primary', 'focus:ring-primary/12');
                 emailError.classList.add('hidden');
             }
 
             if (!passwordVal) {
-                passwordInput.classList.add('input-error');
+                passwordInput.classList.remove('border-gray-300', 'focus:border-primary', 'focus:ring-primary/12');
+                passwordInput.classList.add('border-red-600', 'focus:ring-red-600/12');
                 passwordError.textContent = 'Kata sandi wajib diisi';
-                passwordError.classList.remove('hidden');
+                passwordError.classList.add('hidden');
                 hasError = true;
             } else {
-                passwordInput.classList.remove('input-error');
+                passwordInput.classList.remove('border-red-600', 'focus:ring-red-600/12');
+                passwordInput.classList.add('border-gray-300', 'focus:border-primary', 'focus:ring-primary/12');
                 passwordError.classList.add('hidden');
             }
 
             if (hasError) {
                 e.preventDefault();
-                // Fokus pada field pertama yang kosong
                 if (!emailVal) {
                     emailInput.focus();
                 } else if (!passwordVal) {
@@ -310,7 +245,6 @@
                 return false;
             }
 
-            // Jika validasi client lolos, tampilkan indikator loading
             btnText.classList.add('hidden');
             btnLoading.classList.remove('hidden');
             btnLoading.classList.add('flex');
