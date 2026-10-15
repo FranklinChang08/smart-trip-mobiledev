@@ -29,7 +29,7 @@ class AuthController extends Controller
         ]);
 
         $loginInput = $request->input('email');
-        $loginField = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'name';
+        $loginField = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'nama_pengguna';
 
         $credentials = [
             $loginField => $loginInput,
@@ -72,7 +72,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route('admin.dashboard')->with('success', 'Selamat datang kembali, ' . $user->name . '!');
+        return redirect()->route('admin.dashboard')->with('success', 'Selamat datang kembali, ' . $user->nama_pengguna . '!');
     }
 
     // logout
@@ -83,6 +83,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('admin.login')->with('success', 'Anda telah berhasil logout.');
+        return redirect()->route('login')->with('success', 'Anda telah berhasil logout.');
     }
 }

@@ -14,11 +14,7 @@ class DashboardController extends Controller
         return view('admin.dashboard', compact('admin'));
     }
 
-    public function wisata()
-    {
-        $admin = Auth::user();
-        return view('admin.wisata', compact('admin'));
-    }
+
 
     public function restoran()
     {
