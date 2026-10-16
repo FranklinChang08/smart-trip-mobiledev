@@ -36,12 +36,19 @@ class WisataController extends Controller
     }
     public function create()
     {
-        $admin = Auth::user();
-        $categories = Kategori::all();
-        $kecamatan = Kecamatan::query()
-            ->orderBy('nama_kecamatan')
-            ->get(['id_kecamatan', 'nama_kecamatan']);
-        return view('admin.wisata.form-wisata', compact('admin', 'categories', 'kecamatan'));
+        $kecamatan = Kecamatan::all();
+        $categories = Kategori::where('jenis_kategori', 'wisata')->get();
+
+        // AMBIL DATA LAMA: Jika terjadi error validasi dan kembali ke halaman create,
+        // ambil kategori yang sebelumnya sempat dipilih user.
+        $selectedCategories = old('categories', []);
+
+
+        return view('admin.wisata.form-wisata', compact(
+            'kecamatan',
+            'categories',
+            'selectedCategories',
+        ));
     }
 
 
@@ -86,10 +93,10 @@ class WisataController extends Controller
 
             'jam_operasional.*' => [
                 'required',
-                'array:buka,jam_buka,jam_tutup',
+                'array:hari,is_open,jam_buka,jam_tutup',
             ],
 
-            'jam_operasional.*.buka' => [
+            'jam_operasional.*.is_open' => [
                 'required',
                 'boolean',
             ],
@@ -139,7 +146,7 @@ class WisataController extends Controller
             'categories.*.exists' => 'Kategori yang dipilih tidak ditemukan.',
 
             'jam_operasional.required' => 'Jam operasional wajib diisi.',
-            'jam_operasional.*.buka.required' =>
+            'jam_operasional.*.is_open.required' =>
                 'Status buka atau tutup wajib ditentukan.',
 
             'jam_operasional.*.jam_buka.date_format' =>
@@ -225,11 +232,8 @@ class WisataController extends Controller
             report($e);
 
             return back()
-                ->withInput($request->except('foto_destinasi'))
-                ->with(
-                    'error',
-                    'Data wisata gagal disimpan. Periksa data dan coba lagi.'
-                );
+                ->withInput($request->except(['foto_destinasi'])) // Tetap kecualikan file foto
+                ->with('error', 'Data wisata gagal disimpan. Periksa data dan coba lagi. ' . $e->getMessage());
         }
 
         return redirect()
@@ -237,8 +241,237 @@ class WisataController extends Controller
             ->with('success', 'Data wisata berhasil disimpan.');
     }
 
+    public function show($id)
+    {
+        // Cari data wisata berdasarkan primary key (misal: id_wisata) beserta relasi fotonya
+        $wisata = Wisata::with('fotoDestinasis', 'jamOperasis', 'kategoris')->findOrFail($id);
+
+        // Ambil data pendukung untuk dropdown/pilihan di form
+        $kecamatan = Kecamatan::all(); // Sesuaikan dengan model wilayah Anda$categories = Category::all(); // Ambil semua daftar kategori yang tersedia
+
+        // Ambil ID kategori yang sudah terpilih sebelumnya pada wisata ini
+        $selectedCategories = $wisata->kategoris->map(function ($kategori) {
+            return [
+                'id_kategori' => $kategori->id_kategori,
+                'nama_kategori' => $kategori->nama_kategori,
+            ];
+        })->toArray();
+
+        // Jika Anda memiliki komponen jam operasional, ambil data operasionalnya juga di sini
+        $jamOperasional = $wisata->jamOperasis ?? [];
+
+        // Data foto wisata yang sudah tersimpan sebelumnya
+        $fotoDestinasi = $wisata->fotoDestinasis;
+        $categories = Kategori::all();
+
+        return view('admin.wisata.form-wisata', compact(
+            'wisata',
+            'kecamatan',
+            'categories',
+            'selectedCategories',
+            'jamOperasional',
+            'fotoDestinasi'
+        ));
+    }
 
 
+
+    public function update(Request $request, $id) // Sesuaikan dengan route binding Anda, misal: Wisata $wisata
+    {
+
+        // Ambil data wisata yang mau di-update
+        $wisata = Wisata::findOrFail($id);
+
+        // 1. Validasi data yang dikirim dari form.
+
+        $validated = $request->validate([
+            'nama_wisata' => ['required', 'string', 'max:255'],
+
+            'id_kecamatan' => [
+                'required',
+                'integer',
+                'exists:kecamatan,id_kecamatan',
+            ],
+
+            'alamat_detail_wisata' => ['required', 'string'],
+            'latitude' => ['required', 'numeric'],
+            'longitude' => ['required', 'numeric'],
+
+            'link_on_maps' => [
+                'required',
+                'url',
+                'max:2048',
+            ],
+
+            'harga_tiket_masuk' => ['nullable', 'numeric', 'min:0'],
+            'deskripsi' => ['nullable', 'string'],
+
+            // Kategori wisata.
+            'categories' => ['required', 'array', 'min:1'],
+            'categories.*' => [
+                'required',
+                'integer',
+                'distinct',
+                'exists:kategori,id_kategori',
+            ],
+
+            // Jam operasional.
+            'jam_operasional' => ['required', 'array'],
+
+            'jam_operasional.*' => [
+                'required',
+                'array:hari,is_open,jam_buka,jam_tutup',
+            ],
+
+            'jam_operasional.*.is_open' => [
+                'required',
+                'boolean',
+            ],
+
+            'jam_operasional.*.jam_buka' => [
+                'nullable',
+                'date_format:H:i',
+            ],
+
+            'jam_operasional.*.jam_tutup' => [
+                'nullable',
+                'date_format:H:i',
+            ],
+
+            // Foto destinasi.
+            'foto_destinasi' => ['nullable', 'array', 'max:10'],
+
+            'foto_destinasi.*' => [
+                'required',
+                'image',
+                'mimes:jpg,jpeg,png',
+                'max:5120',
+            ],
+        ], [
+            'nama_wisata.required' => 'Nama wisata wajib diisi.',
+            'nama_wisata.max' => 'Nama wisata maksimal 255 karakter.',
+
+            'id_kecamatan.required' => 'Kecamatan wajib dipilih.',
+            'id_kecamatan.exists' => 'Kecamatan yang dipilih tidak valid.',
+
+            'alamat_detail_wisata.required' => 'Alamat wisata wajib diisi.',
+
+            'latitude.required' => 'Latitude wajib diisi.',
+            'latitude.numeric' => 'Latitude harus berupa angka.',
+
+            'longitude.required' => 'Longitude wajib diisi.',
+            'longitude.numeric' => 'Longitude harus berupa angka.',
+
+            'link_on_maps.required' => 'Link Maps wajib diisi.',
+            'link_on_maps.url' => 'Link Maps harus berupa URL yang valid.',
+
+            'categories.required' => 'Pilih minimal satu kategori wisata.',
+            'categories.min' => 'Pilih minimal satu kategori wisata.',
+            'categories.*.required' => 'Kategori tidak boleh kosong.',
+            'categories.*.integer' => 'Kategori yang dipilih tidak valid.',
+            'categories.*.distinct' => 'Kategori tidak boleh dipilih berulang.',
+            'categories.*.exists' => 'Kategori yang dipilih tidak ditemukan.',
+
+            'jam_operasional.required' => 'Jam operasional wajib diisi.',
+            'jam_operasional.*.is_open.required' =>
+                'Status buka atau tutup wajib ditentukan.',
+
+            'jam_operasional.*.jam_buka.date_format' =>
+                'Format jam buka harus HH:MM.',
+
+            'jam_operasional.*.jam_tutup.date_format' =>
+                'Format jam tutup harus HH:MM.',
+
+            'foto_destinasi.max' => 'Maksimal 10 foto yang dapat diunggah.',
+            'foto_destinasi.*.image' => 'File harus berupa gambar.',
+            'foto_destinasi.*.mimes' =>
+                'Format foto harus JPG, JPEG, atau PNG.',
+            'foto_destinasi.*.max' =>
+                'Ukuran setiap foto maksimal 5 MB.',
+        ]);
+
+
+        // Siapkan daftar file untuk cleanup jika transaksi gagal.
+        $storedPaths = [];
+
+        try {
+            DB::transaction(function () use ($validated, $request, &$storedPaths, $wisata) {
+                // 1. Update data utama wisata.
+                $wisata->update([
+                    'id_kecamatan' => $validated['id_kecamatan'],
+                    'nama_wisata' => $validated['nama_wisata'],
+                    'alamat_detail_wisata' => $validated['alamat_detail_wisata'],
+                    'latitude' => $validated['latitude'],
+                    'longitude' => $validated['longitude'],
+                    'link_on_maps' => $validated['link_on_maps'],
+                    'harga_tiket_masuk' => $validated['harga_tiket_masuk'] ?? null,
+                    'deskripsi' => $validated['deskripsi'] ?? null,
+                ]);
+
+                // 2. Sinkronisasi ulang relasi kategori wisata.
+                $wisata->kategoris()->sync($validated['categories']);
+
+                // 3. Perbarui Jam Operasional (Hapus yang lama, buat yang baru).
+                $wisata->jamOperasis()->delete();
+
+                $kelompokJadwal = $this->kelompokkanJadwal(
+                    $validated['jam_operasional']
+                );
+
+                foreach ($kelompokJadwal as $jadwal) {
+                    $wisata->jamOperasis()->create([
+                        'id_operasi' => (string) Str::uuid(),
+                        'hari_mulai' => $jadwal['hari_mulai'],
+                        'hari_selesai' => $jadwal['hari_selesai'],
+                        'is_open' => $jadwal['is_open'],
+                        'jam_buka' => $jadwal['jam_buka'],
+                        'jam_tutup' => $jadwal['jam_tutup'],
+                    ]);
+                }
+
+                // 4. Tambahkan foto baru jika ada yang di-upload.
+                if ($request->hasFile('foto_destinasi')) {
+                    foreach ($request->file('foto_destinasi') as $file) {
+                        $path = $file->store(
+                            'wisata/' . $wisata->id_wisata,
+                            'public'
+                        );
+
+                        if ($path === false) {
+                            throw new \RuntimeException(
+                                'Gagal menyimpan salah satu foto destinasi.'
+                            );
+                        }
+
+                        $storedPaths[] = $path;
+
+                        FotoDestinasi::create([
+                            'id_photo' => (string) Str::uuid(),
+                            'destinasi_id' => $wisata->id_wisata,
+                            'destinasi_type' => $wisata->getMorphClass(),
+                            'link_photo' => $path,
+                        ]);
+                    }
+                }
+            });
+        } catch (\Throwable $e) {
+            // Rollback file baru yang sempat ter-upload jika database gagal commit.
+            Storage::disk('public')->delete($storedPaths);
+
+            report($e);
+
+            return back()
+                ->withInput($request->except('foto_destinasi'))
+                ->with(
+                    'error',
+                    'Data wisata gagal diperbarui. Periksa data dan coba lagi.' . $e
+                );
+        }
+
+        return redirect()
+            ->route('admin.wisata.index')
+            ->with('success', 'Data wisata berhasil diperbarui.');
+    }
     private function kelompokkanJadwal(array $jadwalInput): array
     {
         $daftarHari = [
@@ -257,7 +490,7 @@ class WisataController extends Controller
         foreach ($daftarHari as $kodeHari => $nomorHari) {
             $data = $jadwalInput[$kodeHari];
 
-            $isOpen = (int) $data['buka'] === 1;
+            $isOpen = (int) $data['is_open'] === 1;
 
             $jamBuka = $isOpen
                 ? ($data['jam_buka'] ?? null)
@@ -297,4 +530,81 @@ class WisataController extends Controller
 
         return $kelompokJadwal;
     }
+    public function destroy($id)
+    {
+        // Gunakan database transaction agar aman (jika satu gagal, semua dibatalkan)
+        DB::beginTransaction();
+
+        try {
+            // 1. Cari data wisata beserta relasi yang ingin dibersihkan
+            $wisata = Wisata::with(['fotoDestinasis', 'jamOperasis', 'kategoris'])->findOrFail($id);
+
+            // 1. Hapus file fisik dan record foto di database
+            if ($wisata->fotoDestinasis && $wisata->fotoDestinasis->isNotEmpty()) {
+                foreach ($wisata->fotoDestinasis as $foto) {
+                    $path = $foto->link_photo ?? $foto->path_foto;
+
+                    if ($path && Storage::disk('public')->exists($path)) {
+                        Storage::disk('public')->delete($path);
+                    }
+                    $foto->delete();
+                }
+
+                $firstPhotoPath = $wisata->fotoDestinasis->first()->link_photo ?? $wisata->fotoDestinasis->first()->path_foto;
+
+                if ($firstPhotoPath) {
+                    // Mendapatkan direktori/folder dari path file (contoh: "wisata/5" dari "wisata/5/foto.jpg")
+                    $directoryPath = dirname($firstPhotoPath);
+
+                    // Pastikan direktori tersebut valid dan bukan root folder 'wisata' secara umum
+                    if ($directoryPath && $directoryPath !== '.' && Storage::disk('public')->exists($directoryPath)) {
+                        Storage::disk('public')->deleteDirectory($directoryPath);
+                    }
+                }
+            }
+
+            // 3. Hapus data jam operasional terkait
+            // Jika relasinya hasMany / hasOne
+            if (method_exists($wisata, 'jamOperasis')) {
+                $wisata->jamOperasis()->delete();
+            }
+
+            // 4. Putus/Hapus relasi kategori di tabel pivot (jika menggunakan Many-to-Many)
+            if (method_exists($wisata, 'kategoris')) {
+                $wisata->kategoris()->detach();
+            }
+
+            // 5. Hapus data utama wisata
+            $wisata->delete();
+
+            // Commit transaksi jika semua proses berhasil
+            DB::commit();
+
+            // Response jika diakses via AJAX/Fetch atau redirect biasa
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data wisata beserta foto dan jam operasional berhasil dihapus.',
+                ]);
+            }
+
+            return redirect()
+                ->route('admin.wisata.index')
+                ->with('success', 'Data wisata beserta seluruh data terkait berhasil dihapus.');
+
+        } catch (\Exception $e) {
+            // Rollback database jika terjadi error di tengah jalan
+            DB::rollBack();
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus data wisata: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return back()->with('error', 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage());
+        }
+    }
 }
+

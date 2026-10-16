@@ -22,7 +22,7 @@
         </label>
     @endif
 
-    <!-- Container untuk Hidden Inputs (Otomatis dikirim via Form Laravel tanpa JS submit) -->
+    <!-- Container untuk Hidden Inputs -->
     <div class="hidden-inputs-container"></div>
 
     <!-- Dropdown Trigger Container -->
@@ -60,11 +60,15 @@
             <div class="options-list p-2 space-y-1">
                 <!-- Di-generate via JS Native -->
             </div>
-
+            <div class="load-more-container p-2 border-t border-border/50 text-center hidden">
+                <button type="button"
+                    class="btn-load-more w-full py-1.5 px-3 bg-primary border border-border rounded-md text-xs font-medium text-background hover:bg-primary/80 transition-colors">
+                    Muat 8 data lagi...
+                </button>
+            </div>
             <!-- Informasi Sisa Data Lainnya -->
             <div
                 class="options-info px-3 py-2 text-xs text-textPrimary/60 text-center border-t border-border/50 bg-background/30 italic hidden">
-                <!-- Di-generate via JS Native -->
             </div>
         </div>
     </div>
@@ -75,18 +79,43 @@
     </div>
 </div>
 
-<!-- JavaScript Native Logic -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const root = document.getElementById('{{ $componentId }}');
         if (!root) return;
 
-        // Parse data dari atribut HTML
-        let options = JSON.parse(root.dataset.options || '[]');
-        let selected = JSON.parse(root.dataset.selected || '[]');
+        function normalizeItem(item) {
+            if (!item) return null;
+            return {
+                id: String(item.id_kategori ?? item.id ?? item.category_id ?? ''),
+                text: item.nama_kategori ?? item.name ?? item.title ?? item.text ?? 'Tanpa Nama'
+            };
+        }
+
+        let rawOptions = JSON.parse(root.dataset.options || '[]');
+        let rawSelected = JSON.parse(root.dataset.selected || '[]');
+
+        let options = rawOptions.map(normalizeItem).filter(opt => opt.id !== '');
+
+        let selected = [];
+        if (Array.isArray(rawSelected)) {
+            selected = rawSelected.map(item => {
+                if (typeof item === 'object' && item !== null) {
+                    return normalizeItem(item);
+                }
+                const foundOption = options.find(opt => opt.id === String(item));
+                if (foundOption) {
+                    return foundOption;
+                }
+                return {
+                    id: String(item),
+                    text: 'Kategori #' + item
+                };
+            }).filter(item => item.id !== '');
+        }
+
         const fieldName = '{{ $name }}';
 
-        // Selektor DOM internal
         const trigger = root.querySelector('.dropdown-trigger');
         const menu = root.querySelector('.dropdown-menu');
         const arrow = root.querySelector('.dropdown-arrow');
@@ -99,7 +128,12 @@
         const btnAddOption = root.querySelector('.btn-add-option');
         const feedbackMsg = root.querySelector('.feedback-msg');
 
+        // Selektor Tombol Load More
+        const loadMoreContainer = root.querySelector('.load-more-container');
+        const btnLoadMore = root.querySelector('.btn-load-more');
+
         let searchQuery = '';
+        let displayLimit = 8; // Batas awal data yang ditampilkan
 
         // Render awal
         render();
@@ -126,14 +160,14 @@
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 searchQuery = e.target.value.toLowerCase().trim();
+                displayLimit = 8; // Reset limit setiap kali user mengetik pencarian baru
                 render();
             });
 
             searchInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    const matchedOption = options.find(opt => opt.nama_kategori.toLowerCase() ===
-                        searchQuery);
+                    const matchedOption = options.find(opt => opt.text.toLowerCase() === searchQuery);
                     if (!matchedOption && searchQuery !== '') {
                         handleAddNew();
                     } else if (matchedOption) {
@@ -147,32 +181,75 @@
             btnAddOption.addEventListener('click', handleAddNew);
         }
 
-        function handleAddNew() {
+        // Event Listener untuk Tombol Load More
+        if (btnLoadMore) {
+            btnLoadMore.addEventListener('click', (e) => {
+                e.stopPropagation();
+                displayLimit += 8; // Tambah 8 data setiap klik
+                render();
+            });
+        }
+
+        async function handleAddNew() {
             const text = searchInput.value.trim();
+
             if (!text) {
                 showFeedback('Input tidak boleh kosong.', 'error');
                 return;
             }
 
-            // Cek duplikat case-insensitive
-            const isDuplicate = options.some(opt => opt.nama_kategori.toLowerCase() === text.toLowerCase());
+            const isDuplicate = options.some(
+                opt => opt.text.toLowerCase() === text.toLowerCase()
+            );
+
             if (isDuplicate) {
                 showFeedback('Data tersebut sudah ada dalam daftar.', 'error');
                 return;
             }
 
-            const newObj = {
-                id_kategori: 'custom-' + Date.now(),
-                nama_kategori: text
-            };
+            try {
+                let jenisKategori = 'wisata';
+                if (window.location.pathname.includes('/restoran')) {
+                    jenisKategori = 'restoran';
+                } else if (window.location.pathname.includes('/wisata')) {
+                    jenisKategori = 'wisata';
+                }
 
-            options.push(newObj);
-            selected.push(newObj);
-            searchInput.value = '';
-            searchQuery = '';
-            showFeedback('Berhasil ditambahkan!', 'success');
+                const storeUrl = '/admin/kategori/form-kategori/store';
+                const response = await fetch(storeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        nama_kategori: text,
+                        jenis_kategori: jenisKategori
+                    })
+                });
 
-            render();
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Gagal menyimpan kategori.');
+                }
+
+                const newCategory = normalizeItem(data.kategori || data);
+
+                options.push(newCategory);
+                selected.push(newCategory);
+
+                searchInput.value = '';
+                searchQuery = '';
+                displayLimit = 8;
+
+                showFeedback('Berhasil ditambahkan!', 'success');
+                render();
+
+            } catch (error) {
+                showFeedback(error.message, 'error');
+            }
         }
 
         function showFeedback(msg, type) {
@@ -187,7 +264,9 @@
         }
 
         function toggleOption(option) {
-            const index = selected.findIndex(item => item.id_kategori == option.id_kategori);
+            const targetId = option.id;
+            const index = selected.findIndex(item => item.id === targetId);
+
             if (index > -1) {
                 selected.splice(index, 1);
             } else {
@@ -197,20 +276,20 @@
         }
 
         function removePill(id) {
-            selected = selected.filter(item => item.id_kategori != id);
+            selected = selected.filter(item => item.id !== String(id));
             render();
         }
 
         function render() {
-            // 1. Render Hidden Inputs agar data ikut terkirim saat form disubmit secara native oleh Laravel
+            // 1. Render Hidden Inputs
             hiddenInputsContainer.innerHTML = '';
             if (selected.length > 0) {
                 selectedLabel.textContent = `${selected.length} dipilih`;
                 selected.forEach(item => {
                     const input = document.createElement('input');
                     input.type = 'hidden';
-                    input.name = `${fieldName}[]`; // Format array (cth: categories[])
-                    input.value = item.id_kategori;
+                    input.name = `${fieldName}[]`;
+                    input.value = item.id;
                     hiddenInputsContainer.appendChild(input);
                 });
             } else {
@@ -219,12 +298,12 @@
 
             // 2. Filter Opsi Berdasarkan Search Query
             const filteredOptions = options.filter(option =>
-                option.nama_kategori.toLowerCase().includes(searchQuery)
+                option.text.toLowerCase().includes(searchQuery)
             );
 
-            const limit = 8;
-            const displayedOptions = searchQuery ? filteredOptions : filteredOptions.slice(0, limit);
-            const remainingCount = filteredOptions.length - limit;
+            // Menggunakan displayLimit yang bertambah secara dinamis
+            const displayedOptions = filteredOptions.slice(0, displayLimit);
+            const remainingCount = filteredOptions.length - displayedOptions.length;
 
             // 3. Render Daftar Opsi di Dropdown
             optionsList.innerHTML = '';
@@ -233,14 +312,14 @@
                     `<div class="px-3 py-2 text-xs text-textPrimary/50 text-center italic">Tidak ditemukan. Tekan "Tambah" untuk membuat baru.</div>`;
             } else {
                 displayedOptions.forEach(option => {
-                    const isSelected = selected.some(item => item.id_kategori == option.id_kategori);
+                    const isSelected = selected.some(item => item.id === option.id);
                     const div = document.createElement('div');
                     div.className = `px-3 py-2 text-sm rounded-md cursor-pointer flex items-center justify-between transition-colors ${
                         isSelected ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-border/50 text-textPrimary'
                     }`;
 
                     div.innerHTML = `
-                        <span>${option.nama_kategori}</span>
+                        <span>${option.text}</span>
                         ${isSelected ? '<svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' : ''}
                     `;
 
@@ -252,15 +331,27 @@
                 });
             }
 
-            if (!searchQuery && remainingCount > 0) {
-                optionsInfo.textContent =
-                    `Terdapat ${remainingCount} data lainnya (gunakan kolom pencarian di atas)`;
-                optionsInfo.classList.remove('hidden');
-            } else {
-                optionsInfo.classList.add('hidden');
+            // 4. Kontrol Tampilan Tombol Load More & Info Sisa Data
+            if (loadMoreContainer && btnLoadMore) {
+                if (remainingCount > 0) {
+                    loadMoreContainer.classList.remove('hidden');
+                    btnLoadMore.textContent = `Muat 8 data lagi (${remainingCount} tersisa)`;
+                } else {
+                    loadMoreContainer.classList.add('hidden');
+                }
             }
 
-            // 4. Render Pills di Bawah Input
+            if (optionsInfo) {
+                if (!searchQuery && remainingCount > 0) {
+                    optionsInfo.textContent =
+                        `Menampilkan ${displayedOptions.length} dari ${filteredOptions.length} data. Klik "Muat 8 data lagi" untuk melihat lainnya.`;
+                    optionsInfo.classList.remove('hidden');
+                } else {
+                    optionsInfo.classList.add('hidden');
+                }
+            }
+
+            // 5. Render Pills di Bawah Input
             pillsContainer.innerHTML = '';
             if (selected.length > 0) {
                 selected.forEach(item => {
@@ -268,7 +359,7 @@
                     pill.className =
                         'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary border border-primary/20 transition-all';
                     pill.innerHTML = `
-                        <span>${item.nama_kategori}</span>
+                        <span>${item.text}</span>
                         <button type="button" class="hover:bg-primary/20 rounded-full p-0.5 transition-colors" aria-label="Hapus">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -278,7 +369,7 @@
 
                     pill.querySelector('button').addEventListener('click', (e) => {
                         e.stopPropagation();
-                        removePill(item.id_kategori);
+                        removePill(item.id);
                     });
 
                     pillsContainer.appendChild(pill);
