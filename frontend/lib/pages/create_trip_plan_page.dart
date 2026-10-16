@@ -6,6 +6,7 @@ import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 import 'package:frontend/components/trip_plan/trip_step1_form.dart';
 import 'package:frontend/components/trip_plan/trip_step2_form.dart';
 import 'package:frontend/components/trip_plan/trip_summary_bottom_sheet.dart';
+import 'package:frontend/pages/trip_itinerary_page.dart';
 import 'package:frontend/services/trip_plan_service.dart';
 
 /// Halaman Membuat Rencana Perjalanan & Mengisi Preferensi
@@ -33,20 +34,16 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     'Wisata Alam',
   };
 
-  final Set<String> _selectedVisitTimes = {
-    '🌅 Pagi Hari (08:00 - 12:00)',
-    '🌇 Sore Golden Hour (15:00 - 18:30)',
+  List<TripAreaModel> _availableAreas = kBatamKecamatanList;
+  final Set<String> _selectedAreas = {
+    'Batam Kota',
+    'Lubuk Baja',
+    'Sagulung',
   };
 
   TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 30);
   TimeOfDay _endTime = const TimeOfDay(hour: 21, minute: 0);
 
-  final Set<String> _selectedAreas = {
-    'Nagoya & Jodoh',
-    'Barelang & Pulau Galang',
-  };
-
-  String _budgetPriority = 'Kuliner & Seafood Kelong';
   bool _isHalalOnly = true;
   bool _isSeafoodSpecialist = true;
   late final TextEditingController _notesController;
@@ -68,14 +65,16 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     ).add(const Duration(days: 1));
     _endDate = _startDate.add(const Duration(days: 2));
 
-    _loadCategoriesFromApi();
+    _loadMasterDataFromApi();
   }
 
-  Future<void> _loadCategoriesFromApi() async {
+  Future<void> _loadMasterDataFromApi() async {
     final categories = await TripPlanService.fetchCategories();
-    if (mounted && categories.isNotEmpty) {
+    final kecamatanList = await TripPlanService.fetchKecamatan();
+    if (mounted) {
       setState(() {
-        _availableThemes = categories;
+        if (categories.isNotEmpty) _availableThemes = categories;
+        if (kecamatanList.isNotEmpty) _availableAreas = kecamatanList;
       });
     }
   }
@@ -149,158 +148,386 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     }
   }
 
+  /// Dialog pemilihan Titik Awal Perjalanan dengan fitur pencarian real-time, filter kategori,
+  /// dan meletakkan item yang terpilih di paling atas daftar.
   void _openLocationDialog() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
+        String searchQuery = '';
+        String selectedCategory = 'all';
+        final searchController = TextEditingController();
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            // Filter lokasi berdasarkan kategori dan kata kunci pencarian
+            List<TripLocationModel> filtered = kBatamLocations.where((loc) {
+              final matchesCategory = selectedCategory == 'all' ||
+                  loc.category == selectedCategory;
+              final query = searchQuery.trim().toLowerCase();
+              final matchesQuery = query.isEmpty ||
+                  loc.name.toLowerCase().contains(query) ||
+                  loc.type.toLowerCase().contains(query) ||
+                  loc.quickLabel.toLowerCase().contains(query);
+              return matchesCategory && matchesQuery;
+            }).toList();
+
+            // Urutkan lokasi
+            filtered.sort((a, b) {
+              if (a.name == _selectedLocation) return -1;
+              if (b.name == _selectedLocation) return 1;
+              return 0;
+            });
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.82,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  // Handle Penarik
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4.5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Pilih Titik Awal Perjalanan',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Tentukan pelabuhan ferry atau bandara kedatangan Anda di Batam.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 14),
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: kBatamLocations.length,
-                  separatorBuilder: (context, i) => const Divider(height: 1),
-                  itemBuilder: (context, i) {
-                    final loc = kBatamLocations[i];
-                    final isSelected = _selectedLocation == loc.name;
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 4,
-                      ),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary.withValues(alpha: 0.1)
-                              : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 16),
+
+                  // Header Modal
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.location_on_outlined,
+                              color: AppColors.primary, size: 20),
                         ),
-                        child: Icon(
-                          loc.icon,
-                          size: 18,
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.grey.shade600,
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Pilih Titik Awal Perjalanan',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Mulai dari pelabuhan, bandara, atau hotel tempat menginap',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      title: Text(
-                        loc.name,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.w600,
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.textPrimary,
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () => Navigator.pop(context),
+                          splashRadius: 20,
                         ),
-                      ),
-                      subtitle: Text(
-                        loc.type,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      trailing: isSelected
-                          ? const Icon(
-                              Icons.check_circle,
-                              color: AppColors.primary,
-                              size: 20,
-                            )
-                          : null,
-                      onTap: () {
-                        setState(() => _selectedLocation = loc.name);
-                        Navigator.pop(context);
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Kolom Pencarian Cepat
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: (val) {
+                        setModalState(() {
+                          searchQuery = val;
+                        });
                       },
-                    );
-                  },
-                ),
+
+                      decoration: InputDecoration(
+                        hintText: 'Cari hotel, pelabuhan, bandara (mis: Aston)...',
+                        hintStyle:
+                            TextStyle(fontSize: 12.5, color: Colors.grey.shade400),
+                        prefixIcon: const Icon(Icons.search,
+                            size: 20, color: AppColors.primary),
+                        suffixIcon: searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () {
+                                  searchController.clear();
+                                  setModalState(() {
+                                    searchQuery = '';
+                                  });
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                              color: AppColors.primary, width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Filter Kategori Pill Tabs
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          _buildFilterCategoryPill(
+                            label: 'Semua',
+                            isSelected: selectedCategory == 'all',
+                            onTap: () =>
+                                setModalState(() => selectedCategory = 'all'),
+                          ),
+                          const SizedBox(width: 6),
+                          _buildFilterCategoryPill(
+                            label: '🏨 Hotel & Resort',
+                            isSelected: selectedCategory == 'hotel',
+                            onTap: () =>
+                                setModalState(() => selectedCategory = 'hotel'),
+                          ),
+                          const SizedBox(width: 6),
+                          _buildFilterCategoryPill(
+                            label: '🚢 Pelabuhan Ferry',
+                            isSelected: selectedCategory == 'pelabuhan',
+                            onTap: () => setModalState(
+                                () => selectedCategory = 'pelabuhan'),
+                          ),
+                          const SizedBox(width: 6),
+                          _buildFilterCategoryPill(
+                            label: '✈️ Bandara',
+                            isSelected: selectedCategory == 'bandara',
+                            onTap: () => setModalState(
+                                () => selectedCategory = 'bandara'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Divider(height: 1),
+
+                  // Daftar Lokasi
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.search_off,
+                                      size: 40, color: Colors.grey.shade400),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Tidak ditemukan lokasi "$searchQuery"',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Coba gunakan kata kunci lain seperti nama hotel atau pelabuhan.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            itemCount: filtered.length,
+                            separatorBuilder: (context, i) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, i) {
+                              final loc = filtered[i];
+                              final isSelected = _selectedLocation == loc.name;
+
+                              return InkWell(
+                                onTap: () {
+                                  setState(() => _selectedLocation = loc.name);
+                                  Navigator.pop(context);
+                                },
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.primary
+                                            .withValues(alpha: 0.07)
+                                        : const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : const Color(0xFFE2E8F0),
+                                      width: isSelected ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(9),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppColors.primary
+                                              : Colors.grey.shade200,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: Icon(
+                                          loc.icon,
+                                          size: 18,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : Colors.grey.shade700,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            if (isSelected)
+                                              Container(
+                                                margin: const EdgeInsets.only(
+                                                    bottom: 3),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primary,
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: const Text(
+                                                  '📍 TITIK AWAL TERPILIH',
+                                                  style: TextStyle(
+                                                    fontSize: 8.5,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                              ),
+                                            Text(
+                                              loc.name,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: isSelected
+                                                    ? FontWeight.bold
+                                                    : FontWeight.w600,
+                                                color: isSelected
+                                                    ? AppColors.primary
+                                                    : AppColors.textPrimary,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              loc.type,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        const Icon(Icons.check_circle,
+                                            color: AppColors.primary, size: 22)
+                                      else
+                                        Icon(Icons.chevron_right,
+                                            color: Colors.grey.shade400,
+                                            size: 20),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Future<void> _pickStartTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _startTime,
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: AppColors.textPrimary,
-            ),
+  Widget _buildFilterCategoryPill({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? Colors.white : AppColors.textPrimary,
           ),
-          child: child!,
-        );
-      },
+        ),
+      ),
     );
-    if (picked != null) {
-      setState(() => _startTime = picked);
-    }
-  }
-
-  Future<void> _pickEndTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _endTime,
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: AppColors.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      setState(() => _endTime = picked);
-    }
   }
 
   // VALIDASI & NAVIGASI
@@ -323,7 +550,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       return false;
     }
     if (_selectedAreas.isEmpty) {
-      _showWarningSnackBar('Pilih minimal 1 area destinasi di Kota Batam.');
+      _showWarningSnackBar('Pilih minimal 1 kecamatan destinasi di Kota Batam.');
       return false;
     }
     return true;
@@ -366,6 +593,23 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
   void _savePreferences() {
     if (!_validateStep2()) return;
 
+    final newPlan = SavedTripPlan(
+      id: 'plan_${DateTime.now().millisecondsSinceEpoch}',
+      tripName: _tripNameController.text.trim(),
+      startDate: _startDate,
+      endDate: _endDate,
+      startLocation: _selectedLocation,
+      budget: _budgetController.text.trim(),
+      budgetPriority: _isSeafoodSpecialist
+          ? 'Seafood Pesisir & Kuliner'
+          : 'Kuliner & Wisata Batam',
+      selectedThemes: _selectedThemes.toList(),
+      selectedAreas: _selectedAreas.toList(),
+      notes: _notesController.text.trim(),
+      transport: 'Mobil Sewa + Driver Lokal',
+      isActive: true,
+    );
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -377,13 +621,17 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
           endDate: _endDate,
           startLocation: _selectedLocation,
           budget: _budgetController.text.trim(),
-          budgetPriority: _budgetPriority,
+          budgetPriority: _isSeafoodSpecialist
+              ? 'Seafood Pesisir & Kuliner'
+              : 'Kuliner & Wisata Batam',
           selectedThemes: _selectedThemes.toList(),
           selectedAreas: _selectedAreas.toList(),
           notes: _notesController.text.trim(),
-          onFinishAndGoHome: () {
-            Navigator.pop(context);
-            Navigator.pop(context);
+          onFinishAndGoHome: () async {
+            await TripPlanService.saveTripPlan(newPlan);
+            if (!context.mounted) return;
+            Navigator.pop(context); // Tutup bottom sheet
+            Navigator.pop(context, true); // Kembali ke HomePage dengan hasil update
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Row(
@@ -392,7 +640,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Rencana "${_tripNameController.text.trim()}" berhasil disimpan!',
+                        'Rencana "${_tripNameController.text.trim()}" berhasil disimpan & diaktifkan!',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -409,8 +657,53 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
   }
 
   /// Tombol Rekomendasi
-  void _onRecommendationsClicked() {
-    // Tambahkan logika ketika tombol rekomendasi diklik di sini
+  void _onRecommendationsClicked() async {
+    if (!_validateStep1()) {
+      setState(() => _currentStep = 0);
+      return;
+    }
+    if (!_validateStep2()) return;
+
+    final plan = SavedTripPlan(
+      id: 'plan_${DateTime.now().millisecondsSinceEpoch}',
+      tripName: _tripNameController.text.trim().isNotEmpty
+          ? _tripNameController.text.trim()
+          : 'Liburan Akhir Pekan di Batam',
+      startDate: _startDate,
+      endDate: _endDate,
+      startLocation: _selectedLocation,
+      budget: _budgetController.text.trim(),
+      selectedThemes: _selectedThemes.toList(),
+      selectedAreas: _selectedAreas.toList(),
+      budgetPriority: _isSeafoodSpecialist
+          ? 'Seafood Pesisir & Kuliner'
+          : 'Kuliner & Wisata Batam',
+      notes: _notesController.text.trim(),
+      transport: 'Mobil Sewa + Driver Lokal',
+      isActive: true,
+    );
+
+    // Simpan otomatis sebagai rencana aktif
+    await TripPlanService.saveTripPlan(plan);
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TripItineraryPage(
+          tripName: plan.tripName,
+          startDate: plan.startDate,
+          endDate: plan.endDate,
+          startLocation: plan.startLocation,
+          budget: plan.budget,
+          selectedThemes: plan.selectedThemes,
+          selectedAreas: plan.selectedAreas,
+          budgetPriority: plan.budgetPriority,
+          notes: plan.notes,
+          transport: plan.transport,
+        ),
+      ),
+    );
   }
 
   @override
@@ -460,11 +753,8 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
             : TripStep2Form(
                 availableThemes: _availableThemes,
                 selectedThemes: _selectedThemes,
-                selectedVisitTimes: _selectedVisitTimes,
-                startTime: _startTime,
-                endTime: _endTime,
+                availableAreas: _availableAreas,
                 selectedAreas: _selectedAreas,
-                budgetPriority: _budgetPriority,
                 isHalalOnly: _isHalalOnly,
                 isSeafoodSpecialist: _isSeafoodSpecialist,
                 notesController: _notesController,
@@ -481,36 +771,20 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                     }
                   });
                 },
-                onToggleVisitTime: (time) {
-                  setState(() {
-                    if (_selectedVisitTimes.contains(time)) {
-                      if (_selectedVisitTimes.length > 1) {
-                        _selectedVisitTimes.remove(time);
-                      }
-                    } else {
-                      _selectedVisitTimes.add(time);
-                    }
-                  });
-                },
-                onPickStartTime: _pickStartTime,
-                onPickEndTime: _pickEndTime,
                 onToggleArea: (area) {
                   setState(() {
                     if (_selectedAreas.contains(area)) {
                       if (_selectedAreas.length > 1) {
                         _selectedAreas.remove(area);
                       } else {
-                        _showWarningSnackBar(
-                          'Pilih minimal 1 area destinasi.',
-                        );
+                        _showWarningSnackBar('Pilih minimal 1 kecamatan destinasi.');
                       }
+
                     } else {
                       _selectedAreas.add(area);
                     }
                   });
                 },
-                onSelectBudgetPriority: (p) =>
-                    setState(() => _budgetPriority = p),
                 onToggleHalal: (val) => setState(() => _isHalalOnly = val),
                 onToggleSeafood: (val) =>
                     setState(() => _isSeafoodSpecialist = val),

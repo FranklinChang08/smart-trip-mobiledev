@@ -339,111 +339,156 @@ class TripStep1Form extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Dropdown Selector Box
-          InkWell(
-            onTap: onOpenLocationDialog,
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+          Builder(
+            builder: (context) {
+              final currentLoc = kBatamLocations.where((l) => l.name == selectedLocation).firstOrNull;
+              final locIcon = currentLoc?.icon ?? (selectedLocation.toLowerCase().contains('hotel') ? Icons.hotel : Icons.directions_boat_outlined);
+
+              return InkWell(
+                onTap: onOpenLocationDialog,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.directions_boat_outlined,
-                    color: AppColors.textPrimary,
-                    size: 20,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ManropeFont(
-                      selectedLocation,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          locIcon,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ManropeFont(
+                              selectedLocation,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            if (currentLoc != null)
+                              Text(
+                                currentLoc.type,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 10.5,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.unfold_more,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                    ],
                   ),
-                  const Icon(
-                    Icons.unfold_more,
-                    color: AppColors.textSecondary,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 12),
 
           // Cepat Pilih Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: [
-                Text(
-                  'Cepat pilih:',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: Colors.grey.shade500,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                for (final loc in kBatamLocations.where((l) => l.isQuick)) ...[
-                  InkWell(
-                    onTap: () => onSelectLocation(loc.name),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: selectedLocation == loc.name
-                            ? AppColors.primary.withValues(alpha: 0.12)
-                            : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: selectedLocation == loc.name
-                              ? AppColors.primary
-                              : Colors.transparent,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            loc.icon,
-                            size: 14,
-                            color: selectedLocation == loc.name
-                                ? AppColors.primary
-                                : AppColors.textPrimary,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            loc.quickLabel,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: selectedLocation == loc.name
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: selectedLocation == loc.name
-                                  ? AppColors.primary
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
+          Builder(
+            builder: (context) {
+              final List<TripLocationModel> quickChips = [];
+              final selectedModel = kBatamLocations.where((l) => l.name == selectedLocation).firstOrNull;
+              if (selectedModel != null) {
+                quickChips.add(selectedModel);
+              }
+              for (final l in kBatamLocations.where((l) => l.isQuick)) {
+                if (l.name != selectedLocation) {
+                  quickChips.add(l);
+                }
+              }
+
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    Text(
+                      'Cepat pilih:',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                ],
-              ],
-            ),
+                    const SizedBox(width: 8),
+                    for (final loc in quickChips) ...[
+                      InkWell(
+                        onTap: () => onSelectLocation(loc.name),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: selectedLocation == loc.name
+                                ? AppColors.primary.withValues(alpha: 0.12)
+                                : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: selectedLocation == loc.name
+                                  ? AppColors.primary
+                                  : Colors.transparent,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                loc.icon,
+                                size: 14,
+                                color: selectedLocation == loc.name
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                loc.quickLabel,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: selectedLocation == loc.name
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                                  color: selectedLocation == loc.name
+                                      ? AppColors.primary
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),

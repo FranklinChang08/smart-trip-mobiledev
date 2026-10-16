@@ -30,3 +30,9 @@ Route::get('/kategori', function (Request $request) {
 
 Route::get('/wisata', [ExploreController::class, 'index']);
 Route::get('/wisata/{id}', [ExploreController::class, 'show']);
+Route::get('/kecamatan', function () {
+    return response()->json([
+        'success' => true,
+        'data' => \App\Models\Kecamatan::orderBy('nama_kecamatan')->get(),
+    ]);
+});

@@ -5,9 +5,9 @@ import 'package:frontend/components/font/bebas_neue_font.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/pages/build_tabs/explore_tabs.dart';
 import 'package:frontend/pages/build_tabs/home_tabs.dart';
+import 'package:frontend/pages/build_tabs/itenary_tabs.dart';
 import 'package:frontend/pages/create_trip_plan_page.dart';
 
-import 'package:frontend/pages/build_tabs/itenary_tabs.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,6 +19,19 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
   bool isBellHovered = false;
+
+  Future<void> _openCreateTripPlan() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreateTripPlanPage(),
+      ),
+    );
+    if (result == true && mounted) {
+      setState(() => currentIndex = 2);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -158,14 +171,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         child: TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CreateTripPlanPage(),
-              ),
-            );
-          },
+          onPressed: _openCreateTripPlan,
           style: TextButton.styleFrom(
             backgroundColor: const Color(0xFFC05400),
             foregroundColor: Colors.white,
@@ -194,6 +200,7 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: _buildCustomNavigationBar(),
     );
   }
+
 
   Widget _buildCustomNavigationBar() {
     return Container(
