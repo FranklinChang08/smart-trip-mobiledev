@@ -134,7 +134,7 @@
                                 </td>
                                 <td class="p-4 text-center">
                                     <div class="flex items-center justify-center space-x-2">
-                                        <a href="" class="p-1.5 text-slate-500 hover:text-primary transition"
+                                        <a href="{{ route('admin.wisata.show', ['wisata' => $wisata->id_wisata]) }}" class="p-1.5 text-slate-500 hover:text-primary transition"
                                             title="Edit">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -142,7 +142,7 @@
                                                 </path>
                                             </svg>
                                         </a>
-                                        <form action="" method="POST"
+                                        <form action="{{ route('admin.wisata.destroy', ['wisata' => $wisata->id_wisata]) }}" method="POST"
                                             onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?');"
                                             class="inline-block">
                                             @csrf
