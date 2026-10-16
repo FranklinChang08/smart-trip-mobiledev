@@ -1,4 +1,5 @@
-<aside class="w-64 bg-white border-r border-border flex flex-col justify-between shrink-0 h-screen sticky top-0 font-manrope">
+<aside
+    class="w-64 bg-white border-r border-border flex flex-col justify-between shrink-0 h-screen sticky top-0 font-manrope">
     <div>
         <!-- Bagian atas sidebar -->
         <div class="h-20 px-6 flex items-center gap-3 border-b border-[#F3F4F6]">
@@ -26,7 +27,7 @@
 
             <!-- Data Wisata -->
             <a href="{{ route('admin.wisata.index') }}"
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('admin.wisata') ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary' }}">
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('admin.wisata*') ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary' }}">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                         d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
@@ -38,7 +39,7 @@
 
             <!-- Data Restoran -->
             <a href="{{ route('admin.restoran') }}"
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('admin.restoran') ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary' }}">
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('admin.restoran*') ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary' }}">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                         d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
@@ -54,11 +55,14 @@
         <div class="p-3 rounded-xl bg-background border border-[#F3F4F6] flex items-center gap-3 overflow-hidden">
             <div
                 class="w-9 h-9 rounded-full bg-primary text-white font-bold text-sm flex items-center justify-center shrink-0">
-                {{ strtoupper(substr(Auth::user()->name ?? 'A', 0, 1)) }}
+                {{ strtoupper(substr(Auth::user()->nama_pengguna ?? Auth::user()->name ?? 'A', 0, 1)) }}
             </div>
             <div class="overflow-hidden">
-                <div class="text-xs font-bold text-textPrimary truncate">{{ Auth::user()->name ?? 'Administrator' }}</div>
-                <div class="text-[0.6875rem] text-textSecondary truncate">{{ Auth::user()->email ?? 'admin@smarttrip.com' }}
+                <div class="text-xs font-bold text-textPrimary truncate">
+                    {{ Auth::user()->nama_pengguna ?? Auth::user()->name ?? 'Administrator' }}
+                </div>
+                <div class="text-[0.6875rem] text-textSecondary truncate">{{ Auth::user()->email ??
+                    'admin@smarttrip.com' }}
                 </div>
             </div>
         </div>
