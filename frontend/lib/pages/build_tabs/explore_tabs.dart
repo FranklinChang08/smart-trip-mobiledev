@@ -114,8 +114,8 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
               : null;
 
           final imageUrl =
-              'http://127.0.0.1:8000/storage/${linkFoto}';
-          print(linkFoto);
+              'http://127.0.0.1:8000/storage/$linkFoto';
+          debugPrint(linkFoto?.toString());
           return {
             ...destination,
             'title': destination['nama_wisata'] ?? '',
@@ -256,13 +256,14 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
                     )
                   else
                     ..._filteredDestinations.map(
-                      (dest) => DestinationCard(
+                      (dest) => _buildDestinationCard(
                         data: dest,
                         onItineraryPressed: () {
                           // Tambahkan logika itinerary di sini.
                         },
                       ),
                     ),
+
                   const SizedBox(height: 16),
                   _buildAiPlannerBanner(),
                   const SizedBox(height: 24),
@@ -488,7 +489,7 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: active ? AppColors.primary.withOpacity(0.15) : AppColors.surface,
+        color: active ? AppColors.primary.withValues(alpha: 0.15) : AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: active ? AppColors.primary : AppColors.border,
@@ -546,7 +547,7 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
     );
   }
 
-  Widget DestinationCard({
+  Widget _buildDestinationCard({
     required Map<String, dynamic> data,
     VoidCallback? onItineraryPressed,
   }) {
@@ -558,7 +559,7 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -597,9 +598,10 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(6),
                   ),
+
                   child: ManropeFont(
                     data['tag'] ?? '',
                     style: const TextStyle(

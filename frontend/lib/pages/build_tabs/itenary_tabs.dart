@@ -1,17 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/font/manrope_font.dart';
+import 'package:frontend/components/font/noto_font.dart';
+import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 import 'package:frontend/core/theme/app_colors.dart';
-// Sesuaikan path import di bawah ini jika berbeda dengan struktur proyek Anda
 import 'package:frontend/pages/create_trip_plan_page.dart';
 import 'package:frontend/pages/trip_itinerary_page.dart';
+import 'package:frontend/services/trip_plan_service.dart';
 
-class TripItineraryTab extends StatelessWidget {
+class TripItineraryTab extends StatefulWidget {
   const TripItineraryTab({super.key});
 
   @override
+  State<TripItineraryTab> createState() => _TripItineraryTabState();
+}
+
+class _TripItineraryTabState extends State<TripItineraryTab> {
+  SavedTripPlan? _activePlan;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActivePlan();
+  }
+
+  Future<void> _loadActivePlan() async {
+    final plan = await TripPlanService.getActiveTripPlan();
+    if (mounted) {
+      setState(() {
+        _activePlan = plan;
+      });
+    }
+  }
+
+
+  Future<void> _openCreateTripPlan() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreateTripPlanPage(),
+      ),
+    );
+    if (result == true) {
+      await _loadActivePlan();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final defaultStartDate = DateTime(now.year, now.month, now.day + 1);
-    final defaultEndDate = defaultStartDate.add(const Duration(days: 2));
+    final plan = _activePlan ?? SavedTripPlan.defaultPlan();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -24,7 +60,7 @@ class TripItineraryTab extends StatelessWidget {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  NotoFont(
                     'Rencana Perjalanan',
                     style: TextStyle(
                       fontSize: 22,
@@ -33,7 +69,7 @@ class TripItineraryTab extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 4),
-                  Text(
+                  ManropeFont(
                     'Susunan rencana wisata Batam Anda',
                     style: TextStyle(
                       fontSize: 13,
@@ -43,14 +79,7 @@ class TripItineraryTab extends StatelessWidget {
                 ],
               ),
               IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreateTripPlanPage(),
-                    ),
-                  );
-                },
+                onPressed: _openCreateTripPlan,
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -118,17 +147,17 @@ class TripItineraryTab extends StatelessWidget {
                               color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.calendar_today,
                                   size: 11,
                                   color: Colors.white,
                                 ),
-                                SizedBox(width: 5),
+                                const SizedBox(width: 5),
                                 Text(
-                                  '3 Hari 2 Malam',
-                                  style: TextStyle(
+                                  plan.durationLabel,
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -146,9 +175,9 @@ class TripItineraryTab extends StatelessWidget {
                               color: const Color(0xFFC05400),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Text(
-                              'Aktif',
-                              style: TextStyle(
+                            child: Text(
+                              plan.isActive ? 'Aktif' : 'Tersimpan',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
@@ -157,9 +186,9 @@ class TripItineraryTab extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const Text(
-                        'Liburan Akhir Pekan di Batam',
-                        style: TextStyle(
+                      Text(
+                        plan.tripName,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -183,10 +212,10 @@ class TripItineraryTab extends StatelessWidget {
                             color: Colors.grey.shade600,
                           ),
                           const SizedBox(width: 6),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Mulai dari: Pelabuhan Ferry Batam Center',
-                              style: TextStyle(
+                              'Mulai dari: ${plan.startLocation}',
+                              style: const TextStyle(
                                 fontSize: 12.5,
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w500,
@@ -204,10 +233,10 @@ class TripItineraryTab extends StatelessWidget {
                             color: Colors.grey.shade600,
                           ),
                           const SizedBox(width: 6),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Rute: Batam Center → Barelang → Galang → Nongsa',
-                              style: TextStyle(
+                              'Rute: ${plan.routeLabel}',
+                              style: const TextStyle(
                                 fontSize: 12.5,
                                 color: AppColors.textSecondary,
                               ),
@@ -224,9 +253,9 @@ class TripItineraryTab extends StatelessWidget {
                             color: Colors.grey.shade600,
                           ),
                           const SizedBox(width: 6),
-                          const Text(
-                            'Estimasi Anggaran: Rp 5.000.000',
-                            style: TextStyle(
+                          Text(
+                            'Estimasi Anggaran: ${plan.budget.startsWith('Rp') ? plan.budget : 'Rp ${plan.budget}'}',
+                            style: const TextStyle(
                               fontSize: 12.5,
                               color: AppColors.primary,
                               fontWeight: FontWeight.w700,
@@ -245,21 +274,16 @@ class TripItineraryTab extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => TripItineraryPage(
-                                  tripName: 'Liburan Akhir Pekan di Batam',
-                                  startDate: defaultStartDate,
-                                  endDate: defaultEndDate,
-                                  startLocation: 'Pelabuhan Ferry Batam Center',
-                                  budget: '5.000.000',
-                                  selectedThemes: const [
-                                    'Pantai & Bahari',
-                                    'Kuliner & Seafood Khas',
-                                  ],
-                                  selectedAreas: const [
-                                    'Nagoya & Jodoh',
-                                    'Barelang & Pulau Galang',
-                                  ],
-                                  transport: 'Mobil Sewa + Driver Lokal',
-                                  budgetPriority: 'Kuliner & Seafood Kelong',
+                                  tripName: plan.tripName,
+                                  startDate: plan.startDate,
+                                  endDate: plan.endDate,
+                                  startLocation: plan.startLocation,
+                                  budget: plan.budget,
+                                  selectedThemes: plan.selectedThemes,
+                                  selectedAreas: plan.selectedAreas,
+                                  transport: plan.transport,
+                                  budgetPriority: plan.budgetPriority,
+                                  notes: plan.notes,
                                 ),
                               ),
                             );
@@ -278,7 +302,7 @@ class TripItineraryTab extends StatelessWidget {
                             children: [
                               Icon(Icons.timeline, size: 16),
                               SizedBox(width: 8),
-                              Text(
+                              ManropeFont(
                                 'Buka Susunan Itinerary',
                                 style: TextStyle(
                                   fontSize: 13.5,
