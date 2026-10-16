@@ -54,14 +54,18 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
   @override
   void initState() {
     super.initState();
-    _tripNameController =
-        TextEditingController(text: 'Liburan Akhir Pekan di Batam');
+    _tripNameController = TextEditingController(
+      text: 'Liburan Akhir Pekan di Batam',
+    );
     _budgetController = TextEditingController(text: '5.000.000');
     _notesController = TextEditingController();
 
     final now = DateTime.now();
-    _startDate =
-        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    _startDate = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(const Duration(days: 1));
     _endDate = _startDate.add(const Duration(days: 2));
 
     _loadCategoriesFromApi();
@@ -84,7 +88,6 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     _notesController.dispose();
     super.dispose();
   }
-
 
   Future<void> _selectDateRange() async {
     final now = DateTime.now();
@@ -134,10 +137,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
 
   Future<void> _pickTime({required bool isStart}) async {
     final initial = isStart ? _startTime : _endTime;
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-    );
+    final picked = await showTimePicker(context: context, initialTime: initial);
     if (picked != null) {
       setState(() {
         if (isStart) {
@@ -196,8 +196,10 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                     final loc = kBatamLocations[i];
                     final isSelected = _selectedLocation == loc.name;
                     return ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 4,
+                      ),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -218,8 +220,9 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                         loc.name,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w600,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w600,
                           color: isSelected
                               ? AppColors.primary
                               : AppColors.textPrimary,
@@ -228,11 +231,16 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                       subtitle: Text(
                         loc.type,
                         style: const TextStyle(
-                            fontSize: 11, color: AppColors.textSecondary),
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       trailing: isSelected
-                          ? const Icon(Icons.check_circle,
-                              color: AppColors.primary, size: 20)
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: AppColors.primary,
+                              size: 20,
+                            )
                           : null,
                       onTap: () {
                         setState(() => _selectedLocation = loc.name);
@@ -294,6 +302,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       setState(() => _endTime = picked);
     }
   }
+
   // VALIDASI & NAVIGASI
 
   bool _validateStep1() {
@@ -325,8 +334,11 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded,
-                color: Colors.white, size: 20),
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
             const SizedBox(width: 10),
             Expanded(child: Text(message)),
           ],
@@ -371,7 +383,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
           notes: _notesController.text.trim(),
           onFinishAndGoHome: () {
             Navigator.pop(context);
-            Navigator.pop(context); 
+            Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Row(
@@ -398,6 +410,8 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
 
   /// Tombol Rekomendasi
   void _onRecommendationsClicked() {
+    // Tambahkan logika ketika tombol rekomendasi diklik di sini
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -486,7 +500,9 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                       if (_selectedAreas.length > 1) {
                         _selectedAreas.remove(area);
                       } else {
-                        _showWarningSnackBar('Pilih minimal 1 area destinasi.');
+                        _showWarningSnackBar(
+                          'Pilih minimal 1 area destinasi.',
+                        );
                       }
                     } else {
                       _selectedAreas.add(area);
