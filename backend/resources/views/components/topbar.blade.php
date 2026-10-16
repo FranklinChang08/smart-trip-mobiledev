@@ -1,21 +1,14 @@
-<header class="h-20 bg-white border-b border-border px-8 flex items-center justify-between sticky top-0 z-20">
-    <!-- Breadcrumb & Nama Halaman -->
-    <div>
-        <h2 class="font-serif text-lg font-bold text-primary">{{ $pageTitle ?? 'Dashboard' }}</h2>
-        <p class="text-textPrimary mt-0.5 text-sm">{{ $pageDesc ?? 'Dashboard' }}</p>
-    </div>
-
-    <!-- Info Admin -->
-    <div class="flex items-center gap-3">
-        <div class="text-right">
-            <div class="text-xs font-bold text-textPrimary">{{ Auth::user()->name ?? 'Administrator' }}</div>
-            <div class="text-[0.6875rem] font-semibold text-[#059669] flex items-center justify-end gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#10B981] inline-block"></span> Online
-            </div>
-        </div>
+<header class="h-16 bg-white border-b border-border px-8 flex items-center justify-end sticky top-0 z-20">
+    <!-- Info Admin di Ujung Kanan Sesuai Mockup -->
+    <div class="flex items-center gap-2.5">
+        <span class="text-xs md:text-sm font-semibold text-textPrimary">
+            {{ Auth::user()->nama_pengguna ?? Auth::user()->name ?? 'Admin' }}
+        </span>
         <div
-            class="w-9 h-9 rounded-full bg-[#F0FDF9] border border-[#99F6E4] text-primary font-bold text-sm flex items-center justify-center">
-            {{ strtoupper(substr(Auth::user()->name ?? 'A', 0, 1)) }}
+            class="w-8 h-8 rounded-full bg-[#235D52] text-white flex items-center justify-center text-xs font-bold shadow-sm">
+            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+            </svg>
         </div>
     </div>
 </header>
