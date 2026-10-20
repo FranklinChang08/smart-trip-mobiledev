@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:frontend/pages/loading_page.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 
@@ -15,6 +16,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SmartTrip',
       theme: ThemeData(
+        fontFamily: GoogleFonts.manrope().fontFamily,
+        textTheme: GoogleFonts.manropeTextTheme(ThemeData.light().textTheme),
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
           primary: AppColors.primary,

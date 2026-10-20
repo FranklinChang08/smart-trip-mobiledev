@@ -400,6 +400,66 @@ String formatFullMonth(int month) {
   return months[month - 1];
 }
 
+/// Model untuk detail setiap item kunjungan itinerary dari database
+class DetailItineraryModel {
+  final String id;
+  final int hariKe;
+  final int urutan;
+  final String tipeItem;
+  final String namaTempat;
+  final String kategori;
+  final String waktuMulai;
+  final String waktuSelesai;
+  final double estimasiBiaya;
+  final String catatan;
+  final bool isKustom;
+
+  const DetailItineraryModel({
+    required this.id,
+    required this.hariKe,
+    required this.urutan,
+    required this.tipeItem,
+    required this.namaTempat,
+    required this.kategori,
+    required this.waktuMulai,
+    required this.waktuSelesai,
+    required this.estimasiBiaya,
+    this.catatan = '',
+    this.isKustom = false,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id_detail': id,
+    'hari_ke': hariKe,
+    'urutan': urutan,
+    'tipe_item': tipeItem,
+    'nama_tempat': namaTempat,
+    'kategori': kategori,
+    'waktu_mulai': waktuMulai,
+    'waktu_selesai': waktuSelesai,
+    'estimasi_biaya': estimasiBiaya,
+    'catatan': catatan,
+    'is_kustom': isKustom,
+  };
+
+  factory DetailItineraryModel.fromJson(Map<String, dynamic> json) {
+    return DetailItineraryModel(
+      id: json['id_detail']?.toString() ?? json['id']?.toString() ?? '',
+      hariKe: int.tryParse(json['hari_ke']?.toString() ?? '1') ?? 1,
+      urutan: int.tryParse(json['urutan']?.toString() ?? '1') ?? 1,
+      tipeItem: json['tipe_item']?.toString() ?? 'wisata',
+      namaTempat: json['nama_tempat']?.toString() ?? '',
+      kategori: json['kategori']?.toString() ?? 'Wisata',
+      waktuMulai: json['waktu_mulai']?.toString() ?? '09:00',
+      waktuSelesai: json['waktu_selesai']?.toString() ?? '11:00',
+      estimasiBiaya:
+          double.tryParse(json['estimasi_biaya']?.toString() ?? '0') ?? 0.0,
+      catatan: json['catatan']?.toString() ?? '',
+      isKustom: json['is_kustom'] == true || json['is_kustom'] == 1,
+    );
+  }
+}
+
 /// Model data rencana perjalanan yang disimpan pengguna
 class SavedTripPlan {
   final String id;
@@ -415,6 +475,7 @@ class SavedTripPlan {
   final String transport;
   final bool isActive;
   final DateTime createdAt;
+  final List<DetailItineraryModel> details;
 
   SavedTripPlan({
     required this.id,
@@ -429,6 +490,7 @@ class SavedTripPlan {
     this.notes = '',
     this.transport = 'Mobil Sewa + Driver Lokal',
     this.isActive = true,
+    this.details = const [],
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -460,38 +522,85 @@ class SavedTripPlan {
     'transport': transport,
     'isActive': isActive,
     'createdAt': createdAt.toIso8601String(),
+    'detail_itineraries': details.map((d) => d.toJson()).toList(),
   };
 
-  factory SavedTripPlan.fromJson(Map<String, dynamic> json) => SavedTripPlan(
-    id: json['id'] as String? ?? '',
-    tripName: json['tripName'] as String? ?? 'Liburan Akhir Pekan di Batam',
-    startDate: json['startDate'] != null
-        ? DateTime.tryParse(json['startDate'].toString()) ?? DateTime.now()
-        : DateTime.now(),
-    endDate: json['endDate'] != null
-        ? DateTime.tryParse(json['endDate'].toString()) ??
-            DateTime.now().add(const Duration(days: 2))
-        : DateTime.now().add(const Duration(days: 2)),
-    startLocation:
-        json['startLocation'] as String? ?? 'Pelabuhan Ferry Batam Center',
-    budget: json['budget'] as String? ?? '5.000.000',
-    budgetPriority:
-        json['budgetPriority'] as String? ?? 'Kuliner & Seafood Kelong',
-    selectedThemes: (json['selectedThemes'] as List?)
-            ?.map((e) => e.toString())
-            .toList() ??
-        ['Pantai & Bahari', 'Kuliner & Seafood Khas'],
-    selectedAreas: (json['selectedAreas'] as List?)
-            ?.map((e) => e.toString())
-            .toList() ??
-        ['Batam Kota', 'Nongsa'],
-    notes: json['notes'] as String? ?? '',
-    transport: json['transport'] as String? ?? 'Mobil Sewa + Driver Lokal',
-    isActive: json['isActive'] as bool? ?? true,
-    createdAt: json['createdAt'] != null
-        ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
-        : DateTime.now(),
-  );
+  factory SavedTripPlan.fromJson(Map<String, dynamic> json) {
+    final preferensi = json['preferensi'] as Map<String, dynamic>?;
+
+    final id = json['id_rencana']?.toString() ?? json['id']?.toString() ?? '';
+    final name = json['nama_rencana']?.toString() ??
+        json['tripName']?.toString() ??
+        'Liburan Akhir Pekan di Batam';
+
+    final start = DateTime.tryParse(
+          json['tanggal_mulai']?.toString() ?? json['startDate']?.toString() ?? '',
+        ) ??
+        DateTime.now();
+    final end = DateTime.tryParse(
+          json['tanggal_selesai']?.toString() ?? json['endDate']?.toString() ?? '',
+        ) ??
+        DateTime.now().add(const Duration(days: 2));
+
+    final location = json['titik_awal']?.toString() ??
+        json['startLocation']?.toString() ??
+        'Pelabuhan Ferry Batam Center';
+
+    String budgetVal = json['total_anggaran']?.toString() ??
+        json['budget']?.toString() ??
+        '5.000.000';
+    if (double.tryParse(budgetVal) != null) {
+      final num = double.parse(budgetVal).toInt();
+      budgetVal = num.toString().replaceAllMapped(
+            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+            (Match m) => '${m[1]}.',
+          );
+    }
+
+    final priority = json['prioritas_anggaran']?.toString() ??
+        json['budgetPriority']?.toString() ??
+        'Kuliner & Seafood Kelong';
+
+    final themesList = (json['selectedThemes'] as List?) ??
+        (preferensi?['kategori_minat'] as List?) ??
+        ['Pantai & Bahari', 'Kuliner & Seafood Khas'];
+
+    final areasList = (json['selectedAreas'] as List?) ??
+        (preferensi?['kecamatan_pilihan'] as List?) ??
+        ['Batam Kota', 'Nongsa'];
+
+    final transportVal = json['transportasi']?.toString() ??
+        json['transport']?.toString() ??
+        'Mobil Sewa + Driver Lokal';
+
+    final detailList = (json['detail_itineraries'] as List?) ??
+        (json['details'] as List?) ??
+        [];
+    final parsedDetails = detailList
+        .map((e) => DetailItineraryModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    return SavedTripPlan(
+      id: id,
+      tripName: name,
+      startDate: start,
+      endDate: end,
+      startLocation: location,
+      budget: budgetVal,
+      budgetPriority: priority,
+      selectedThemes: themesList.map((e) => e.toString()).toList(),
+      selectedAreas: areasList.map((e) => e.toString()).toList(),
+      notes: json['catatan']?.toString() ?? json['notes']?.toString() ?? '',
+      transport: transportVal,
+      isActive: json['status'] != null
+          ? json['status'] == 'aktif'
+          : (json['isActive'] as bool? ?? false),
+      details: parsedDetails,
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+    );
+  }
 
   /// Default / Template rencana perjalanan awal jika belum ada yang disimpan
   factory SavedTripPlan.defaultPlan() {
@@ -508,10 +617,11 @@ class SavedTripPlan {
       budgetPriority: 'Kuliner & Seafood Kelong',
       selectedThemes: const ['Pantai & Bahari', 'Kuliner & Seafood Khas'],
       selectedAreas: const ['Batam Center', 'Barelang', 'Galang', 'Nongsa'],
-      notes: 'Rencana default eksplorasi Batam 3 hari 2 malam',
+      notes: 'Rencana eksplorasi Batam 3 hari 2 malam',
       transport: 'Mobil Sewa + Driver Lokal',
       isActive: true,
     );
   }
 }
+
 

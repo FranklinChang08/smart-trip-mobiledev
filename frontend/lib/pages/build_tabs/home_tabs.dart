@@ -5,7 +5,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/pages/build_tabs/detail_destination_tabs.dart';
-import 'package:frontend/pages/build_tabs/explore_tabs.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:frontend/components/slider_home.dart';
