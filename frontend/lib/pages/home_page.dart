@@ -8,7 +8,6 @@ import 'package:frontend/pages/build_tabs/home_tabs.dart';
 import 'package:frontend/pages/build_tabs/itenary_tabs.dart';
 import 'package:frontend/pages/create_trip_plan_page.dart';
 
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -23,15 +22,12 @@ class _HomePageState extends State<HomePage> {
   Future<void> _openCreateTripPlan() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const CreateTripPlanPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const CreateTripPlanPage()),
     );
     if (result == true && mounted) {
       setState(() => currentIndex = 2);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -153,9 +149,15 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       body: currentIndex == 0
-          ? HomeTabs()
+          ? HomeTabs(
+              onSeeAllPressed: () {
+                setState(() {
+                  currentIndex = 1;
+                });
+              },
+            )
           : currentIndex == 1
-          ? SmartTripExplorePage()
+          ? ExploreTabs()
           : currentIndex == 2
           ? TripItineraryTab()
           : const Center(child: Text('Profile')),
@@ -200,7 +202,6 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: _buildCustomNavigationBar(),
     );
   }
-
 
   Widget _buildCustomNavigationBar() {
     return Container(

@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
+import 'package:frontend/pages/build_tabs/detail_destination_tabs.dart';
 
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-class SmartTripExplorePage extends StatefulWidget {
-  const SmartTripExplorePage({super.key});
+class ExploreTabs extends StatefulWidget {
+  const ExploreTabs({super.key});
 
   @override
-  State<SmartTripExplorePage> createState() => _SmartTripExplorePageState();
+  State<ExploreTabs> createState() => _ExploreTabsState();
 }
 
-class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
+class _ExploreTabsState extends State<ExploreTabs> {
   final String _apiUrl = 'http://127.0.0.1:8000/api/wisata';
 
   String _searchQuery = '';
@@ -25,15 +26,15 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
   String? _errorMessage;
 
   String _selectedCategory = 'Semua';
-  String _selectedSort = 'Populer';
+  String _selectedFilter = 'Semua';
+  // URL API kategori
+  final String _kategoriApiUrl = 'http://127.0.0.1:8000/api/kategori-list';
 
-  final List<String> _categories = [
-    'Semua',
-    'Wisata Alam',
-    'Kuliner',
-    'Wisata Bahari',
-    'Belanja & Oleh-oleh',
-  ];
+  // Kategori diambil dari API
+  List<String> _categories = ['Semua'];
+
+  bool _isLoadingCategories = true;
+  String? _categoryError;
 
   List<Map<String, dynamic>> get _filteredDestinations {
     final query = _searchQuery.trim().toLowerCase();
@@ -45,17 +46,26 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
 
       final tag = (destination['tag'] ?? '').toString().toLowerCase();
 
+      final jenis = (destination['jenis_data'] ?? '').toString().toLowerCase();
+
       final matchesSearch =
           query.isEmpty ||
           title.contains(query) ||
           location.contains(query) ||
           tag.contains(query);
 
+      final matchesFilter = switch (_selectedFilter) {
+        'Wisata' => jenis == 'wisata',
+        'Restoran' => jenis == 'restoran',
+        'Hotel' => jenis == 'hotel',
+        _ => true,
+      };
+
       final matchesCategory =
           _selectedCategory == 'Semua' ||
           tag == _selectedCategory.toLowerCase();
 
-      return matchesSearch && matchesCategory;
+      return matchesSearch && matchesFilter && matchesCategory;
     }).toList();
 
     if (_selectedSort == 'Rating Tertinggi') {
@@ -74,6 +84,51 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
   void initState() {
     super.initState();
     _fetchDestinations();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse(_kategoriApiUrl),
+        headers: {'Accept': 'application/json'},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Gagal mengambil kategori: ${response.statusCode}');
+      }
+
+      final Map<String, dynamic> result =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      final List<dynamic> data = result['data'] as List<dynamic>;
+
+      final List<String> categories = data
+          .map((item) {
+            final category = item as Map<String, dynamic>;
+            return category['nama_kategori']?.toString() ?? '';
+          })
+          .where((name) => name.isNotEmpty)
+          .toSet()
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _categories = ['Semua', ...categories];
+        _isLoadingCategories = false;
+        _categoryError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingCategories = false;
+        _categoryError = e.toString();
+      });
+
+      debugPrint('Error mengambil kategori: $e');
+    }
   }
 
   Future<void> _fetchDestinations() async {
@@ -113,11 +168,10 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
               ? fotoDestinasis[0]['link_photo']
               : null;
 
-          final imageUrl =
-              'http://127.0.0.1:8000/storage/$linkFoto';
-          debugPrint(linkFoto?.toString());
+          final imageUrl = 'http://127.0.0.1:8000/api/wisata/foto/$linkFoto';
           return {
             ...destination,
+            'id': destination['id_wisata'] ?? '',
             'title': destination['nama_wisata'] ?? '',
             'tag': kategori,
             'location': destination['alamat_detail_wisata'] ?? '',
@@ -125,6 +179,8 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
             'image': imageUrl,
             'rating': destination['rating'] ?? '-',
             'actionText': 'Lihat Detail →',
+
+            'jenis_data': 'wisata',
           };
         }).toList();
 
@@ -166,7 +222,6 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(
@@ -180,47 +235,7 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
                   const SizedBox(height: 12),
                   _buildSubFilters(),
                   const SizedBox(height: 12),
-                  PopupMenuButton<String>(
-                    initialValue: _selectedSort,
-                    onSelected: (value) {
-                      setState(() {
-                        _selectedSort = value;
-                      });
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'Populer',
-                        child: Text('Paling Populer'),
-                      ),
-                      PopupMenuItem(
-                        value: 'Rating Tertinggi',
-                        child: Text('Rating Tertinggi'),
-                      ),
-                    ],
-                    child: Row(
-                      children: [
-                        const ManropeFont(
-                          'Urutkan: ',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        ManropeFont(
-                          _selectedSort == 'Populer'
-                              ? 'Paling Populer'
-                              : 'Rating Tertinggi',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const Icon(Icons.arrow_drop_down, size: 16),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+
                   // Memanggil komponen DestinationCard yang di-import terpisah
                   if (_isLoading)
                     const Center(
@@ -257,6 +272,7 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
                   else
                     ..._filteredDestinations.map(
                       (dest) => _buildDestinationCard(
+                        context: context,
                         data: dest,
                         onItineraryPressed: () {
                           // Tambahkan logika itinerary di sini.
@@ -272,51 +288,6 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.arrow_back_ios, size: 16, color: AppColors.primary),
-              SizedBox(width: 8),
-              ManropeFont(
-                'SmartTrip',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-          Stack(
-            children: [
-              const Icon(
-                Icons.notifications_outlined,
-                color: AppColors.textPrimary,
-              ),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: const BoxDecoration(
-                    color: AppColors.errorRed,
-                    shape: BoxShape.circle,
-                  ),
-                  constraints: const BoxConstraints(minWidth: 6, minHeight: 6),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -432,6 +403,26 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
   }
 
   Widget _buildCategoryChips() {
+    if (_isLoadingCategories) {
+      return const SizedBox(
+        height: 36,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    if (_categoryError != null) {
+      return SizedBox(
+        height: 36,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: _fetchCategories,
+            child: const Text('Gagal memuat kategori. Coba lagi'),
+          ),
+        ),
+      );
+    }
+
     return SizedBox(
       height: 36,
       child: ListView.builder(
@@ -440,6 +431,7 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
         itemBuilder: (context, index) {
           final category = _categories[index];
           final isSelected = _selectedCategory == category;
+
           return Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: ChoiceChip(
@@ -476,31 +468,42 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
   Widget _buildSubFilters() {
     return Row(
       children: [
-        _subFilterItem('Wisata & Kuliner', true),
+        _subFilterItem('Semua', _selectedFilter == 'Semua'),
         const SizedBox(width: 8),
-        _subFilterItem('Kuliner & Belanja', false),
+        _subFilterItem('Wisata', _selectedFilter == 'Wisata'),
         const SizedBox(width: 8),
-        _subFilterItem('Cagar Budaya', false),
+        _subFilterItem('Restoran', _selectedFilter == 'Restoran'),
+        const SizedBox(width: 8),
+        _subFilterItem('Hotel', _selectedFilter == 'Hotel'),
       ],
     );
   }
 
   Widget _subFilterItem(String label, bool active) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: active ? AppColors.primary.withValues(alpha: 0.15) : AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: active ? AppColors.primary : AppColors.border,
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = label;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: active
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: active ? AppColors.primary : AppColors.border,
+          ),
         ),
-      ),
-      child: ManropeFont(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          color: active ? AppColors.primary : AppColors.textSecondary,
-          fontWeight: active ? FontWeight.bold : FontWeight.normal,
+        child: ManropeFont(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: active ? AppColors.primary : AppColors.textSecondary,
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
       ),
     );
@@ -548,9 +551,22 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
   }
 
   Widget _buildDestinationCard({
+    required BuildContext context,
     required Map<String, dynamic> data,
     VoidCallback? onItineraryPressed,
   }) {
+    // Helper untuk memformat harga
+    String formatPrice(dynamic price) {
+      if (price == null) return '';
+      final parsedPrice = double.tryParse(price.toString());
+      if (parsedPrice == null || parsedPrice == 0) {
+        return 'Gratis';
+      }
+      return 'Rp $price';
+    }
+
+    final String priceText = formatPrice(data['price']);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -565,142 +581,194 @@ class _SmartTripExplorePageState extends State<SmartTripExplorePage> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            // Navigasi ke Halaman Detail (Placeholder)
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    DetailDestinationTabs(wisataId: data['id']),
+              ),
+            );
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
-                child: Image.network(
-                  data['image'] ?? '',
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    debugPrint('URL: ${data['image']}');
-                    debugPrint('Error gambar: $error');
-
-                    return const Center(
-                      child: Icon(Icons.broken_image, size: 40),
-                    );
-                  },
-                ),
-              ),
-              Positioned(
-                top: 10,
-                left: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-
-                  child: ManropeFont(
-                    data['tag'] ?? '',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+              // --- Gambar & Tag / Favorite ---
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                    child: Image.network(
+                      data['image'] ?? '',
+                      height: 160,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        debugPrint('URL Error: ${data['image']}');
+                        return Container(
+                          height: 160,
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child: Icon(
+                              Icons.broken_image,
+                              size: 40,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                ),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.favorite_border,
-                    size: 16,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: ManropeFont(
-                        data['title'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                  if ((data['tag'] ?? '').isNotEmpty)
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: ManropeFont(
+                          data['tag'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                    const Icon(Icons.star, size: 14, color: Colors.amber),
-                    const SizedBox(width: 4),
-                    ManropeFont(
-                      '${data['rating'] ?? '-'}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.favorite_border,
+                        size: 16,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
+                  ),
+                ],
+              ),
+
+              // --- Detail Konten ---
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.location_on_outlined,
-                      size: 12,
-                      color: AppColors.textSecondary,
+                    // Judul & Rating
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ManropeFont(
+                            data['title'] ?? '',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.star, size: 14, color: Colors.amber),
+                        const SizedBox(width: 4),
+                        ManropeFont(
+                          '${data['rating'] ?? '-'}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: ManropeFont(
-                        data['location'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 11,
+                    const SizedBox(height: 4),
+
+                    // Lokasi Kecamatan (Dipersingkat) & Harga Tiket
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 14,
                           color: AppColors.textSecondary,
                         ),
-                      ),
-                    ),
-                    if (data['price'] != null) ...[
-                      const SizedBox(width: 8),
-                      const ManropeFont(
-                        '•',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: ManropeFont(
+                            data['location'] ??
+                                data['subdistrict'] ??
+                                'Kecamatan tidak diketahui',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis, // Memotong teks dengan titik-titik (...)
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
+                        if (priceText.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          const ManropeFont(
+                            '•',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ManropeFont(
+                            priceText,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: priceText == 'Gratis'
+                                  ? Colors.green
+                                  : AppColors.textSecondary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    // Deskripsi Singkat Destinasi
+                    if ((data['description'] ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 8),
                       ManropeFont(
-                        '${data['price']}',
+                        data['description'] ?? '',
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: AppColors.textSecondary,
-                          fontWeight: FontWeight.bold,
+                          height: 1.3,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

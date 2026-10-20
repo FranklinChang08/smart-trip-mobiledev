@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExploreController;
+use App\Http\Controllers\FotoController;
 use App\Models\FotoDestinasi;
 use App\Models\Kategori;
 use Illuminate\Http\Request;
@@ -36,3 +37,13 @@ Route::get('/kecamatan', function () {
         'data' => \App\Models\Kecamatan::orderBy('nama_kecamatan')->get(),
     ]);
 });
+
+
+
+Route::prefix('wisata')->name('wisata.')->group(function () {
+    Route::get('/', [ExploreController::class, 'index']);
+    Route::get('/{id}', [ExploreController::class, 'show']);
+    Route::get('/foto/{path}', [FotoController::class, 'showFotoDestinasi'])->where('path', '.*');
+});
+
+Route::get('/kategori-list', [ExploreController::class, 'showKategori']);

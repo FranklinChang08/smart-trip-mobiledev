@@ -1,19 +1,213 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/pages/build_tabs/detail_destination_tabs.dart';
+import 'package:frontend/pages/build_tabs/explore_tabs.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:frontend/components/slider_home.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 
-class HomeTabs extends StatelessWidget {
-  const HomeTabs({super.key});
+class HomeTabs extends StatefulWidget {
+  final VoidCallback onSeeAllPressed;
+  const HomeTabs({super.key, required this.onSeeAllPressed});
+
+  @override
+  State<HomeTabs> createState() => _HomeTabsState();
+}
+
+class _HomeTabsState extends State<HomeTabs> {
+  int currentIndex = 0;
+  // ==========================================
+  // VARIABEL API & STATE
+  // ==========================================
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _destinations = [];
+  List<Map<String, dynamic>> _restaurants = [];
+
+  String get _baseUrl {
+    if (kIsWeb) {
+      return 'http://127.0.0.1:8000/api';
+    } else if (Platform.isAndroid) {
+      return 'http://10.0.2.2:8000/api';
+    } else {
+      return 'http://127.0.0.1:8000/api';
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHomeData();
+  }
+
+  String _resolveImageUrl(dynamic linkFoto, String endpointType) {
+    if (linkFoto == null || linkFoto.toString().isEmpty) {
+      return 'http://127.0.0.1:8000/storage/placeholder.jpg';
+    }
+    final String fotoStr = linkFoto.toString();
+    if (fotoStr.startsWith('http://') || fotoStr.startsWith('https://')) {
+      return fotoStr;
+    }
+    return '$_baseUrl/$endpointType/foto/$fotoStr';
+  }
+
+  Future<void> _fetchHomeData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    await Future.wait([_fetchDestinations(), _fetchRestaurants()]);
+
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _fetchDestinations() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/wisata'),
+        headers: {'Accept': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final List<dynamic> items = jsonResponse is List
+            ? jsonResponse
+            : (jsonResponse['data'] as List<dynamic>? ?? []);
+
+        _destinations = items.map<Map<String, dynamic>>((item) {
+          final destination = Map<String, dynamic>.from(item);
+
+          final kategoris = destination['kategoris'] as List<dynamic>? ?? [];
+          final kategori = kategoris.isNotEmpty
+              ? kategoris[0]['nama_kategori'] ?? 'Wisata'
+              : 'Wisata';
+
+          final fotoDestinasis =
+              destination['foto_destinasis'] as List<dynamic>? ?? [];
+          final linkFoto = fotoDestinasis.isNotEmpty
+              ? fotoDestinasis[0]['link_photo']
+              : null;
+
+          final imageUrl = _resolveImageUrl(
+            linkFoto ?? destination['image_url'],
+            'wisata',
+          );
+
+          return {
+            ...destination,
+            'id': destination['id_wisata']?.toString() ?? '',
+            'title': destination['nama_wisata'] ?? 'Destinasi Wisata',
+            'desc':
+                destination['deskripsi_wisata'] ??
+                destination['deskripsi'] ??
+                '',
+            'tag': kategori,
+            'district': destination['kecamatan']['nama_kecamatan'] ?? '',
+            'address': destination['alamat_detail_wisata'] ?? 'Kecamatan Batam',
+            'price': destination['harga_tiket_masuk'] ?? 'Gratis',
+            'image': imageUrl,
+            'rating': double.tryParse('${destination['rating']}') ?? 4.8,
+            'total_visit': destination['total_visit'] ?? '85k+ visit',
+          };
+        }).toList();
+      }
+    } catch (e) {
+      debugPrint('Error fetching destinations: $e');
+    }
+  }
+
+  Future<void> _fetchRestaurants() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/restoran'),
+        headers: {'Accept': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final List<dynamic> items = jsonResponse is List
+            ? jsonResponse
+            : (jsonResponse['data'] as List<dynamic>? ?? []);
+
+        _restaurants = items.map<Map<String, dynamic>>((item) {
+          final resto = Map<String, dynamic>.from(item);
+          final fotoResto = resto['foto_restorans'] as List<dynamic>? ?? [];
+          final linkFoto = fotoResto.isNotEmpty
+              ? fotoResto[0]['link_photo']
+              : null;
+
+          return {
+            ...resto,
+            'title': resto['nama_restoran'] ?? 'Restoran Pilihan',
+            'location': resto['kategori'] ?? 'Kelong Apung',
+            'price': resto['harga_rata_rata'] ?? 'Rp 45.000',
+            'desc': resto['deskripsi'] ?? 'Kuliner lezat khas Batam.',
+            'jam': resto['jam_operasional'] ?? '10:00 - 21:00 WIB',
+            'image': _resolveImageUrl(
+              linkFoto ?? resto['image_url'],
+              'restoran',
+            ),
+          };
+        }).toList();
+      }
+    } catch (e) {
+      debugPrint(
+        'Error fetching restaurants (Endpoint mungkin belum siap): $e',
+      );
+      // Fallback data dummy aman jika endpoint /restoran belum siap di backend
+      _restaurants = [
+        {
+          'title': 'Gonggong Rebus Piayu Laut',
+          'location': 'Kelong Apung',
+          'price': 'Rp 45.000',
+          'desc':
+              'Siput laut khas Kepri dengan sambal asam pedas jeruk kesturi.',
+          'jam': '10:00 - 21:00 WIB',
+          'image': 'http://127.0.0.1:8000/storage/placeholder.jpg',
+        },
+        {
+          'title': 'Mie Lendir Harum Manis',
+          'location': 'Sarapan Favorit',
+          'price': 'Rp 18.000',
+          'desc': 'Kuah kacang kental rempah ubi manis telur rebus khas Tanjungpinang.',
+          'jam': '06:30 - 13:00 WIB',
+          'image': 'http://127.0.0.1:8000/storage/placeholder.jpg',
+        },
+      ];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40.0),
+          child: CircularProgressIndicator(color: Color(0xFF00685F)),
+        ),
+      );
+    }
+
+    // Ambil 3 teratas untuk Destinasi Populer (bisa disorting berdasarkan rating / kunjungan)
+    final popularDestinations = List<Map<String, dynamic>>.from(
+      _destinations,
+    )..sort((a, b) => (b['rating'] as double).compareTo(a['rating'] as double));
+    final top3Popular = popularDestinations.take(3).toList();
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // const AutoSlider(),
+            const AutoSlider(),
             const SizedBox(height: 20),
 
             // Search Bar
@@ -81,7 +275,7 @@ class HomeTabs extends StatelessWidget {
 
             const SizedBox(height: 30),
             const Text(
-              'Pilihan Kuliner',
+              'Jelajahi Batam',
               style: TextStyle(color: Color(0xFF00685F), fontSize: 16),
             ),
 
@@ -109,7 +303,7 @@ class HomeTabs extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: widget.onSeeAllPressed,
                   child: const Row(
                     children: [Text('Lihat Semua'), Icon(Icons.chevron_right)],
                   ),
@@ -117,49 +311,46 @@ class HomeTabs extends StatelessWidget {
               ],
             ),
 
-            // Horizontal List Destinasi
+            // Horizontal List Destinasi dari API
             SizedBox(
               height: 350,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDestinationCard(
-                      'Jembatan Barelang',
-                      'Ikon Batam berupa rangkaian enam jembatan yang menghubungkan kawasan Batam, Rempang, dan Galang dengan panorama laut.',
-                      'Kecamatan Sagulung',
-                      'Gratis',
-                      'assets/images/banner1.jpeg',
+              child: _destinations.isEmpty
+                  ? const Center(child: Text('Belum ada data destinasi'))
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _destinations.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 16),
+                      itemBuilder: (context, index) {
+                        final dest = _destinations[index];
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    DetailDestinationTabs(wisataId: dest['id']),
+                              ),
+                            );
+                          },
+                          child: _buildDestinationCard(
+                            dest['title'],
+                            dest['desc'],
+                            dest['district'],
+                            dest['price'],
+                            dest['image'],
+                          ),
+                        );
+                      },
                     ),
-                    const SizedBox(width: 16),
-                    _buildDestinationCard(
-                      'Welcome to Batam',
-                      'Landmark ikonik di Bukit Clara yang menjadi salah satu simbol Kota Batam dan berada dekat kawasan Batam Centre.',
-                      'Kecamatan Batam Kota',
-                      'Gratis',
-                      'assets/images/banner2.webp',
-                    ),
-                    const SizedBox(width: 16),
-                    _buildDestinationCard(
-                      'Maha Vihara Duta Maitreya',
-                      'Kompleks vihara besar dengan arsitektur khas dan berbagai area untuk dikunjungi.',
-                      'Kecamatan Batam Kota',
-                      'Gratis',
-                      'assets/images/vihara.jpg',
-                    ),
-                  ],
-                ),
-              ),
             ),
 
             const SizedBox(height: 20),
             const Text(
-              'Pilihan Kuliner',
+              'Pilihan Restoran & Kuliner',
               style: TextStyle(color: AppColors.tertiary, fontSize: 16),
             ),
 
-            // Header Kuliner
+            // Header Kuliner/Restoran
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
@@ -191,26 +382,18 @@ class HomeTabs extends StatelessWidget {
               ],
             ),
 
-            // List Kuliner
+            // List Restoran
             Column(
-              children: [
-                _buildFoodCard(
-                  'Gonggong Rebus Piayu Laut',
-                  'Kelong Apung',
-                  'Rp 45.000',
-                  'Siput laut khas Kepri dengan sambal asam pedas jeruk kesturi.',
-                  '10:00 - 21:00 WIB',
-                  'assets/images/makanan/gonggong.jpg',
-                ),
-                _buildFoodCard(
-                  'Mie Lendir Harum Manis',
-                  'Sarapan Favorit',
-                  'Rp 18.000',
-                  'Kuah kacang kental rempah ubi manis telur rebus khas Tanjungpinang.',
-                  '06:30 - 13:00 WIB',
-                  'assets/images/makanan/mielendir.jpg',
-                ),
-              ],
+              children: _restaurants.map((resto) {
+                return _buildFoodCard(
+                  resto['title'],
+                  resto['location'],
+                  resto['price'],
+                  resto['desc'],
+                  resto['jam'],
+                  resto['image'],
+                );
+              }).toList(),
             ),
 
             const SizedBox(height: 24),
@@ -230,24 +413,30 @@ class HomeTabs extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // List Destinasi Populer
+            // List Destinasi Populer (3 Teratas Dinamis)
             Column(
-              children: [
-                _buildPopularDestinationCard(
-                  0xFFC05400,
-                  '#1',
-                  'Jembatan I Barelang (Fisabilillah)',
-                  '98k+ visit',
-                  'Spot foto sunset terfavorit se-Kepri',
-                ),
-                _buildPopularDestinationCard(
-                  0xFF00685F,
-                  '#2',
-                  'Pantai Nongsa & Kawasan Marina',
-                  '74k+ visit',
-                  'Pemandangan skyline Singapura dari pantai',
-                ),
-              ],
+              children: List.generate(top3Popular.length, (index) {
+                final dest = top3Popular[index];
+                final colors = [0xFFC05400, 0xFF00685F, 0xFF006399];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            DetailDestinationTabs(wisataId: dest['id']),
+                      ),
+                    );
+                  },
+                  child: _buildPopularDestinationCard(
+                    colors[index % colors.length],
+                    '#${index + 1}',
+                    dest['title'],
+                    dest['total_visit'],
+                    dest['district'],
+                  ),
+                );
+              }),
             ),
           ],
         ),
@@ -255,7 +444,7 @@ class HomeTabs extends StatelessWidget {
     );
   }
 
-  // --- FUNGSI HELPER CARD DI DALAM KELAS ---
+  // --- FUNGSI HELPER CARD ---
 
   Widget _buildDestinationCard(
     String title,
@@ -281,8 +470,9 @@ class HomeTabs extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
                     image: DecorationImage(
-                      image: AssetImage(image),
+                      image: NetworkImage(image),
                       fit: BoxFit.cover,
+                      onError: (_, __) {},
                     ),
                   ),
                 ),
@@ -310,7 +500,7 @@ class HomeTabs extends StatelessWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(50),
                     ),
-                    child: Text(district),
+                    child: Text(district, style: const TextStyle(fontSize: 12)),
                   ),
                 ),
               ],
@@ -331,7 +521,12 @@ class HomeTabs extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(desc, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(
+                    desc,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                   const Divider(thickness: 0.25),
                   const SizedBox(height: 6),
                   Column(
@@ -389,8 +584,9 @@ class HomeTabs extends StatelessWidget {
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(12),
                   image: DecorationImage(
-                    image: AssetImage(image),
+                    image: NetworkImage(image),
                     fit: BoxFit.cover,
+                    onError: (_, __) {},
                   ),
                 ),
               ),

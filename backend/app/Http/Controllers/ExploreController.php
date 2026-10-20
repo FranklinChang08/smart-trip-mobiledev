@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Kategori;
 use App\Models\Wisata;
 use Illuminate\Http\Request;
 
@@ -63,13 +64,29 @@ class ExploreController extends Controller
         $wisata = Wisata::with([
             'kecamatan',
             'kategoris',
-            'fotoDestinasis',
             'jamOperasis',
-        ])->findOrFail($id);
+            'fotoDestinasis',
+        ])->find($id);
+
+        if (!$wisata) {
+            return response()->json([
+                'message' => 'Destinasi wisata tidak ditemukan.',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Detail destinasi wisata berhasil diambil.',
+            'data' => $wisata,
+        ], 200);
+    }
+
+    public function showKategori()
+    {
+        $kategori = Kategori::orderBy('nama_kategori')->get();
 
         return response()->json([
             'success' => true,
-            'data' => $wisata,
+            'data' => $kategori,
         ]);
     }
 }

@@ -1,13 +1,22 @@
 <?php
 
 return [
-    'paths' => ['api/*', 'storage/*'],
+    'paths' => [
+        'api/*',
+        'sanctum/csrf-cookie',
+        'storage/*',
+    ],
 
     'allowed_methods' => ['*'],
 
+    'allowed_origins' => [
+        'http://localhost:5000',
+        'http://127.0.0.1:5000',
+    ],
 
     'allowed_origins_patterns' => [],
-    'allowed_origins' => ['*'], // Atau sesuaikan dengan origin Flutter web Anda
+
+    'allowed_headers' => ['*'],
 
     'exposed_headers' => [],
 
