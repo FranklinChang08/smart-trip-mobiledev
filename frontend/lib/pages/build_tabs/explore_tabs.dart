@@ -27,6 +27,7 @@ class _ExploreTabsState extends State<ExploreTabs> {
 
   String _selectedCategory = 'Semua';
   String _selectedFilter = 'Semua';
+  String _selectedSort = 'Populer';
   // URL API kategori
   final String _kategoriApiUrl = 'http://127.0.0.1:8000/api/kategori-list';
 

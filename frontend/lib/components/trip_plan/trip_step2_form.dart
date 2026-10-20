@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/components/font/noto_font.dart';
+import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 
-/// Formulir Langkah 2: Mengisi Preferensi Perjalanan 
-/// Berisi: Minat Wisata
+///  Mengisi Preferensi Perjalanan
 class TripStep2Form extends StatelessWidget {
   final Set<String> selectedThemes;
   final List<TripThemeModel> availableThemes;
@@ -241,7 +240,7 @@ class TripStep2Form extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Pilih satu atau beberapa kecamatan di Batam yang ingin dikunjungi (sesuai basis data).',
+            'Pilih satu atau beberapa kecamatan di Batam yang ingin dikunjungi.',
             style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
@@ -523,7 +522,7 @@ class TripStep2Form extends StatelessWidget {
           child: Icon(icon, color: AppColors.primary, size: 16),
         ),
         const SizedBox(width: 8),
-        NotoFont(
+        ManropeFont(
           title,
           style: const TextStyle(
             fontSize: 14,

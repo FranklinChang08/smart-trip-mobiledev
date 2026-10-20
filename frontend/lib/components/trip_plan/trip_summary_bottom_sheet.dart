@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/components/font/manrope_font.dart';
-import 'package:frontend/components/font/noto_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 
@@ -95,7 +94,7 @@ class TripSummaryBottomSheet extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        NotoFont(
+                        ManropeFont(
                           tripName,
                           style: const TextStyle(
                             fontSize: 17,

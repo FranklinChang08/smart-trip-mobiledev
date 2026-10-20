@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:frontend/components/app_notification.dart';
 import 'package:frontend/components/font/bebas_neue_font.dart';
 import 'package:frontend/components/font/manrope_font.dart';
-import 'package:frontend/components/font/noto_font.dart';
 import 'package:frontend/components/text_field_v1.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/pages/login_page.dart';
@@ -342,7 +341,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          NotoFont(
+                          ManropeFont(
                             "Selamat Datang Kembali di SmartTrip",
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,

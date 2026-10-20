@@ -20,6 +20,7 @@ class CreateTripPlanPage extends StatefulWidget {
 class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
   int _currentStep = 0;
   final ScrollController _scrollController = ScrollController();
+  bool _planSaved = false;
 
   late final TextEditingController _tripNameController;
   late final TextEditingController _budgetController;
@@ -614,7 +615,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (bottomSheetContext) {
         return TripSummaryBottomSheet(
           tripName: _tripNameController.text.trim(),
           startDate: _startDate,
@@ -628,11 +629,16 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
           selectedAreas: _selectedAreas.toList(),
           notes: _notesController.text.trim(),
           onFinishAndGoHome: () async {
+            _planSaved = true;
+            final nav = Navigator.of(context);
+            final scaffoldMessenger = ScaffoldMessenger.of(context);
+            final modalNav = Navigator.of(bottomSheetContext);
+
             await TripPlanService.saveTripPlan(newPlan);
-            if (!context.mounted) return;
-            Navigator.pop(context); // Tutup bottom sheet
-            Navigator.pop(context, true); // Kembali ke HomePage dengan hasil update
-            ScaffoldMessenger.of(context).showSnackBar(
+
+            modalNav.pop(); // Tutup bottom sheet
+            nav.pop(true); // Kembali ke HomePage dengan hasil update
+            scaffoldMessenger.showSnackBar(
               SnackBar(
                 content: Row(
                   children: [
@@ -683,27 +689,35 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       isActive: true,
     );
 
-    // Simpan otomatis sebagai rencana aktif
-    await TripPlanService.saveTripPlan(plan);
+    // Simpan otomatis sebagai rencana aktif ke backend & local cache
+    _planSaved = true;
+    final saved = await TripPlanService.saveTripPlan(plan);
 
     if (!mounted) return;
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => TripItineraryPage(
-          tripName: plan.tripName,
-          startDate: plan.startDate,
-          endDate: plan.endDate,
-          startLocation: plan.startLocation,
-          budget: plan.budget,
-          selectedThemes: plan.selectedThemes,
-          selectedAreas: plan.selectedAreas,
-          budgetPriority: plan.budgetPriority,
-          notes: plan.notes,
-          transport: plan.transport,
+          planId: saved?.id ?? plan.id,
+          tripName: saved?.tripName ?? plan.tripName,
+          startDate: saved?.startDate ?? plan.startDate,
+          endDate: saved?.endDate ?? plan.endDate,
+          startLocation: saved?.startLocation ?? plan.startLocation,
+          budget: saved?.budget ?? plan.budget,
+          selectedThemes: saved?.selectedThemes ?? plan.selectedThemes,
+          selectedAreas: saved?.selectedAreas ?? plan.selectedAreas,
+          budgetPriority: saved?.budgetPriority ?? plan.budgetPriority,
+          notes: saved?.notes ?? plan.notes,
+          transport: saved?.transport ?? plan.transport,
+          initialDetails: saved?.details,
         ),
       ),
     );
+
+    // Ketika kembali dari melihat susunan itinerary, kembali ke halaman utama (HomePage) dengan sinyal update
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   @override
@@ -714,7 +728,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
         currentStep: _currentStep,
         onBack: () {
           if (_currentStep == 0) {
-            Navigator.pop(context);
+            Navigator.pop(context, _planSaved);
           } else {
             setState(() => _currentStep = 0);
             if (_scrollController.hasClients) {
@@ -794,7 +808,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
         currentStep: _currentStep,
         onCancelOrBack: () {
           if (_currentStep == 0) {
-            Navigator.pop(context);
+            Navigator.pop(context, _planSaved);
           } else {
             setState(() => _currentStep = 0);
             if (_scrollController.hasClients) {

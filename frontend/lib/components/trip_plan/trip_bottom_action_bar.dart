@@ -164,7 +164,7 @@ class TripBottomActionBar extends StatelessWidget {
         ),
         const SizedBox(width: 8),
 
-        // 3. Tombol Lihat Rekomendasi (Bisa diklik tapi belum tersedia)
+        // 3. Tombol Lihat Rekomendasi
         Expanded(
           child: ElevatedButton(
             onPressed: onViewRecommendations,

@@ -18,14 +18,20 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
   bool isBellHovered = false;
+  Key _itineraryKey = UniqueKey();
 
   Future<void> _openCreateTripPlan() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CreateTripPlanPage()),
     );
-    if (result == true && mounted) {
-      setState(() => currentIndex = 2);
+    if (mounted) {
+      setState(() {
+        _itineraryKey = UniqueKey();
+        if (result == true) {
+          currentIndex = 2;
+        }
+      });
     }
   }
 
@@ -159,7 +165,7 @@ class _HomePageState extends State<HomePage> {
           : currentIndex == 1
           ? ExploreTabs()
           : currentIndex == 2
-          ? TripItineraryTab()
+          ? TripItineraryTab(key: _itineraryKey)
           : const Center(child: Text('Profile')),
       floatingActionButton: Container(
         decoration: BoxDecoration(
@@ -266,6 +272,9 @@ class _HomePageState extends State<HomePage> {
       onTap: () {
         setState(() {
           currentIndex = index;
+          if (index == 2) {
+            _itineraryKey = UniqueKey();
+          }
         });
       },
       child: AnimatedContainer(

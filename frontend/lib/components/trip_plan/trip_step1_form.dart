@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/components/font/manrope_font.dart';
-import 'package:frontend/components/font/noto_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 
-/// Formulir Langkah 1
-/// Tampilan premium terstruktur rapi: Nama Perjalanan, Periode & Ritme Harian,
 /// Lokasi Awal & Titik Kumpul, dan Alokasi Anggaran.
 class TripStep1Form extends StatelessWidget {
   final TextEditingController tripNameController;
@@ -127,7 +124,7 @@ class TripStep1Form extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const NotoFont(
+          const ManropeFont(
             'Rencana Perjalanan',
             style: TextStyle(
               fontSize: 22,

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 import 'package:http/http.dart' as http;
+import 'package:frontend/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
@@ -158,7 +159,7 @@ class TripPlanService {
     }
   }
 
-  /// Mengambil daftar 12 kecamatan asli dari Database Backend
+  /// Mengambil daftar 
   static Future<List<TripAreaModel>> fetchKecamatan() async {
     try {
       final response = await http
@@ -193,13 +194,66 @@ class TripPlanService {
   static const String _storageKey = 'saved_batam_trip_plans';
 
   /// Menyimpan rencana perjalanan 
-  static Future<void> saveTripPlan(SavedTripPlan plan) async {
+  static Future<SavedTripPlan?> saveTripPlan(SavedTripPlan plan) async {
+    SavedTripPlan? savedResult;
+    try {
+      final token = await AuthService.getToken();
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final numericBudget = double.tryParse(
+        plan.budget.replaceAll(RegExp(r'[^0-9]'), ''),
+      );
+
+      final body = jsonEncode({
+        'nama_rencana': plan.tripName,
+        'tanggal_mulai': plan.startDate.toIso8601String().split('T').first,
+        'tanggal_selesai': plan.endDate.toIso8601String().split('T').first,
+        'titik_awal': plan.startLocation,
+        'total_anggaran': numericBudget,
+        'prioritas_anggaran': plan.budgetPriority,
+        'transportasi': plan.transport,
+        'catatan': plan.notes,
+        'kategori_minat': plan.selectedThemes,
+        'kecamatan_pilihan': plan.selectedAreas,
+      });
+
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/rencana-perjalanan'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] is Map) {
+          savedResult = SavedTripPlan.fromJson(
+            json['data'] as Map<String, dynamic>,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Sinkronisasi backend rencana perjalanan: $e');
+    }
+
+    final planToSave = savedResult ?? plan;
+
+    // Simpan ke local cache perangkat
     try {
       final prefs = await SharedPreferences.getInstance();
       final plans = await getAllTripPlans();
 
-      // Tandai semua rencana lainnya menjadi tidak aktif
-      final updatedPlans = plans.map((p) => SavedTripPlan(
+      // Tandai semua rencana lainnya menjadi tidak aktif dan hilangkan duplikasi jika ada
+      final updatedPlans = plans
+          .where((p) => p.id != planToSave.id)
+          .map((p) => SavedTripPlan(
         id: p.id,
         tripName: p.tripName,
         startDate: p.startDate,
@@ -212,21 +266,78 @@ class TripPlanService {
         notes: p.notes,
         transport: p.transport,
         isActive: false,
+        details: p.details,
         createdAt: p.createdAt,
       )).toList();
 
+      final activeNewPlan = SavedTripPlan(
+        id: planToSave.id,
+        tripName: planToSave.tripName,
+        startDate: planToSave.startDate,
+        endDate: planToSave.endDate,
+        startLocation: planToSave.startLocation,
+        budget: planToSave.budget,
+        budgetPriority: planToSave.budgetPriority,
+        selectedThemes: planToSave.selectedThemes,
+        selectedAreas: planToSave.selectedAreas,
+        notes: planToSave.notes,
+        transport: planToSave.transport,
+        isActive: true,
+        details: planToSave.details,
+        createdAt: planToSave.createdAt,
+      );
+
       // Tambahkan rencana yang baru di posisi pertama
-      updatedPlans.insert(0, plan);
+      updatedPlans.insert(0, activeNewPlan);
 
       final jsonList = updatedPlans.map((p) => p.toJson()).toList();
       await prefs.setString(_storageKey, jsonEncode(jsonList));
+      return activeNewPlan;
     } catch (e) {
       debugPrint('Error saving trip plan: $e');
+      return planToSave;
     }
   }
 
-  /// Mengambil seluruh daftar rencana perjalanan yang tersimpan
+  /// Mengambil seluruh daftar rencana perjalanan dari Database Backend Laravel
   static Future<List<SavedTripPlan>> getAllTripPlans() async {
+    // 1. Ambil dari Backend Laravel (Database)
+    try {
+      final token = await AuthService.getToken();
+      final headers = <String, String>{
+        'Accept': 'application/json',
+      };
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/rencana-perjalanan'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 12));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] is List) {
+          final list = (json['data'] as List)
+              .map((e) => SavedTripPlan.fromJson(e as Map<String, dynamic>))
+              .toList();
+          if (list.isNotEmpty) {
+            // Sinkronkan ke cache lokal perangkat
+            final prefs = await SharedPreferences.getInstance();
+            final jsonList = list.map((p) => p.toJson()).toList();
+            await prefs.setString(_storageKey, jsonEncode(jsonList));
+            return list;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Notice fetch backend trip plans: $e');
+    }
+
+    // 2. Fallback jika offline: Ambil dari cache lokal perangkat (SharedPreferences)
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = prefs.getString(_storageKey);
@@ -237,7 +348,7 @@ class TripPlanService {
             .toList();
       }
     } catch (e) {
-      debugPrint('Error loading trip plans: $e');
+      debugPrint('Error loading trip plans locally: $e');
     }
     return [];
   }
@@ -253,5 +364,124 @@ class TripPlanService {
       orElse: () => plans.first,
     );
   }
+
+  /// Mengambil satu rencana perjalanan beserta detail itinerarinya
+  static Future<SavedTripPlan?> getTripPlanById(String id) async {
+    try {
+      final token = await AuthService.getToken();
+      final headers = <String, String>{
+        'Accept': 'application/json',
+      };
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/rencana-perjalanan/$id'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 12));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] is Map) {
+          return SavedTripPlan.fromJson(json['data'] as Map<String, dynamic>);
+        }
+      }
+    } catch (e) {
+      debugPrint('Notice fetch trip plan detail: $e');
+    }
+    return null;
+  }
+
+  /// Menjadikan rencana perjalanan tertentu sebagai rencana aktif
+  static Future<void> setActivePlan(String planId) async {
+    try {
+      final token = await AuthService.getToken();
+      final headers = <String, String>{
+        'Accept': 'application/json',
+      };
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      await http
+          .put(
+            Uri.parse('$_baseUrl/rencana-perjalanan/$planId/aktif'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 12));
+    } catch (e) {
+      debugPrint('Notice setActivePlan on backend: $e');
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final plans = await getAllTripPlans();
+      final updated = plans.map((p) {
+        return SavedTripPlan(
+          id: p.id,
+          tripName: p.tripName,
+          startDate: p.startDate,
+          endDate: p.endDate,
+          startLocation: p.startLocation,
+          budget: p.budget,
+          budgetPriority: p.budgetPriority,
+          selectedThemes: p.selectedThemes,
+          selectedAreas: p.selectedAreas,
+          notes: p.notes,
+          transport: p.transport,
+          isActive: p.id == planId,
+          details: p.details,
+          createdAt: p.createdAt,
+        );
+      }).toList();
+
+      final jsonList = updated.map((p) => p.toJson()).toList();
+      await prefs.setString(_storageKey, jsonEncode(jsonList));
+    } catch (e) {
+      debugPrint('Error setting active plan: $e');
+    }
+  }
+
+  /// Menghapus rencana perjalanan dari database dan local cache
+  static Future<bool> deleteTripPlan(String planId) async {
+    bool isSuccess = false;
+    try {
+      final token = await AuthService.getToken();
+      final headers = <String, String>{
+        'Accept': 'application/json',
+      };
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await http
+          .delete(
+            Uri.parse('$_baseUrl/rencana-perjalanan/$planId'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 6));
+
+      if (response.statusCode == 200) {
+        isSuccess = true;
+      }
+    } catch (e) {
+      debugPrint('Notice delete trip plan from backend: $e');
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final plans = await getAllTripPlans();
+      final updated = plans.where((p) => p.id != planId).toList();
+      final jsonList = updated.map((p) => p.toJson()).toList();
+      await prefs.setString(_storageKey, jsonEncode(jsonList));
+      return true;
+    } catch (_) {}
+
+    return isSuccess;
+  }
 }
+
 

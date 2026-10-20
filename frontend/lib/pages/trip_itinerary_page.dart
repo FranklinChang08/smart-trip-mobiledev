@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/components/font/bebas_neue_font.dart';
 import 'package:frontend/components/font/manrope_font.dart';
-import 'package:frontend/components/font/noto_font.dart';
+import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 import 'package:frontend/core/theme/app_colors.dart';
+import 'package:frontend/services/trip_plan_service.dart';
 
 /// Halaman Detail Itinerary Rencana Perjalanan
 class TripItineraryPage extends StatefulWidget {
+  final String? planId;
   final String tripName;
   final DateTime startDate;
   final DateTime endDate;
@@ -16,9 +18,11 @@ class TripItineraryPage extends StatefulWidget {
   final String transport;
   final String budgetPriority;
   final String notes;
+  final List<DetailItineraryModel>? initialDetails;
 
   const TripItineraryPage({
     super.key,
+    this.planId,
     required this.tripName,
     required this.startDate,
     required this.endDate,
@@ -29,6 +33,7 @@ class TripItineraryPage extends StatefulWidget {
     required this.budgetPriority,
     this.transport = '',
     this.notes = '',
+    this.initialDetails,
   });
 
   @override
@@ -38,11 +43,36 @@ class TripItineraryPage extends StatefulWidget {
 class _TripItineraryPageState extends State<TripItineraryPage> {
   int _selectedDayIndex = 0;
   final Set<String> _completedItems = {};
+  late List<DetailItineraryModel> _details;
+  bool _isLoadingDetails = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _details = widget.initialDetails ?? [];
+    if (_details.isEmpty && widget.planId != null && widget.planId!.isNotEmpty) {
+      _loadDetails();
+    }
+  }
+
+  Future<void> _loadDetails() async {
+    setState(() => _isLoadingDetails = true);
+    final plan = await TripPlanService.getTripPlanById(widget.planId!);
+    if (mounted) {
+      setState(() {
+        _isLoadingDetails = false;
+        if (plan != null && plan.details.isNotEmpty) {
+          _details = plan.details;
+        }
+      });
+    }
+  }
 
   int get _tripDays {
     final diff = widget.endDate.difference(widget.startDate).inDays;
     return diff >= 0 ? diff + 1 : 1;
   }
+
 
   int get _tripNights {
     return _tripDays > 1 ? _tripDays - 1 : 0;
@@ -189,14 +219,39 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
               ),
             ),
 
-            // 4. VERTICAL TIMELINE CARDS WITH TRANSIT BADGES
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: _buildTimelineForDay(_selectedDayIndex),
-            ),
+            if (_isLoadingDetails)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 30),
+                child: Center(
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'Memuat susunan destinasi itinerary dari database...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else ...[
+              // 4. VERTICAL TIMELINE CARDS WITH TRANSIT BADGES
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: _buildTimelineForDay(_selectedDayIndex),
+              ),
 
-            // 5. ESTIMASI ANGGARAN HARIAN
-            _buildDailyBudgetSummaryCard(),
+              // 5. ESTIMASI ANGGARAN HARIAN
+              _buildDailyBudgetSummaryCard(),
+            ],
 
             const SizedBox(height: 40),
           ],
@@ -263,7 +318,7 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
             ],
           ),
           const SizedBox(height: 10),
-          NotoFont(
+          ManropeFont(
             widget.tripName,
             style: const TextStyle(
               fontSize: 20,
@@ -865,6 +920,20 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
   }
 
   String _getDayThemeSubtitle(int dayIndex) {
+    if (_details.isNotEmpty) {
+      final dayItems =
+          _details.where((d) => d.hariKe == dayIndex + 1).toList();
+      if (dayItems.isNotEmpty) {
+        final names = dayItems
+            .where((d) => d.tipeItem != 'titik_awal')
+            .take(3)
+            .map((d) => d.namaTempat)
+            .toList();
+        if (names.isNotEmpty) {
+          return names.join(' • ');
+        }
+      }
+    }
     switch (dayIndex) {
       case 0:
         return 'Pusat Kota Batam, Sejarah & Landmark Barelang';
@@ -878,6 +947,19 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
   }
 
   String _getDayBudgetEstimate(int dayIndex) {
+    if (_details.isNotEmpty) {
+      final dayItems =
+          _details.where((d) => d.hariKe == dayIndex + 1).toList();
+      final total =
+          dayItems.fold<double>(0, (sum, item) => sum + item.estimasiBiaya);
+      if (total > 0) {
+        final formatted = total.toInt().toString().replaceAllMapped(
+              RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+              (Match m) => '${m[1]}.',
+            );
+        return '~Rp $formatted / orang (Total estimasi aktivitas & kuliner hari ini)';
+      }
+    }
     switch (dayIndex) {
       case 0:
         return '~Rp 320.000 / orang (Transport, Mie Tarempa & Seafood)';
@@ -892,6 +974,66 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
 
 
   List<Map<String, dynamic>> _getDestinationsForDay(int dayIndex) {
+    if (_details.isNotEmpty) {
+      final dayItems =
+          _details.where((d) => d.hariKe == dayIndex + 1).toList();
+      if (dayItems.isNotEmpty) {
+        dayItems.sort((a, b) => a.urutan.compareTo(b.urutan));
+        return dayItems.map((d) {
+          String emoji = '📍';
+          String timeOfDay = 'PAGI';
+          final startHour = int.tryParse(d.waktuMulai.split(':').first) ?? 9;
+          if (startHour < 12) {
+            timeOfDay = 'PAGI';
+          } else if (startHour < 15) {
+            timeOfDay = 'SIANG';
+          } else if (startHour < 18) {
+            timeOfDay = 'SORE';
+          } else {
+            timeOfDay = 'MALAM';
+          }
+
+          final lowKat = d.kategori.toLowerCase();
+          if (d.tipeItem == 'titik_awal') {
+            emoji = '⛴';
+          } else if (d.tipeItem == 'restoran' ||
+              lowKat.contains('kuliner') ||
+              lowKat.contains('seafood') ||
+              lowKat.contains('santap')) {
+            emoji = '🦞';
+          } else if (lowKat.contains('pantai') || lowKat.contains('bahari')) {
+            emoji = '🏖️';
+          } else if (lowKat.contains('sejarah') || lowKat.contains('museum')) {
+            emoji = '🏛️';
+          } else if (lowKat.contains('belanja') || lowKat.contains('mall')) {
+            emoji = '🛍️';
+          } else if (lowKat.contains('alam') || lowKat.contains('taman')) {
+            emoji = '🌲';
+          }
+
+          String costLabel = d.estimasiBiaya > 0
+              ? 'Rp ${d.estimasiBiaya.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}'
+              : 'Bebas biaya';
+
+          return {
+            'emoji': emoji,
+            'timeOfDay': timeOfDay,
+            'timeSlot': '${d.waktuMulai} - ${d.waktuSelesai} WIB',
+            'title': d.namaTempat,
+            'category': d.kategori,
+            'desc': d.catatan.isNotEmpty
+                ? d.catatan
+                : 'Destinasi wisata rekomendasi di Pulau Batam.',
+            'duration': '${d.waktuMulai} s.d. ${d.waktuSelesai}',
+            'costEstimate': costLabel,
+            'nextTransitDuration': '15 menit',
+            'nextTransitDistance': '5.5 km',
+            'nextTransitRoute': 'via Jalur Lintas Batam',
+          };
+        }).toList();
+      }
+    }
+
     if (dayIndex == 0) {
       return [
         {
