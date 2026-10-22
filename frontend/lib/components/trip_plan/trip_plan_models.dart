@@ -376,13 +376,6 @@ const List<TripAreaModel> kBatamKecamatanList = [
 /// Alias untuk kompatibilitas
 const List<TripAreaModel> kBatamAreaOptions = kBatamKecamatanList;
 
-const List<String> kBudgetPriorityOptions = [
-  'Kuliner & Seafood Kelong',
-  'Penginapan Hotel & Resort',
-  'Tiket Atraksi & Wisata Bahari',
-  'Belanja & Oleh-Oleh Khas',
-];
-
 /// Helper format bulan Bahasa Indonesia
 String formatMonth(int month) {
   const months = [
@@ -468,11 +461,11 @@ class SavedTripPlan {
   final DateTime endDate;
   final String startLocation;
   final String budget;
-  final String budgetPriority;
   final List<String> selectedThemes;
   final List<String> selectedAreas;
+  final bool isHalal;
+  final bool isSeafood;
   final String notes;
-  final String transport;
   final bool isActive;
   final DateTime createdAt;
   final List<DetailItineraryModel> details;
@@ -484,11 +477,11 @@ class SavedTripPlan {
     required this.endDate,
     required this.startLocation,
     required this.budget,
-    required this.budgetPriority,
     required this.selectedThemes,
     required this.selectedAreas,
+    this.isHalal = false,
+    this.isSeafood = false,
     this.notes = '',
-    this.transport = 'Mobil Sewa + Driver Lokal',
     this.isActive = true,
     this.details = const [],
     DateTime? createdAt,
@@ -515,11 +508,11 @@ class SavedTripPlan {
     'endDate': endDate.toIso8601String(),
     'startLocation': startLocation,
     'budget': budget,
-    'budgetPriority': budgetPriority,
     'selectedThemes': selectedThemes,
     'selectedAreas': selectedAreas,
+    'is_halal': isHalal,
+    'is_seafood': isSeafood,
     'notes': notes,
-    'transport': transport,
     'isActive': isActive,
     'createdAt': createdAt.toIso8601String(),
     'detail_itineraries': details.map((d) => d.toJson()).toList(),
@@ -557,11 +550,14 @@ class SavedTripPlan {
           );
     }
 
-    final priority = json['prioritas_anggaran']?.toString() ??
-        json['budgetPriority']?.toString() ??
-        'Kuliner & Seafood Kelong';
+    final preferensiKategoris = preferensi?['kategoris'] as List?;
+    final themesFromPivot = preferensiKategoris
+        ?.map((k) => k['nama_kategori']?.toString() ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
 
     final themesList = (json['selectedThemes'] as List?) ??
+        themesFromPivot ??
         (preferensi?['kategori_minat'] as List?) ??
         ['Pantai & Bahari', 'Kuliner & Seafood Khas'];
 
@@ -569,9 +565,19 @@ class SavedTripPlan {
         (preferensi?['kecamatan_pilihan'] as List?) ??
         ['Batam Kota', 'Nongsa'];
 
-    final transportVal = json['transportasi']?.toString() ??
-        json['transport']?.toString() ??
-        'Mobil Sewa + Driver Lokal';
+    final isHalalVal = json['is_halal'] as bool? ??
+        preferensi?['is_halal'] as bool? ??
+        json['isHalal'] as bool? ??
+        (preferensi?['preferensi_kuliner'] is Map
+            ? (preferensi!['preferensi_kuliner']['halal'] == true)
+            : false);
+
+    final isSeafoodVal = json['is_seafood'] as bool? ??
+        preferensi?['is_seafood'] as bool? ??
+        json['isSeafood'] as bool? ??
+        (preferensi?['preferensi_kuliner'] is Map
+            ? (preferensi!['preferensi_kuliner']['seafood'] == true)
+            : false);
 
     final detailList = (json['detail_itineraries'] as List?) ??
         (json['details'] as List?) ??
@@ -587,11 +593,11 @@ class SavedTripPlan {
       endDate: end,
       startLocation: location,
       budget: budgetVal,
-      budgetPriority: priority,
       selectedThemes: themesList.map((e) => e.toString()).toList(),
       selectedAreas: areasList.map((e) => e.toString()).toList(),
+      isHalal: isHalalVal,
+      isSeafood: isSeafoodVal,
       notes: json['catatan']?.toString() ?? json['notes']?.toString() ?? '',
-      transport: transportVal,
       isActive: json['status'] != null
           ? json['status'] == 'aktif'
           : (json['isActive'] as bool? ?? false),
@@ -614,11 +620,11 @@ class SavedTripPlan {
       endDate: end,
       startLocation: 'Pelabuhan Ferry Batam Center',
       budget: '5.000.000',
-      budgetPriority: 'Kuliner & Seafood Kelong',
       selectedThemes: const ['Pantai & Bahari', 'Kuliner & Seafood Khas'],
       selectedAreas: const ['Batam Center', 'Barelang', 'Galang', 'Nongsa'],
+      isHalal: true,
+      isSeafood: true,
       notes: 'Rencana eksplorasi Batam 3 hari 2 malam',
-      transport: 'Mobil Sewa + Driver Lokal',
       isActive: true,
     );
   }

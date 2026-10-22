@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('preferensi_perjalanan', function (Blueprint $table) {
             $table->uuid('id_preferensi')->primary();
             $table->uuid('id_rencana');
-            $table->json('kategori_minat')->nullable();
             $table->json('kecamatan_pilihan')->nullable();
-            $table->json('preferensi_kuliner')->nullable();
+            $table->boolean('is_halal')->default(false);
+            $table->boolean('is_seafood')->default(false);
             $table->timestamps();
 
             $table->foreign('id_rencana')

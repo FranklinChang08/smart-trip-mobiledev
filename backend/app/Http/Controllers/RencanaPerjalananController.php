@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DetailItinerary;
+use App\Models\Kategori;
 use App\Models\Kecamatan;
 use App\Models\PreferensiPerjalanan;
 use App\Models\RencanaPerjalanan;
@@ -21,7 +22,7 @@ class RencanaPerjalananController extends Controller
         $user = auth('sanctum')->user() ?? $request->user();
         $userId = $user?->id_pengguna;
 
-        $query = RencanaPerjalanan::with(['preferensi', 'detailItineraries'])
+        $query = RencanaPerjalanan::with(['preferensi.kategoris', 'detailItineraries'])
             ->orderBy('created_at', 'desc');
 
         if ($userId) {
@@ -44,7 +45,7 @@ class RencanaPerjalananController extends Controller
     public function show($id)
     {
         $plan = RencanaPerjalanan::with([
-            'preferensi',
+            'preferensi.kategoris',
             'detailItineraries.wisata.fotoDestinasis',
             'detailItineraries.restoran',
         ])->find($id);
@@ -72,12 +73,11 @@ class RencanaPerjalananController extends Controller
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'titik_awal' => 'required|string|max:255',
             'total_anggaran' => 'nullable|numeric|min:0',
-            'prioritas_anggaran' => 'nullable|string',
-            'transportasi' => 'nullable|string',
             'catatan' => 'nullable|string',
             'kategori_minat' => 'nullable|array',
             'kecamatan_pilihan' => 'nullable|array',
-            'preferensi_kuliner' => 'nullable|array',
+            'is_halal' => 'nullable|boolean',
+            'is_seafood' => 'nullable|boolean',
             'custom_destinations' => 'nullable|array', // Untuk Memilih Destinasi Kustom
         ]);
 
@@ -89,12 +89,13 @@ class RencanaPerjalananController extends Controller
 
         DB::beginTransaction();
         try {
-            // Ubah rencana sebelumnya menjadi status tersimpan agar hanya rencana terbaru yang aktif
+            // Ubah rencana sebelumnya menjadi status selesai agar hanya rencana terbaru yang aktif
             if ($userId) {
                 RencanaPerjalanan::where('id_pengguna', $userId)->where('status', 'aktif')->update(['status' => 'selesai']);
             } else {
                 RencanaPerjalanan::where('status', 'aktif')->update(['status' => 'selesai']);
             }
+
             // Simpan Header Rencana Perjalanan
             $plan = RencanaPerjalanan::create([
                 'id_pengguna' => $userId,
@@ -104,18 +105,38 @@ class RencanaPerjalananController extends Controller
                 'total_hari' => $totalDays,
                 'titik_awal' => $validated['titik_awal'],
                 'total_anggaran' => $validated['total_anggaran'] ?? null,
-                'prioritas_anggaran' => $validated['prioritas_anggaran'] ?? 'Kuliner & Seafood Kelong',
-                'transportasi' => $validated['transportasi'] ?? 'Mobil Sewa + Driver Lokal',
                 'catatan' => $validated['catatan'] ?? null,
                 'status' => 'aktif',
             ]);
 
-            // Simpan Preferensi Perjalanan 
-            $plan->preferensi()->create([
-                'kategori_minat' => $validated['kategori_minat'] ?? ['Wisata Alam', 'Wisata Pantai'],
+            $isHalal = filter_var($request->input('is_halal', false), FILTER_VALIDATE_BOOLEAN);
+            $isSeafood = filter_var($request->input('is_seafood', false), FILTER_VALIDATE_BOOLEAN);
+
+            // Simpan Preferensi Perjalanan
+            $preferensi = $plan->preferensi()->create([
                 'kecamatan_pilihan' => $validated['kecamatan_pilihan'] ?? ['Batam Kota', 'Nongsa'],
-                'preferensi_kuliner' => $validated['preferensi_kuliner'] ?? ['halal' => true],
+                'is_halal' => $isHalal,
+                'is_seafood' => $isSeafood,
             ]);
+
+            // Simpan Relasi Minat Wisata ke Tabel Pivot preferensi_kategori
+            $selectedThemes = $validated['kategori_minat'] ?? [];
+            if (!empty($selectedThemes)) {
+                $categoryIds = [];
+                foreach ($selectedThemes as $cat) {
+                    if (is_numeric($cat)) {
+                        $categoryIds[] = (int) $cat;
+                    } else {
+                        $katRecord = Kategori::where('nama_kategori', $cat)->first();
+                        if ($katRecord) {
+                            $categoryIds[] = $katRecord->id_kategori;
+                        }
+                    }
+                }
+                if (!empty($categoryIds)) {
+                    $preferensi->kategoris()->sync(array_unique($categoryIds));
+                }
+            }
 
             // Susun Detail Itinerary
             if (!empty($validated['custom_destinations'])) {
@@ -128,13 +149,15 @@ class RencanaPerjalananController extends Controller
                     $totalDays,
                     $validated['titik_awal'],
                     $validated['kecamatan_pilihan'] ?? [],
-                    $validated['kategori_minat'] ?? []
+                    $selectedThemes,
+                    $isHalal,
+                    $isSeafood
                 );
             }
 
             DB::commit();
 
-            $fullPlan = RencanaPerjalanan::with(['preferensi', 'detailItineraries'])
+            $fullPlan = RencanaPerjalanan::with(['preferensi.kategoris', 'detailItineraries'])
                 ->find($plan->id_rencana);
 
             return response()->json([
@@ -151,57 +174,11 @@ class RencanaPerjalananController extends Controller
         }
     }
 
-    // Menyusun Urutan Kunjungan
-    public function updateUrutan(Request $request, $id)
-    {
-        $plan = RencanaPerjalanan::find($id);
-        if (!$plan) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Rencana perjalanan tidak ditemukan',
-            ], 404);
-        }
-
-        $validated = $request->validate([
-            'items' => 'required|array',
-            'items.*.id_detail' => 'required|string',
-            'items.*.hari_ke' => 'required|integer|min:1',
-            'items.*.urutan' => 'required|integer|min:1',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            foreach ($validated['items'] as $item) {
-                DetailItinerary::where('id_detail', $item['id_detail'])
-                    ->where('id_rencana', $id)
-                    ->update([
-                        'hari_ke' => $item['hari_ke'],
-                        'urutan' => $item['urutan'],
-                    ]);
-            }
-            DB::commit();
-
-            $updatedPlan = RencanaPerjalanan::with(['preferensi', 'detailItineraries'])
-                ->find($id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Urutan kunjungan itinerary berhasil diperbarui',
-                'data' => $updatedPlan,
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memperbarui urutan kunjungan: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    //  Menghapus Rencana Perjalanan
+    // Menghapus Rencana Perjalanan
     public function destroy($id)
     {
         $plan = RencanaPerjalanan::find($id);
+
         if (!$plan) {
             return response()->json([
                 'success' => false,
@@ -217,7 +194,7 @@ class RencanaPerjalananController extends Controller
         ]);
     }
 
-    //  Menyimpan destinasi kustom pilihan pengguna
+    // Menyimpan destinasi kustom pilihan pengguna
     private function saveCustomItinerary(RencanaPerjalanan $plan, array $customItems)
     {
         foreach ($customItems as $index => $item) {
@@ -244,7 +221,9 @@ class RencanaPerjalananController extends Controller
         int $totalDays,
         string $startLocation,
         array $selectedAreas,
-        array $selectedThemes
+        array $selectedThemes,
+        bool $isHalal = false,
+        bool $isSeafood = false
     ) {
         // Ambil data kecamatan terpilih
         $kecamatanIds = Kecamatan::whereIn('nama_kecamatan', $selectedAreas)
@@ -257,13 +236,28 @@ class RencanaPerjalananController extends Controller
             $wisataQuery->whereIn('id_kecamatan', $kecamatanIds);
         }
         $availableWisata = $wisataQuery->take(15)->get();
+        if ($availableWisata->count() < 3) {
+            $availableWisata = Wisata::take(15)->get();
+        }
 
         // Ambil restoran yang sesuai
         $restoranQuery = Restoran::query();
         if (!empty($kecamatanIds)) {
             $restoranQuery->whereIn('id_kecamatan', $kecamatanIds);
         }
+        if ($isHalal) {
+            $restoranQuery->where('type_food', 'Halal');
+        }
+        if ($isSeafood) {
+            $restoranQuery->where(function ($q) {
+                $q->where('nama_restoran', 'like', '%seafood%')
+                  ->orWhere('nama_restoran', 'like', '%kelong%');
+            });
+        }
         $availableRestoran = $restoranQuery->take(10)->get();
+        if ($availableRestoran->count() < 2) {
+            $availableRestoran = Restoran::take(10)->get();
+        }
 
         $wisataIdx = 0;
         $restoranIdx = 0;
@@ -316,7 +310,7 @@ class RencanaPerjalananController extends Controller
                 'tipe_item' => 'restoran',
                 'id_restoran' => $siangResto?->id_restoran,
                 'nama_tempat' => $siangResto?->nama_restoran ?? ($day == 1 ? 'Kuliner Mie Tarempa Khas Kepri' : 'Sentra Makan Siang Selera Melayu'),
-                'kategori' => 'Kuliner Khas Batam',
+                'kategori' => $isHalal ? 'Kuliner Halal Khas Batam' : 'Kuliner Khas Batam',
                 'waktu_mulai' => '12:00',
                 'waktu_selesai' => '13:30',
                 'estimasi_biaya' => $siangResto?->harga_makan_per_orang ?? 45000,
@@ -352,11 +346,11 @@ class RencanaPerjalananController extends Controller
                 'tipe_item' => 'restoran',
                 'id_restoran' => $malamResto?->id_restoran,
                 'nama_tempat' => $malamResto?->nama_restoran ?? 'Seafood Kelong Tepi Laut Batam',
-                'kategori' => 'Santap Malam Seafood',
+                'kategori' => $isSeafood ? 'Santap Malam Seafood Kelong' : 'Santap Malam Khas Batam',
                 'waktu_mulai' => '18:30',
                 'waktu_selesai' => '20:30',
                 'estimasi_biaya' => $malamResto?->harga_makan_per_orang ?? 85000,
-                'catatan' => 'Menikmati hidangan seafood segar dengan panorama laut malam hari.',
+                'catatan' => 'Menikmati hidangan lezat dengan panorama pesisir malam hari.',
                 'is_kustom' => false,
             ]);
         }
@@ -396,4 +390,3 @@ class RencanaPerjalananController extends Controller
         ]);
     }
 }
-

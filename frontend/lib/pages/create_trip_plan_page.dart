@@ -601,13 +601,11 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       endDate: _endDate,
       startLocation: _selectedLocation,
       budget: _budgetController.text.trim(),
-      budgetPriority: _isSeafoodSpecialist
-          ? 'Seafood Pesisir & Kuliner'
-          : 'Kuliner & Wisata Batam',
       selectedThemes: _selectedThemes.toList(),
       selectedAreas: _selectedAreas.toList(),
+      isHalal: _isHalalOnly,
+      isSeafood: _isSeafoodSpecialist,
       notes: _notesController.text.trim(),
-      transport: 'Mobil Sewa + Driver Lokal',
       isActive: true,
     );
 
@@ -622,9 +620,6 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
           endDate: _endDate,
           startLocation: _selectedLocation,
           budget: _budgetController.text.trim(),
-          budgetPriority: _isSeafoodSpecialist
-              ? 'Seafood Pesisir & Kuliner'
-              : 'Kuliner & Wisata Batam',
           selectedThemes: _selectedThemes.toList(),
           selectedAreas: _selectedAreas.toList(),
           notes: _notesController.text.trim(),
@@ -681,11 +676,9 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       budget: _budgetController.text.trim(),
       selectedThemes: _selectedThemes.toList(),
       selectedAreas: _selectedAreas.toList(),
-      budgetPriority: _isSeafoodSpecialist
-          ? 'Seafood Pesisir & Kuliner'
-          : 'Kuliner & Wisata Batam',
+      isHalal: _isHalalOnly,
+      isSeafood: _isSeafoodSpecialist,
       notes: _notesController.text.trim(),
-      transport: 'Mobil Sewa + Driver Lokal',
       isActive: true,
     );
 
@@ -706,9 +699,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
           budget: saved?.budget ?? plan.budget,
           selectedThemes: saved?.selectedThemes ?? plan.selectedThemes,
           selectedAreas: saved?.selectedAreas ?? plan.selectedAreas,
-          budgetPriority: saved?.budgetPriority ?? plan.budgetPriority,
           notes: saved?.notes ?? plan.notes,
-          transport: saved?.transport ?? plan.transport,
           initialDetails: saved?.details,
         ),
       ),

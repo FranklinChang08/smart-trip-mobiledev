@@ -216,11 +216,11 @@ class TripPlanService {
         'tanggal_selesai': plan.endDate.toIso8601String().split('T').first,
         'titik_awal': plan.startLocation,
         'total_anggaran': numericBudget,
-        'prioritas_anggaran': plan.budgetPriority,
-        'transportasi': plan.transport,
         'catatan': plan.notes,
         'kategori_minat': plan.selectedThemes,
         'kecamatan_pilihan': plan.selectedAreas,
+        'is_halal': plan.isHalal,
+        'is_seafood': plan.isSeafood,
       });
 
       final response = await http
@@ -260,11 +260,11 @@ class TripPlanService {
         endDate: p.endDate,
         startLocation: p.startLocation,
         budget: p.budget,
-        budgetPriority: p.budgetPriority,
         selectedThemes: p.selectedThemes,
         selectedAreas: p.selectedAreas,
+        isHalal: p.isHalal,
+        isSeafood: p.isSeafood,
         notes: p.notes,
-        transport: p.transport,
         isActive: false,
         details: p.details,
         createdAt: p.createdAt,
@@ -277,11 +277,11 @@ class TripPlanService {
         endDate: planToSave.endDate,
         startLocation: planToSave.startLocation,
         budget: planToSave.budget,
-        budgetPriority: planToSave.budgetPriority,
         selectedThemes: planToSave.selectedThemes,
         selectedAreas: planToSave.selectedAreas,
+        isHalal: planToSave.isHalal,
+        isSeafood: planToSave.isSeafood,
         notes: planToSave.notes,
-        transport: planToSave.transport,
         isActive: true,
         details: planToSave.details,
         createdAt: planToSave.createdAt,
@@ -299,9 +299,8 @@ class TripPlanService {
     }
   }
 
-  /// Mengambil seluruh daftar rencana perjalanan dari Database Backend Laravel
+  /// Mengambil seluruh daftar rencana perjalanan
   static Future<List<SavedTripPlan>> getAllTripPlans() async {
-    // 1. Ambil dari Backend Laravel (Database)
     try {
       final token = await AuthService.getToken();
       final headers = <String, String>{
@@ -325,7 +324,6 @@ class TripPlanService {
               .map((e) => SavedTripPlan.fromJson(e as Map<String, dynamic>))
               .toList();
           if (list.isNotEmpty) {
-            // Sinkronkan ke cache lokal perangkat
             final prefs = await SharedPreferences.getInstance();
             final jsonList = list.map((p) => p.toJson()).toList();
             await prefs.setString(_storageKey, jsonEncode(jsonList));
@@ -337,7 +335,6 @@ class TripPlanService {
       debugPrint('Notice fetch backend trip plans: $e');
     }
 
-    // 2. Fallback jika offline: Ambil dari cache lokal perangkat (SharedPreferences)
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = prefs.getString(_storageKey);
@@ -427,11 +424,11 @@ class TripPlanService {
           endDate: p.endDate,
           startLocation: p.startLocation,
           budget: p.budget,
-          budgetPriority: p.budgetPriority,
           selectedThemes: p.selectedThemes,
           selectedAreas: p.selectedAreas,
+          isHalal: p.isHalal,
+          isSeafood: p.isSeafood,
           notes: p.notes,
-          transport: p.transport,
           isActive: p.id == planId,
           details: p.details,
           createdAt: p.createdAt,
@@ -445,7 +442,6 @@ class TripPlanService {
     }
   }
 
-  /// Menghapus rencana perjalanan dari database dan local cache
   static Future<bool> deleteTripPlan(String planId) async {
     bool isSuccess = false;
     try {

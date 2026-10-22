@@ -190,7 +190,7 @@
                                 <!-- NAMA DESTINASI & FOTO -->
                                 <td class="py-4 px-4">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs flex items-center justify-center">
+                                        <div class="h-12 aspect-video rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs flex items-center justify-center">
                                             @if (!empty($item->foto))
                                                 <img src="{{ $item->foto }}" alt="{{ $item->nama }}"
                                                     class="w-full h-full object-cover">
@@ -236,8 +236,22 @@
                                 </td>
 
                                 <!-- KATEGORI -->
-                                <td class="py-4 px-4 text-xs font-medium text-gray-700 leading-snug max-w-[140px]">
-                                    {{ $item->kategori }}
+                                <td class="py-4 px-4">
+                                    <div class="flex flex-wrap gap-1 max-w-[200px]">
+                                        @php
+                                            $kategoriList = !empty($item->kategori_list)
+                                                ? $item->kategori_list
+                                                : array_filter(array_map('trim', explode(',', $item->kategori ?? '')));
+                                        @endphp
+                                        @forelse($kategoriList as $kategori)
+                                            <span
+                                                class="inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-teal-50 text-primary border border-teal-100">
+                                                {{ $kategori }}
+                                            </span>
+                                        @empty
+                                            <span class="text-xs text-textSecondary italic">Tanpa Kategori</span>
+                                        @endforelse
+                                    </div>
                                 </td>
 
                                 <!-- LOKASI) -->

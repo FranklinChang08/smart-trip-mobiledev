@@ -10,7 +10,6 @@ class TripSummaryBottomSheet extends StatelessWidget {
   final DateTime endDate;
   final String startLocation;
   final String budget;
-  final String budgetPriority;
   final List<String> selectedThemes;
   final List<String> selectedAreas;
   final String notes;
@@ -23,7 +22,6 @@ class TripSummaryBottomSheet extends StatelessWidget {
     required this.endDate,
     required this.startLocation,
     required this.budget,
-    required this.budgetPriority,
     required this.selectedThemes,
     required this.selectedAreas,
     required this.notes,
@@ -150,7 +148,7 @@ class TripSummaryBottomSheet extends StatelessWidget {
                     _buildSummaryRow(
                       icon: Icons.account_balance_wallet_outlined,
                       label: 'Anggaran',
-                      value: 'Rp $budget / orang\n(Fokus: $budgetPriority)',
+                      value: 'Rp $budget / orang',
                     ),
                     const Divider(height: 16),
                     _buildSummaryRow(

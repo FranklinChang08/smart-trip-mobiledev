@@ -88,7 +88,7 @@
                                         $fotoUtama = $wisata->fotoDestinasis->first();
                                     @endphp
                                     <div
-                                        class="h-12 aspect-video rounded-lg bg-slate-200 overflow-hidden flex items-center justify-center text-xs text-slate-500 font-medium">
+                                        class="h-12 aspect-video rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs flex items-center justify-center text-xs text-slate-500 font-medium">
                                         @if ($fotoUtama && !empty($fotoUtama->link_photo))
                                             <img src="{{ asset('storage/' . $fotoUtama->link_photo) }}"
                                                 alt="{{ $wisata->nama_wisata }}" class="w-full h-full object-cover">

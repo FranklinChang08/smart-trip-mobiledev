@@ -61,8 +61,6 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
           budget: plan.budget,
           selectedThemes: plan.selectedThemes,
           selectedAreas: plan.selectedAreas,
-          transport: plan.transport,
-          budgetPriority: plan.budgetPriority,
           notes: plan.notes,
           initialDetails: plan.details,
         ),
