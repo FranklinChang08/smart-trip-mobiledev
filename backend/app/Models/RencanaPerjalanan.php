@@ -24,8 +24,6 @@ class RencanaPerjalanan extends Model
         'total_hari',
         'titik_awal',
         'total_anggaran',
-        'prioritas_anggaran',
-        'transportasi',
         'catatan',
         'status',
     ];

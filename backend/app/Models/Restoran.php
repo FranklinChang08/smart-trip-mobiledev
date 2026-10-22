@@ -10,28 +10,31 @@ class Restoran extends Model
     use HasFactory;
 
     protected $table = 'restoran';
-    protected $primaryKey = 'id_destinasi';
+    protected $primaryKey = 'id_restoran';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
-        'nama_destinasi',
-        'alamat_detail_destinasi',
+        'id_restoran',
+        'id_kecamatan',
+        'nama_restoran',
+        'alamat_Detail_restoran',
         'latitude',
         'longitude',
         'deskripsi',
         'link_on_maps',
-        'created_at',
         'harga_makan_per_orang',
         'type_food',
     ];
 
+    public function kecamatan()
+    {
+        return $this->belongsTo(Kecamatan::class, 'id_kecamatan', 'id_kecamatan');
+    }
+
     public function jamOperasis()
     {
         return $this->morphMany(JamOperasi::class, 'destinasi');
-    }
-
-    public function kecamatans()
-    {
-        return $this->morphMany(Kecamatan::class, 'destinasi');
     }
 
     public function fotoDestinasis()
@@ -41,11 +44,12 @@ class Restoran extends Model
 
     public function kategoris()
     {
-        return $this->morphToMany(Kategori::class, 'destinasi', 'kategori_destinasi', 'destinasi_id', 'id_kategori');
+        return $this->morphToMany(
+            Kategori::class,
+            'destinasi',
+            'kategori_destinasi',
+            'destinasi_id',
+            'id_kategori'
+        );
     }
-
-    // public function itemDestinasis()
-    // {
-    //     return $this->morphMany(ItemDestinasi::class, 'destinasi');
-    // }
 }

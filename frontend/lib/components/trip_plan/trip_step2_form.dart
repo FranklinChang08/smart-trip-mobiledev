@@ -3,8 +3,8 @@ import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 
-///  Mengisi Preferensi Perjalanan
-class TripStep2Form extends StatelessWidget {
+/// Mengisi Preferensi Perjalanan (Minat Wisata, Kecamatan, dan Kuliner)
+class TripStep2Form extends StatefulWidget {
   final Set<String> selectedThemes;
   final List<TripThemeModel> availableThemes;
   final Set<String> selectedAreas;
@@ -23,8 +23,6 @@ class TripStep2Form extends StatelessWidget {
   final ValueChanged<String>? onToggleVisitTime;
   final VoidCallback? onPickStartTime;
   final VoidCallback? onPickEndTime;
-  final String? budgetPriority;
-  final ValueChanged<String>? onSelectBudgetPriority;
 
   const TripStep2Form({
     super.key,
@@ -45,9 +43,27 @@ class TripStep2Form extends StatelessWidget {
     this.onToggleVisitTime,
     this.onPickStartTime,
     this.onPickEndTime,
-    this.budgetPriority,
-    this.onSelectBudgetPriority,
   });
+
+  @override
+  State<TripStep2Form> createState() => _TripStep2FormState();
+}
+
+class _TripStep2FormState extends State<TripStep2Form> {
+  final TextEditingController _kecamatanSearchController =
+      TextEditingController();
+  String _kecamatanSearchQuery = '';
+  bool _isExpandedKecamatan = false;
+
+  final TextEditingController _themeSearchController = TextEditingController();
+  String _themeSearchQuery = '';
+
+  @override
+  void dispose() {
+    _kecamatanSearchController.dispose();
+    _themeSearchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,149 +137,276 @@ class TripStep2Form extends StatelessWidget {
     );
   }
 
+  // Bagian Pilihan Minat Wisata (Layout Ringkas Menggunakan Wrap Chips)
   Widget _buildThemesSection() {
+    final filteredThemes = widget.availableThemes.where((theme) {
+      if (_themeSearchQuery.isEmpty) return true;
+      return theme.title
+          .toLowerCase()
+          .contains(_themeSearchQuery.toLowerCase());
+    }).toList();
+
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle(
-            icon: Icons.interests_outlined,
-            title: 'Minat Wisata di Batam',
-            isRequired: true,
+          Row(
+            children: [
+              Expanded(
+                child: _buildSectionTitle(
+                  icon: Icons.interests_outlined,
+                  title: 'Minat Wisata di Batam',
+                  isRequired: true,
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${widget.selectedThemes.length} dipilih',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           const Text(
             'Pilih satu atau beberapa kategori wisata yang paling Anda minati.',
             style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 14),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: availableThemes.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.75,
+          const SizedBox(height: 12),
+
+          // Jika kategori banyak (> 8), sediakan pencarian cepat kategori
+          if (widget.availableThemes.length > 8) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: TextField(
+                controller: _themeSearchController,
+                onChanged: (val) =>
+                    setState(() => _themeSearchQuery = val.trim()),
+                style: const TextStyle(
+                    fontSize: 12.5, color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  hintText: 'Cari kategori minat wisata...',
+                  hintStyle:
+                      TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  prefixIcon: const Icon(Icons.search,
+                      size: 18, color: AppColors.primary),
+                  suffixIcon: _themeSearchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 16),
+                          onPressed: () {
+                            _themeSearchController.clear();
+                            setState(() => _themeSearchQuery = '');
+                          },
+                        )
+                      : null,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 8),
+                  border: InputBorder.none,
+                ),
+              ),
             ),
-            itemBuilder: (context, index) {
-              final theme = availableThemes[index];
-              final isSelected = selectedThemes.contains(theme.title);
+          ],
+
+          // Wrap Chips Ringkas & Responsif
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: filteredThemes.map((theme) {
+              final isSelected = widget.selectedThemes.contains(theme.title);
 
               return InkWell(
-                onTap: () => onToggleTheme(theme.title),
-                borderRadius: BorderRadius.circular(16),
+                onTap: () => widget.onToggleTheme(theme.title),
+                borderRadius: BorderRadius.circular(24),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 13, vertical: 8.5),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppColors.primary.withValues(alpha: 0.05)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                        ? AppColors.primary.withValues(alpha: 0.12)
+                        : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+                      color: isSelected
+                          ? AppColors.primary
+                          : const Color(0xFFE2E8F0),
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
+                      Icon(
+                        theme.icon,
+                        size: 16,
+                        color: isSelected
+                            ? AppColors.primary
+                            : const Color(0xFF64748B),
+                      ),
+                      const SizedBox(width: 7),
+                      Text(
+                        theme.title,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.w500,
                           color: isSelected
                               ? AppColors.primary
-                              : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          theme.icon,
-                          size: 18,
-                          color: isSelected ? Colors.white : const Color(0xFF64748B),
+                              : AppColors.textPrimary,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              theme.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.w600,
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              theme.desc,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 9.5,
-                                height: 1.25,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
+                      if (isSelected) ...[
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.check_circle,
+                          size: 15,
+                          color: AppColors.primary,
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
               );
-            },
+            }).toList(),
           ),
         ],
       ),
     );
   }
 
+  // Bagian Pilihan Kecamatan (Layout Ringkas Grid 2-Kolom dengan Pencarian & Toggle)
   Widget _buildAreasSection() {
+    final filteredAreas = widget.availableAreas.where((area) {
+      if (_kecamatanSearchQuery.isEmpty) return true;
+      return area.name
+          .toLowerCase()
+          .contains(_kecamatanSearchQuery.toLowerCase());
+    }).toList();
+
+    // Jika sedang tidak mencari dan belum di-expand, tampilkan 6 kecamatan pertama agar hemat tempat
+    final isSearching = _kecamatanSearchQuery.isNotEmpty;
+    final displayedAreas = (isSearching || _isExpandedKecamatan)
+        ? filteredAreas
+        : filteredAreas.take(6).toList();
+
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle(
-            icon: Icons.map_outlined,
-            title: 'Kecamatan Destinasi di Batam',
-            isRequired: true,
+          Row(
+            children: [
+              Expanded(
+                child: _buildSectionTitle(
+                  icon: Icons.map_outlined,
+                  title: 'Kecamatan Destinasi di Batam',
+                  isRequired: true,
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${widget.selectedAreas.length} dipilih',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           const Text(
-            'Pilih satu atau beberapa kecamatan di Batam yang ingin dikunjungi.',
+            'Pilih kecamatan di Batam yang ingin dikunjungi pada agenda perjalanan.',
             style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
-          ListView.separated(
+
+          // Kolom Pencarian Cepat Kecamatan
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: TextField(
+              controller: _kecamatanSearchController,
+              onChanged: (val) =>
+                  setState(() => _kecamatanSearchQuery = val.trim()),
+              style: const TextStyle(
+                  fontSize: 12.5, color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Cari kecamatan (mis: Nongsa, Lubuk Baja, Galang)...',
+                hintStyle:
+                    TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                prefixIcon: const Icon(Icons.search,
+                    size: 18, color: AppColors.primary),
+                suffixIcon: _kecamatanSearchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 16),
+                        onPressed: () {
+                          _kecamatanSearchController.clear();
+                          setState(() => _kecamatanSearchQuery = '');
+                        },
+                      )
+                    : null,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 8),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Grid 2-Kolom Ringkas
+          GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: availableAreas.length,
-            separatorBuilder: (context, i) => const SizedBox(height: 8),
+            itemCount: displayedAreas.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 2.75,
+            ),
             itemBuilder: (context, i) {
-              final area = availableAreas[i];
-              final isSelected = selectedAreas.contains(area.name);
+              final area = displayedAreas[i];
+              final isSelected = widget.selectedAreas.contains(area.name);
 
               return InkWell(
-                onTap: () => onToggleArea(area.name),
-                borderRadius: BorderRadius.circular(14),
+                onTap: () => widget.onToggleArea(area.name),
+                borderRadius: BorderRadius.circular(12),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppColors.primary.withValues(alpha: 0.06)
+                        ? AppColors.primary.withValues(alpha: 0.08)
                         : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
                           ? AppColors.primary
@@ -274,86 +417,45 @@ class TripStep2Form extends StatelessWidget {
                   child: Row(
                     children: [
                       Container(
-                        width: 38,
-                        height: 38,
+                        width: 28,
+                        height: 28,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppColors.primary.withValues(alpha: 0.12)
+                              ? AppColors.primary.withValues(alpha: 0.14)
                               : Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary.withValues(alpha: 0.3)
-                                : const Color(0xFFE2E8F0),
-                          ),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           area.icon,
-                          style: const TextStyle(fontSize: 18),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  area.name,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.w600,
-                                    color: isSelected
-                                        ? AppColors.primary
-                                        : AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'Kecamatan',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              area.desc,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 10.5,
-                                height: 1.3,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ),
                       const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          area.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w600,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
                       Icon(
                         isSelected
                             ? Icons.check_circle
                             : Icons.radio_button_unchecked,
+                        size: 16,
                         color: isSelected
                             ? AppColors.primary
                             : Colors.grey.shade400,
-                        size: 20,
                       ),
                     ],
                   ),
@@ -361,11 +463,50 @@ class TripStep2Form extends StatelessWidget {
               );
             },
           ),
+
+          // Tombol Expand / Collapse jika tidak sedang mencari dan data > 6
+          if (!isSearching && filteredAreas.length > 6) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _isExpandedKecamatan = !_isExpandedKecamatan;
+                  });
+                },
+                icon: Icon(
+                  _isExpandedKecamatan
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+                label: Text(
+                  _isExpandedKecamatan
+                      ? 'Tampilkan Lebih Sedikit'
+                      : 'Lihat Semua Kecamatan (${widget.availableAreas.length})',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
+  // Preferensi Kuliner (is_halal & is_seafood)
   Widget _buildFoodPreferencesSection() {
     return _buildCard(
       child: Column(
@@ -383,18 +524,20 @@ class TripStep2Form extends StatelessWidget {
           const SizedBox(height: 14),
           _buildSwitchRow(
             title: 'Utamakan Makanan Halal Bersertifikat',
-            subtitle: 'Prioritaskan rekomendasi restoran, kafe & kedai kuliner halal',
-            value: isHalalOnly,
-            onChanged: onToggleHalal,
+            subtitle:
+                'Prioritaskan rekomendasi restoran, kafe & kedai kuliner halal',
+            value: widget.isHalalOnly,
+            onChanged: widget.onToggleHalal,
           ),
           const SizedBox(height: 12),
           const Divider(height: 1),
           const SizedBox(height: 12),
           _buildSwitchRow(
             title: 'Sertakan Restoran Kelong Seafood Terapung',
-            subtitle: 'Pengalaman bersantap seafood segar pesisir laut khas Batam',
-            value: isSeafoodSpecialist,
-            onChanged: onToggleSeafood,
+            subtitle:
+                'Pengalaman bersantap seafood segar pesisir laut khas Batam',
+            value: widget.isSeafoodSpecialist,
+            onChanged: widget.onToggleSeafood,
           ),
         ],
       ),
@@ -458,12 +601,15 @@ class TripStep2Form extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: notesController,
+            controller: widget.notesController,
             maxLines: 3,
-            style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+            style:
+                const TextStyle(fontSize: 13, color: AppColors.textPrimary),
             decoration: InputDecoration(
-              hintText: 'Contoh: Bersama keluarga 4 orang, utamakan destinasi ramah anak.',
-              hintStyle: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              hintText:
+                  'Contoh: Bersama rombongan keluarga 4 orang, utamakan destinasi ramah anak.',
+              hintStyle:
+                  TextStyle(fontSize: 12, color: Colors.grey.shade400),
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
               contentPadding: const EdgeInsets.all(12),
@@ -477,7 +623,8 @@ class TripStep2Form extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 1.5),
               ),
             ),
           ),

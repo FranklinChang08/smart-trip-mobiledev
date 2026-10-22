@@ -15,8 +15,6 @@ class TripItineraryPage extends StatefulWidget {
   final String budget;
   final List<String> selectedThemes;
   final List<String> selectedAreas;
-  final String transport;
-  final String budgetPriority;
   final String notes;
   final List<DetailItineraryModel>? initialDetails;
 
@@ -30,8 +28,6 @@ class TripItineraryPage extends StatefulWidget {
     required this.budget,
     required this.selectedThemes,
     required this.selectedAreas,
-    required this.budgetPriority,
-    this.transport = '',
     this.notes = '',
     this.initialDetails,
   });
@@ -345,11 +341,6 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                 icon: Icons.account_balance_wallet_outlined,
                 label: 'Rp ${widget.budget} / orang',
               ),
-              if (widget.transport.isNotEmpty)
-                _buildHeaderTag(
-                  icon: Icons.directions_car_outlined,
-                  label: widget.transport,
-                ),
             ],
           ),
         ],

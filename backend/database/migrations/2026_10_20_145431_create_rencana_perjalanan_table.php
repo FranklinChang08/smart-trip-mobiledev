@@ -20,8 +20,6 @@ return new class extends Migration
             $table->integer('total_hari')->default(1);
             $table->string('titik_awal');
             $table->decimal('total_anggaran', 15, 2)->nullable();
-            $table->string('prioritas_anggaran')->nullable();
-            $table->string('transportasi')->nullable();
             $table->text('catatan')->nullable();
             $table->enum('status', ['aktif', 'selesai', 'draf'])->default('aktif');
             $table->timestamps();

@@ -16,23 +16,25 @@ class DashboardController extends Controller
     {
         $admin = Auth::user();
 
-        // 1. Hitung jumlah 
+        // Hitung jumlah 
         $statWisata = Wisata::count();
         $statRestoran = Restoran::count();
         $statTotal = $statWisata + $statRestoran;
 
-        // 2. Ambil data destinasi
+        // Ambil data destinasi
         $dbWisata = Wisata::with(['kecamatan', 'kategoris', 'fotoDestinasis'])->latest()->get();
 
         $destinasiItems = [];
         foreach ($dbWisata as $w) {
             $foto = $w->fotoDestinasis->first();
-            $kategoriStr = $w->kategoris->pluck('nama_kategori')->implode(', ');
+            $kategoriList = $w->kategoris->pluck('nama_kategori')->toArray();
+            $kategoriStr = implode(', ', $kategoriList);
             $destinasiItems[] = [
                 'nama' => $w->nama_wisata,
                 'alamat' => $w->alamat_detail_wisata,
                 'jenis' => 'wisata',
                 'kategori' => $kategoriStr ?: 'Wisata Alam',
+                'kategori_list' => !empty($kategoriList) ? $kategoriList : ['Wisata Alam'],
                 'lokasi' => $w->kecamatan->nama_kecamatan ?? 'Batam',
                 'status' => 'Aktif',
                 'status_type' => 'aktif',
@@ -46,12 +48,14 @@ class DashboardController extends Controller
             $dbRestoran = Restoran::with(['kecamatans', 'kategoris', 'fotoDestinasis'])->latest()->get();
             foreach ($dbRestoran as $r) {
                 $foto = $r->fotoDestinasis->first();
-                $kategoriStr = $r->kategoris->pluck('nama_kategori')->implode(', ');
+                $kategoriList = $r->kategoris->pluck('nama_kategori')->toArray();
+                $kategoriStr = implode(', ', $kategoriList);
                 $destinasiItems[] = [
                     'nama' => $r->nama_destinasi ?? $r->nama_restoran,
                     'alamat' => $r->alamat_detail_destinasi ?? $r->alamat_Detail_restoran,
                     'jenis' => 'restoran',
                     'kategori' => $kategoriStr ?: 'Restoran',
+                    'kategori_list' => !empty($kategoriList) ? $kategoriList : ['Restoran'],
                     'lokasi' => $r->kecamatans->first()->nama_kecamatan ?? ($r->kecamatan->nama_kecamatan ?? 'Batam'),
                     'status' => 'Aktif',
                     'status_type' => 'aktif',
