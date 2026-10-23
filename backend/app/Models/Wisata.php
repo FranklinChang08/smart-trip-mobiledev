@@ -36,12 +36,10 @@ class Wisata extends Model
         );
     }
 
-
     public function jamOperasis()
     {
         return $this->morphMany(JamOperasi::class, 'destinasi');
     }
-
 
     public function fotoDestinasis()
     {

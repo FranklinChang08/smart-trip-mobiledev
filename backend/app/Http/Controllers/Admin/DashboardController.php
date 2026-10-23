@@ -21,7 +21,7 @@ class DashboardController extends Controller
         $statRestoran = Restoran::count();
         $statTotal = $statWisata + $statRestoran;
 
-        // Ambil data destinasi
+        // Ambil data destinasi wisata
         $dbWisata = Wisata::with(['kecamatan', 'kategoris', 'fotoDestinasis'])->latest()->get();
 
         $destinasiItems = [];
@@ -45,22 +45,22 @@ class DashboardController extends Controller
 
         // Ambil data restoran
         if ($statRestoran > 0) {
-            $dbRestoran = Restoran::with(['kecamatans', 'kategoris', 'fotoDestinasis'])->latest()->get();
+            $dbRestoran = Restoran::with(['kecamatan', 'kategoris', 'fotoDestinasis'])->latest()->get();
             foreach ($dbRestoran as $r) {
                 $foto = $r->fotoDestinasis->first();
                 $kategoriList = $r->kategoris->pluck('nama_kategori')->toArray();
                 $kategoriStr = implode(', ', $kategoriList);
                 $destinasiItems[] = [
-                    'nama' => $r->nama_destinasi ?? $r->nama_restoran,
-                    'alamat' => $r->alamat_detail_destinasi ?? $r->alamat_Detail_restoran,
+                    'nama' => $r->nama_restoran,
+                    'alamat' => $r->alamat_Detail_restoran,
                     'jenis' => 'restoran',
                     'kategori' => $kategoriStr ?: 'Restoran',
                     'kategori_list' => !empty($kategoriList) ? $kategoriList : ['Restoran'],
-                    'lokasi' => $r->kecamatans->first()->nama_kecamatan ?? ($r->kecamatan->nama_kecamatan ?? 'Batam'),
+                    'lokasi' => $r->kecamatan->nama_kecamatan ?? 'Batam',
                     'status' => 'Aktif',
                     'status_type' => 'aktif',
                     'foto' => $foto && !empty($foto->link_photo) ? asset('storage/' . $foto->link_photo) : null,
-                    'id' => $r->id_destinasi ?? $r->id_restoran,
+                    'id' => $r->id_restoran,
                 ];
             }
         }
@@ -77,11 +77,5 @@ class DashboardController extends Controller
             'statTotal',
             'allDestinasi'
         ));
-    }
-
-    public function restoran()
-    {
-        $admin = Auth::user();
-        return view('admin.restoran', compact('admin'));
     }
 }
