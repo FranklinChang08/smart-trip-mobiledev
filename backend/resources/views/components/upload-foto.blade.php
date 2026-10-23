@@ -24,7 +24,7 @@
 
                            {{-- Gambar Foto --}}
                            <img src="{{ asset('storage/' . $foto->link_photo) }}"
-                               alt="Foto {{ $wisata->nama_wisata ?? 'Destinasi' }}"
+                               alt="Foto {{ $wisata->nama_wisata ?? ($wisata->nama_restoran ?? 'Destinasi') }}"
                                class="h-28 w-full rounded-md object-cover">
 
                            {{-- Tombol Hapus Absolute di Kanan Atas --}}

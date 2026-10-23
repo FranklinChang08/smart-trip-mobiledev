@@ -22,7 +22,7 @@
                 </a>
 
                 <!-- Tambah Restoran -->
-                <a href="{{ route('admin.restoran') }}"
+                <a href="{{ route('admin.restoran.create') }}"
                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#934515] hover:bg-[#7D3A11] text-white text-xs md:text-sm font-semibold rounded-xl shadow-sm transition-all duration-150">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"></path>

@@ -38,7 +38,7 @@
             </a>
 
             <!-- Data Restoran -->
-            <a href="{{ route('admin.restoran') }}"
+            <a href="{{ route('admin.restoran.index') }}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('admin.restoran*') ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary' }}">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"

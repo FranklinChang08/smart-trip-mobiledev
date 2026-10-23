@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\FasilitasController;
 use App\Http\Controllers\Admin\FotoDestinasiController;
 use App\Http\Controllers\Admin\KategoriController;
 use App\Http\Controllers\Admin\KecamatanController;
+use App\Http\Controllers\Admin\RestoranController;
 use App\Http\Controllers\Admin\WisataController;
 use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +32,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('/foto/{id}', [FotoDestinasiController::class, 'destroy'])->name('foto.destroy');
         });
 
+        Route::prefix('restoran')->name('restoran.')->group(function () {
+            Route::get('/', [RestoranController::class, 'index'])->name('index');
+            Route::get('/form-restoran', [RestoranController::class, 'create'])->name('create');
+            Route::post('/form-restoran/store', [RestoranController::class, 'store'])->name('store');
+            Route::get('/{restoran}', [RestoranController::class, 'show'])->name('show');
+            Route::put('/{restoran}', [RestoranController::class, 'update'])->name('update');
+            Route::delete('/{restoran}', [RestoranController::class, 'destroy'])->name('destroy');
+
+            Route::delete('/foto/{id}', [FotoDestinasiController::class, 'destroy'])->name('foto.destroy');
+        });
+
         Route::prefix('kecamatan')->name('kecamatan.')->group(function () {
             Route::get('/', [KecamatanController::class, 'index'])->name('index');
             Route::get('/form-kecamatan', [KecamatanController::class, 'create'])->name('create');
@@ -48,7 +61,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('/{kategori}', [KategoriController::class, 'destroy'])->name('destroy');
         });
 
-        Route::get('/restoran', [AdminDashboardController::class, 'restoran'])->name('restoran');
+        Route::prefix('fasilitas')->name('fasilitas.')->group(function () {
+            Route::post('/store', [FasilitasController::class, 'store'])->name('store');
+        });
+
+        // Alias kompatibilitas jika ada yang memanggil route('admin.restoran')
+        Route::get('/restoran-redirect', [RestoranController::class, 'index'])->name('restoran');
+
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     });
 });

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 
 <head>
@@ -12,9 +12,12 @@
 
 <body class="min-h-screen flex bg-background text-textPrimary antialiased font-manrope">
 
-    <!-- A. Sidebar (Kiri) -->
+    {{-- Floating Toast Notification --}}
+    @include('components.notification')
 
+    <!-- A. Sidebar (Kiri) -->
     @include('components.sidebar')
+
     <!-- B. Main Content Area -->
     <div class="flex flex-col flex-1 min-w-0">
         <!-- Topbar -->

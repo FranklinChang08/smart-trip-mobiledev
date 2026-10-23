@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             KategoriSeeder::class,
             KecamatanSeeder::class,
+            FasilitasSeeder::class,
         ]);
     }
-}
+} 

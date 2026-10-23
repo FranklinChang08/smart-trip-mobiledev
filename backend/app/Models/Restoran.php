@@ -52,4 +52,15 @@ class Restoran extends Model
             'id_kategori'
         );
     }
+
+    public function fasilitas()
+    {
+        return $this->morphToMany(
+            Fasilitas::class,
+            'destinasi',
+            'fasilitas_destinasi',
+            'destinasi_id',
+            'id_fasilitas'
+        )->withTimestamps();
+    }
 }
