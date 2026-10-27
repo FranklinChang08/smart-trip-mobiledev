@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:frontend/components/app_notification.dart';
+import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/components/text_field_v1.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,7 +11,7 @@ import '../services/auth_service.dart';
 import 'home_page.dart';
 import 'register_page.dart';
 
-/// Halaman Login 
+/// Halaman Login
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -18,6 +20,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  bool _isHovered = false;
+  
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -34,9 +38,8 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-
   Future<void> _handleLogin() async {
-    final email    = _emailController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
 
     final emailRegex = RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$');
@@ -175,7 +178,7 @@ class _LoginPageState extends State<LoginPage> {
                 height: 22,
               ),
               const SizedBox(width: 6),
-              Text(
+              ManropeFont(
                 'SmartTrip',
                 style: GoogleFonts.lora(
                   fontSize: 18,
@@ -245,9 +248,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(
+                ManropeFont(
                   '1.1301° N, 104.0529° E',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -264,7 +267,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildWelcomeTitle() {
     return Column(
       children: [
-        Text(
+        ManropeFont(
           'Selamat Datang Kembali di\nSmartTrip',
           textAlign: TextAlign.center,
           style: GoogleFonts.lora(
@@ -337,9 +340,9 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () => setState(() => _rememberMe = !_rememberMe),
-              child: Text(
+              child: ManropeFont(
                 'Ingat saya',
-                style: GoogleFonts.manrope(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   color: AppColors.textSecondary,
@@ -350,9 +353,9 @@ class _LoginPageState extends State<LoginPage> {
         ),
         GestureDetector(
           onTap: () {},
-          child: Text(
+          child: ManropeFont(
             'Lupa Kata Sandi?',
-            style: GoogleFonts.manrope(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: AppColors.secondary,
@@ -390,12 +393,9 @@ class _LoginPageState extends State<LoginPage> {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  ManropeFont(
                     'Masuk ke SmartTrip',
-                    style: GoogleFonts.manrope(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(width: 8),
                   const Icon(Icons.arrow_forward, size: 18),
@@ -411,9 +411,9 @@ class _LoginPageState extends State<LoginPage> {
         const Expanded(child: Divider(color: AppColors.surface)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
+          child: ManropeFont(
             'Atau masuk dengan',
-            style: GoogleFonts.manrope(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
@@ -441,18 +441,11 @@ class _LoginPageState extends State<LoginPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const FaIcon(
-              FontAwesomeIcons.google,
-              size: 16,
-              color: Color(0xFFEA4335),
-            ),
+            SvgPicture.asset('assets/google.svg', width: 16, height: 16),
             const SizedBox(width: 10),
-            Text(
-              'Google',
-              style: GoogleFonts.manrope(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
+            ManropeFont(
+              'Login Dengan Google',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -483,12 +476,9 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         icon: const Icon(Icons.explore_outlined, size: 18),
-        label: Text(
+        label: ManropeFont(
           'Masuk sebagai Tamu (Eksplorasi Dulu)',
-          style: GoogleFonts.manrope(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -498,28 +488,48 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
+        ManropeFont(
           'Belum punya akun SmartTrip? ',
-          style: GoogleFonts.manrope(
-            fontSize: 13,
-            color: AppColors.textSecondary,
-          ),
+          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
-        GestureDetector(
-          onTap: _goToRegister,
-          child: Text(
-            'Daftar Sekarang',
-            style: GoogleFonts.manrope(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: AppColors.primary,
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) {
+            setState(() {
+              _isHovered = true;
+            });
+          },
+          onExit: (_) {
+            setState(() {
+              _isHovered = false;
+            });
+          },
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+              );
+            },
+            child: ManropeFont(
+              'Masuk Sekarang',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+                decoration: _isHovered
+                    ? TextDecoration.underline
+                    : TextDecoration.none,
+                decorationColor: AppColors.primary,
+                decorationThickness: 2.0,
+              ),
             ),
           ),
         ),
       ],
     );
   }
-  
+
   Widget _buildSecurityFooter() {
     return Container(
       width: double.infinity,
@@ -537,9 +547,9 @@ class _LoginPageState extends State<LoginPage> {
             color: AppColors.primary,
           ),
           const SizedBox(width: 6),
-          Text(
+          ManropeFont(
             'Data dan privasi Anda terenkripsi aman',
-            style: GoogleFonts.manrope(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
               color: AppColors.textSecondary,
