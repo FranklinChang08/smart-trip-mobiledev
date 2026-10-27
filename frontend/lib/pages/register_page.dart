@@ -7,7 +7,7 @@ import 'package:frontend/components/text_field_v1.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/pages/login_page.dart';
 import 'package:frontend/services/auth/register_services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -17,7 +17,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-
+  bool _isHovered = false;
   bool isBellHovered = false;
   bool _isLoading = false;
 
@@ -181,7 +181,8 @@ class _RegisterPageState extends State<RegisterPage> {
       AppNotification.showError(
         context,
         title: 'Koneksi Terputus',
-        message: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
+        message:
+            'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
       );
     }
   }
@@ -342,9 +343,9 @@ class _RegisterPageState extends State<RegisterPage> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           ManropeFont(
-                            "Selamat Datang Kembali di SmartTrip",
+                            "SELAMAT DATANG KEMBALI DI SMARTTRIP",
                             style: const TextStyle(
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w900,
                               fontSize: 24,
                             ),
                           ),
@@ -398,7 +399,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       keyboardType: TextInputType.emailAddress,
                       errorText: emailError,
                       onChanged: (_) {
-                        if (emailError != null) setState(() => emailError = null);
+                        if (emailError != null)
+                          setState(() => emailError = null);
                       },
                     ),
 
@@ -412,7 +414,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       keyboardType: TextInputType.phone,
                       errorText: phoneError,
                       onChanged: (_) {
-                        if (phoneError != null) setState(() => phoneError = null);
+                        if (phoneError != null)
+                          setState(() => phoneError = null);
                       },
                     ),
 
@@ -426,7 +429,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       obscureText: true,
                       errorText: passwordError,
                       onChanged: (_) {
-                        if (passwordError != null) setState(() => passwordError = null);
+                        if (passwordError != null)
+                          setState(() => passwordError = null);
                       },
                     ),
 
@@ -492,6 +496,55 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(height: 30),
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ManropeFont(
+                    'Sudah akun SmartTrip? ',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    onEnter: (_) {
+                      setState(() {
+                        _isHovered = true;
+                      });
+                    },
+                    onExit: (_) {
+                      setState(() {
+                        _isHovered = false;
+                      });
+                    },
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RegisterPage(),
+                          ),
+                        );
+                      },
+                      child: ManropeFont(
+                        'Masuk Sekarang',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                          decoration: _isHovered
+                              ? TextDecoration.underline
+                              : TextDecoration.none,
+                          decorationColor: AppColors.primary,
+                          decorationThickness: 2.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+              Row(
                 children: [
                   const Expanded(child: Divider(color: AppColors.surface)),
                   Padding(
@@ -508,12 +561,14 @@ class _RegisterPageState extends State<RegisterPage> {
                   const Expanded(child: Divider(color: AppColors.surface)),
                 ],
               ),
+
               const SizedBox(height: 30),
+
               SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: OutlinedButton(
-                  onPressed: () {}, // TODO: implementasi Google OAuth
+                  onPressed: () {},
                   style: OutlinedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: AppColors.textPrimary,
@@ -527,10 +582,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const FaIcon(
-                        FontAwesomeIcons.google,
-                        size: 16,
-                        color: Color(0xFFEA4335),
+                      SvgPicture.asset(
+                        'assets/google.svg',
+                        width: 16,
+                        height: 16,
                       ),
                       const SizedBox(width: 10),
                       ManropeFont(
