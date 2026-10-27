@@ -1,10 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/components/font/manrope_font.dart';
+import 'package:frontend/components/font/noto_font.dart';
 import 'package:frontend/pages/build_tabs/detail_destination_tabs.dart';
+import 'package:frontend/services/api_service.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:frontend/components/slider_home.dart';
@@ -27,16 +28,6 @@ class _HomeTabsState extends State<HomeTabs> {
   List<Map<String, dynamic>> _destinations = [];
   List<Map<String, dynamic>> _restaurants = [];
 
-  String get _baseUrl {
-    if (kIsWeb) {
-      return 'http://127.0.0.1:8000/api';
-    } else if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8000/api';
-    } else {
-      return 'http://127.0.0.1:8000/api';
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -44,14 +35,23 @@ class _HomeTabsState extends State<HomeTabs> {
   }
 
   String _resolveImageUrl(dynamic linkFoto, String endpointType) {
-    if (linkFoto == null || linkFoto.toString().isEmpty) {
+    if (linkFoto == null || linkFoto.toString().trim().isEmpty) {
       return 'http://127.0.0.1:8000/storage/placeholder.jpg';
     }
-    final String fotoStr = linkFoto.toString();
+
+    final String fotoStr = linkFoto.toString().trim();
+
+    // Jika sudah berupa URL lengkap, gunakan langsung.
     if (fotoStr.startsWith('http://') || fotoStr.startsWith('https://')) {
       return fotoStr;
     }
-    return '$_baseUrl/$endpointType/foto/$fotoStr';
+
+    // Pisahkan endpoint foto wisata dan restoran.
+    if (endpointType == 'wisata') {
+      return ApiService.fotoWisataUrl(fotoStr);
+    } else {
+      return ApiService.fotoRestoranUrl(fotoStr);
+    }
   }
 
   Future<void> _fetchHomeData() async {
@@ -70,26 +70,29 @@ class _HomeTabsState extends State<HomeTabs> {
   Future<void> _fetchDestinations() async {
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/wisata'),
+        Uri.parse(ApiService.wisataUrl),
         headers: {'Accept': 'application/json'},
       );
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
+
         final List<dynamic> items = jsonResponse is List
             ? jsonResponse
             : (jsonResponse['data'] as List<dynamic>? ?? []);
 
-        _destinations = items.map<Map<String, dynamic>>((item) {
+        _destinations = items.take(8).map<Map<String, dynamic>>((item) {
           final destination = Map<String, dynamic>.from(item);
 
           final kategoris = destination['kategoris'] as List<dynamic>? ?? [];
+
           final kategori = kategoris.isNotEmpty
               ? kategoris[0]['nama_kategori'] ?? 'Wisata'
               : 'Wisata';
 
           final fotoDestinasis =
               destination['foto_destinasis'] as List<dynamic>? ?? [];
+
           final linkFoto = fotoDestinasis.isNotEmpty
               ? fotoDestinasis[0]['link_photo']
               : null;
@@ -98,6 +101,8 @@ class _HomeTabsState extends State<HomeTabs> {
             linkFoto ?? destination['image_url'],
             'wisata',
           );
+
+          final kecamatan = destination['kecamatan'];
 
           return {
             ...destination,
@@ -108,7 +113,9 @@ class _HomeTabsState extends State<HomeTabs> {
                 destination['deskripsi'] ??
                 '',
             'tag': kategori,
-            'district': destination['kecamatan']['nama_kecamatan'] ?? '',
+            'district': kecamatan is Map
+                ? kecamatan['nama_kecamatan'] ?? ''
+                : '',
             'address': destination['alamat_detail_wisata'] ?? 'Kecamatan Batam',
             'price': destination['harga_tiket_masuk'] ?? 'Gratis',
             'image': imageUrl,
@@ -116,6 +123,8 @@ class _HomeTabsState extends State<HomeTabs> {
             'total_visit': destination['total_visit'] ?? '85k+ visit',
           };
         }).toList();
+      } else {
+        debugPrint('Gagal mengambil wisata: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error fetching destinations: $e');
@@ -124,43 +133,55 @@ class _HomeTabsState extends State<HomeTabs> {
 
   Future<void> _fetchRestaurants() async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/restoran'),
+      final responseResto = await http.get(
+        Uri.parse(ApiService.restoranUrl),
         headers: {'Accept': 'application/json'},
       );
 
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        final List<dynamic> items = jsonResponse is List
-            ? jsonResponse
-            : (jsonResponse['data'] as List<dynamic>? ?? []);
+      if (responseResto.statusCode == 200) {
+        final jsonResponseResto = jsonDecode(responseResto.body);
 
-        _restaurants = items.map<Map<String, dynamic>>((item) {
+        final List<dynamic> items = jsonResponseResto is List
+            ? jsonResponseResto
+            : (jsonResponseResto['data'] as List<dynamic>? ?? []);
+
+        _restaurants = items.take(5).map<Map<String, dynamic>>((item) {
           final resto = Map<String, dynamic>.from(item);
-          final fotoResto = resto['foto_restorans'] as List<dynamic>? ?? [];
+
+          final fotoResto = resto['foto_destinasis'] as List<dynamic>? ?? [];
+
           final linkFoto = fotoResto.isNotEmpty
               ? fotoResto[0]['link_photo']
               : null;
 
+          final imageUrl = _resolveImageUrl(
+            linkFoto ?? resto['image_url'],
+            'restoran',
+          );
+
+          final kecamatan = resto['kecamatan'];
+
           return {
             ...resto,
+            'id': resto['id_restoran']?.toString() ?? '',
             'title': resto['nama_restoran'] ?? 'Restoran Pilihan',
-            'location': resto['kategori'] ?? 'Kelong Apung',
+            'location': kecamatan is Map
+                ? kecamatan['nama_kecamatan'] ?? 'Kelong Apung'
+                : 'Kelong Apung',
             'price': resto['harga_rata_rata'] ?? 'Rp 45.000',
             'desc': resto['deskripsi'] ?? 'Kuliner lezat khas Batam.',
             'jam': resto['jam_operasional'] ?? '10:00 - 21:00 WIB',
-            'image': _resolveImageUrl(
-              linkFoto ?? resto['image_url'],
-              'restoran',
-            ),
+            'image': imageUrl,
+            'jenis_data': 'restoran',
           };
         }).toList();
+      } else {
+        debugPrint('Gagal mengambil restoran: ${responseResto.statusCode}');
       }
     } catch (e) {
-      debugPrint(
-        'Error fetching restaurants (Endpoint mungkin belum siap): $e',
-      );
-      // Fallback data dummy aman jika endpoint /restoran belum siap di backend
+      debugPrint('Error fetching restaurants: $e');
+
+      // Fallback data dummy jika endpoint restoran gagal diakses.
       _restaurants = [
         {
           'title': 'Gonggong Rebus Piayu Laut',
@@ -169,7 +190,8 @@ class _HomeTabsState extends State<HomeTabs> {
           'desc':
               'Siput laut khas Kepri dengan sambal asam pedas jeruk kesturi.',
           'jam': '10:00 - 21:00 WIB',
-          'image': 'http://127.0.0.1:8000/storage/placeholder.jpg',
+          'image': _resolveImageUrl('placeholder.jpg', 'restoran'),
+          'jenis_data': 'restoran',
         },
         {
           'title': 'Mie Lendir Harum Manis',
@@ -177,7 +199,8 @@ class _HomeTabsState extends State<HomeTabs> {
           'price': 'Rp 18.000',
           'desc': 'Kuah kacang kental rempah ubi manis telur rebus khas Tanjungpinang.',
           'jam': '06:30 - 13:00 WIB',
-          'image': 'http://127.0.0.1:8000/storage/placeholder.jpg',
+          'image': _resolveImageUrl('placeholder.jpg', 'restoran'),
+          'jenis_data': 'restoran',
         },
       ];
     }
@@ -273,7 +296,7 @@ class _HomeTabsState extends State<HomeTabs> {
             ),
 
             const SizedBox(height: 30),
-            const Text(
+            const ManropeFont(
               'Jelajahi Batam',
               style: TextStyle(color: Color(0xFF00685F), fontSize: 16),
             ),
@@ -288,7 +311,7 @@ class _HomeTabsState extends State<HomeTabs> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(height: 4),
-                      Text(
+                      NotoFont(
                         'Rekomendasi Terbaik di Batam',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -304,7 +327,10 @@ class _HomeTabsState extends State<HomeTabs> {
                 TextButton(
                   onPressed: widget.onSeeAllPressed,
                   child: const Row(
-                    children: [Text('Lihat Semua'), Icon(Icons.chevron_right)],
+                    children: [
+                      ManropeFont('Lihat Semua'),
+                      Icon(Icons.chevron_right),
+                    ],
                   ),
                 ),
               ],
@@ -314,7 +340,7 @@ class _HomeTabsState extends State<HomeTabs> {
             SizedBox(
               height: 350,
               child: _destinations.isEmpty
-                  ? const Center(child: Text('Belum ada data destinasi'))
+                  ? const Center(child: ManropeFont('Belum ada data destinasi'))
                   : ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: _destinations.length,
@@ -344,7 +370,7 @@ class _HomeTabsState extends State<HomeTabs> {
             ),
 
             const SizedBox(height: 20),
-            const Text(
+            const ManropeFont(
               'Pilihan Restoran & Kuliner',
               style: TextStyle(color: AppColors.tertiary, fontSize: 16),
             ),
@@ -359,13 +385,13 @@ class _HomeTabsState extends State<HomeTabs> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(height: 4),
-                      Text(
+                      NotoFont(
                         'Kuliner Ikonik Batam',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 24,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -375,7 +401,10 @@ class _HomeTabsState extends State<HomeTabs> {
                 TextButton(
                   onPressed: () {},
                   child: const Row(
-                    children: [Text('Jelajah Rasa'), Icon(Icons.chevron_right)],
+                    children: [
+                      ManropeFont('Jelajah Rasa'),
+                      Icon(Icons.chevron_right),
+                    ],
                   ),
                 ),
               ],
@@ -396,7 +425,7 @@ class _HomeTabsState extends State<HomeTabs> {
             ),
 
             const SizedBox(height: 24),
-            const Text(
+            const ManropeFont(
               'PALING RAMAI DIKUNJUNGI',
               style: TextStyle(
                 color: Color(0xFF006399),
@@ -404,11 +433,11 @@ class _HomeTabsState extends State<HomeTabs> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const Text(
+            const NotoFont(
               'Destinasi Terpopuler di Batam',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 12),
 
@@ -499,7 +528,10 @@ class _HomeTabsState extends State<HomeTabs> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(50),
                     ),
-                    child: Text(district, style: const TextStyle(fontSize: 12)),
+                    child: ManropeFont(
+                      district,
+                      style: const TextStyle(fontSize: 12),
+                    ),
                   ),
                 ),
               ],
@@ -510,17 +542,17 @@ class _HomeTabsState extends State<HomeTabs> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  NotoFont(
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 20,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
+                  ManropeFont(
                     desc,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -531,7 +563,7 @@ class _HomeTabsState extends State<HomeTabs> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      const ManropeFont(
                         'Tiket Masuk',
                         style: TextStyle(
                           fontSize: 12,
@@ -539,8 +571,10 @@ class _HomeTabsState extends State<HomeTabs> {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        price,
+                      ManropeFont(
+                        (double.tryParse(price.toString()) ?? 0) == 0
+                            ? 'Gratis'
+                            : "Rp $price",
                         style: const TextStyle(
                           color: Color(0xFF00685F),
                           fontSize: 18,
@@ -607,7 +641,7 @@ class _HomeTabsState extends State<HomeTabs> {
                                 .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(
+                          child: ManropeFont(
                             location,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -626,13 +660,16 @@ class _HomeTabsState extends State<HomeTabs> {
                               color: AppColors.tertiary,
                             ),
                             const SizedBox(width: 4),
-                            Text(jam, style: const TextStyle(fontSize: 11)),
+                            ManropeFont(
+                              jam,
+                              style: const TextStyle(fontSize: 11),
+                            ),
                           ],
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text(
+                    NotoFont(
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -642,7 +679,7 @@ class _HomeTabsState extends State<HomeTabs> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    ManropeFont(
                       desc,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -651,7 +688,7 @@ class _HomeTabsState extends State<HomeTabs> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Text(
+                        ManropeFont(
                           price,
                           style: const TextStyle(
                             color: AppColors.tertiary,
@@ -659,7 +696,7 @@ class _HomeTabsState extends State<HomeTabs> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const Text(
+                        const ManropeFont(
                           ' / Porsi',
                           style: TextStyle(
                             color: AppColors.tertiary,
@@ -704,7 +741,7 @@ class _HomeTabsState extends State<HomeTabs> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Text(
+                  child: ManropeFont(
                     rank,
                     style: const TextStyle(
                       color: Colors.white,
@@ -719,7 +756,7 @@ class _HomeTabsState extends State<HomeTabs> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    ManropeFont(
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -729,7 +766,7 @@ class _HomeTabsState extends State<HomeTabs> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
+                    ManropeFont(
                       desc,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -745,7 +782,7 @@ class _HomeTabsState extends State<HomeTabs> {
                   color: const Color(0xFF00685F).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
+                child: ManropeFont(
                   totalVisit,
                   style: const TextStyle(
                     color: Color(0xFF00685F),

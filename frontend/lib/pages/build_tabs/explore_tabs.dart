@@ -1,11 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/components/font/manrope_font.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/pages/build_tabs/detail_destination_tabs.dart';
-
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
+import 'package:frontend/components/font/manrope_font.dart';
+import 'package:frontend/components/search_and_filter.dart';
+import 'package:frontend/core/theme/app_colors.dart';
+import 'package:frontend/pages/build_tabs/detail_destination_tabs.dart';
+import 'package:frontend/services/api_service.dart';
 
 class ExploreTabs extends StatefulWidget {
   const ExploreTabs({super.key});
@@ -15,7 +17,16 @@ class ExploreTabs extends StatefulWidget {
 }
 
 class _ExploreTabsState extends State<ExploreTabs> {
-  final String _apiUrl = 'http://127.0.0.1:8000/api/wisata';
+  // =========================================================
+  // STATE
+  // =========================================================
+
+  int _currentPage = 1;
+  final int _itemsPerPage = 5;
+
+  final String _apiUrl = ApiService.wisataUrl;
+  final String _restoranApiUrl = ApiService.restoranUrl;
+  final String _kategoriApiUrl = ApiService.kategoriUrl;
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -25,68 +36,249 @@ class _ExploreTabsState extends State<ExploreTabs> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  String _selectedCategory = 'Semua';
+  Set<String> _selectedCategories = {};
   String _selectedFilter = 'Semua';
-  String _selectedSort = 'Populer';
-  // URL API kategori
-  final String _kategoriApiUrl = 'http://127.0.0.1:8000/api/kategori-list';
+  final String _selectedSort = 'Populer';
 
-  // Kategori diambil dari API
   List<String> _categories = ['Semua'];
 
   bool _isLoadingCategories = true;
   String? _categoryError;
 
-  List<Map<String, dynamic>> get _filteredDestinations {
-    final query = _searchQuery.trim().toLowerCase();
+  // =========================================================
+  // PAGINATION
+  // =========================================================
 
-    final results = _destinations.where((destination) {
-      final title = (destination['title'] ?? '').toString().toLowerCase();
+  int get _totalPages => (_filteredDestinations.length / _itemsPerPage).ceil();
 
-      final location = (destination['location'] ?? '').toString().toLowerCase();
+  List<Map<String, dynamic>> get _paginatedDestinations {
+    final destinations = _filteredDestinations;
 
-      final tag = (destination['tag'] ?? '').toString().toLowerCase();
+    if (destinations.isEmpty) {
+      return [];
+    }
 
-      final jenis = (destination['jenis_data'] ?? '').toString().toLowerCase();
+    final safePage = _currentPage.clamp(1, _totalPages);
+    final startIndex = (safePage - 1) * _itemsPerPage;
 
-      final matchesSearch =
-          query.isEmpty ||
-          title.contains(query) ||
-          location.contains(query) ||
-          tag.contains(query);
+    return destinations.skip(startIndex).take(_itemsPerPage).toList();
+  }
 
-      final matchesFilter = switch (_selectedFilter) {
-        'Wisata' => jenis == 'wisata',
-        'Restoran' => jenis == 'restoran',
-        'Hotel' => jenis == 'hotel',
-        _ => true,
-      };
+  // =========================================================
+  // RESPONSE HELPER
+  // Mendukung response [...] dan {"data": [...]}
+  // =========================================================
 
-      final matchesCategory =
-          _selectedCategory == 'Semua' ||
-          tag == _selectedCategory.toLowerCase();
+  List<dynamic> _extractItems(String responseBody) {
+    final decoded = jsonDecode(responseBody);
 
-      return matchesSearch && matchesFilter && matchesCategory;
-    }).toList();
+    if (decoded is List) {
+      return decoded;
+    }
 
-    if (_selectedSort == 'Rating Tertinggi') {
-      results.sort((a, b) {
-        final ratingA = double.tryParse('${a['rating']}') ?? 0;
-        final ratingB = double.tryParse('${b['rating']}') ?? 0;
+    if (decoded is Map) {
+      final data = decoded['data'];
 
-        return ratingB.compareTo(ratingA);
+      if (data is List) {
+        return data;
+      }
+    }
+
+    throw const FormatException('Format response API tidak sesuai.');
+  }
+
+  List<Map<String, dynamic>> _extractRelation(dynamic raw) {
+    final result = <Map<String, dynamic>>[];
+
+    if (raw is List) {
+      for (final item in raw) {
+        if (item is Map) {
+          result.add(Map<String, dynamic>.from(item));
+        }
+      }
+    } else if (raw is Map) {
+      result.add(Map<String, dynamic>.from(raw));
+    }
+
+    return result;
+  }
+
+  String _firstNonEmpty(List<dynamic> values, {String fallback = ''}) {
+    for (final value in values) {
+      if (value != null && value.toString().trim().isNotEmpty) {
+        return value.toString().trim();
+      }
+    }
+
+    return fallback;
+  }
+
+  double _toDouble(dynamic value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(value?.toString().replaceAll(',', '.') ?? '') ?? 0;
+  }
+
+  // =========================================================
+  // NORMALISASI DATA
+  // Menyamakan format wisata dan restoran.
+  // =========================================================
+
+  Map<String, dynamic> _normalizeDestination(
+    Map<String, dynamic> item,
+    String jenis,
+  ) {
+    final isWisata = jenis == 'wisata';
+
+    final categories = _extractRelation(item['kategoris']);
+
+    final photos = _extractRelation(item['foto_destinasis']);
+
+    final firstPhoto = photos.isNotEmpty ? photos.first : null;
+    final linkFoto = firstPhoto?['link_photo'];
+
+    String? imageUrl;
+
+    if (linkFoto != null && linkFoto.toString().trim().isNotEmpty) {
+      if (isWisata) {
+        imageUrl = ApiService.fotoWisataUrl(linkFoto);
+      } else {
+        imageUrl = ApiService.fotoRestoranUrl(linkFoto);
+      }
+    }
+
+    final title = _firstNonEmpty([
+      item[isWisata ? 'nama_wisata' : 'nama_restoran'],
+      item['nama'],
+    ]);
+
+    final location = _firstNonEmpty([
+      item[isWisata ? 'alamat_detail_wisata' : 'alamat_detail_restoran'],
+      item['alamat'],
+    ]);
+
+    final id = _firstNonEmpty([
+      item[isWisata ? 'id_wisata' : 'id_restoran'],
+      item['id'],
+    ]);
+
+    final categoryName = categories.isNotEmpty
+        ? _firstNonEmpty([
+            categories.first['nama_kategori'],
+            categories.first['nama'],
+          ], fallback: isWisata ? 'Wisata' : 'Restoran')
+        : (isWisata ? 'Wisata' : 'Restoran');
+
+    final rawPrice = isWisata
+        ? item['harga_tiket_masuk']
+        : (item['harga_rata_rata'] ?? item['harga_per_orang'] ?? item['harga']);
+
+    return {
+      // Data asli dari API tetap dipertahankan.
+      ...item,
+
+      // Field umum yang digunakan UI Explore.
+      'id': id,
+      'title': title,
+      'location': location,
+      'tag': categoryName,
+      'kategoris': categories,
+      'foto_destinasis': photos,
+      'image': imageUrl,
+      'price': rawPrice,
+      'rating': _toDouble(item['rating']),
+      'actionText': 'Lihat Detail →',
+
+      // Penanda tipe untuk filter dan navigasi.
+      'jenis_data': jenis,
+    };
+  }
+
+  // =========================================================
+  // FETCH DATA API
+  // =========================================================
+
+  Future<List<Map<String, dynamic>>> _fetchFromApi(
+    String url,
+    String jenis,
+  ) async {
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {'Accept': 'application/json'},
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Gagal mengambil data $jenis '
+        '(${response.statusCode}).',
+      );
+    }
+
+    final items = _extractItems(response.body);
+
+    return items
+        .whereType<Map>()
+        .map(
+          (item) =>
+              _normalizeDestination(Map<String, dynamic>.from(item), jenis),
+        )
+        .toList();
+  }
+
+  Future<void> _fetchDestinations() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
       });
     }
 
-    return results;
+    try {
+      // Ambil wisata dan restoran secara bersamaan.
+      final responses = await Future.wait([
+        _fetchFromApi(_apiUrl, 'wisata'),
+        _fetchFromApi(_restoranApiUrl, 'restoran'),
+      ]);
+
+      final wisata = responses[0];
+      final restoran = responses[1];
+
+      // Gabungkan keduanya ke dalam satu daftar.
+      final destinations = [...wisata, ...restoran];
+
+      if (!mounted) return;
+
+      setState(() {
+        _destinations = destinations;
+        _currentPage = 1;
+      });
+
+      debugPrint('Jumlah wisata: ${wisata.length}');
+      debugPrint('Jumlah restoran: ${restoran.length}');
+      debugPrint('Total destinasi: ${destinations.length}');
+    } catch (e, stackTrace) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = e.toString();
+      });
+
+      debugPrint('Error mengambil destinasi: $e');
+      debugPrintStack(stackTrace: stackTrace);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchDestinations();
-    _fetchCategories();
-  }
+  // =========================================================
+  // FETCH KATEGORI
+  // =========================================================
 
   Future<void> _fetchCategories() async {
     try {
@@ -96,19 +288,17 @@ class _ExploreTabsState extends State<ExploreTabs> {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Gagal mengambil kategori: ${response.statusCode}');
+        throw Exception(
+          'Gagal mengambil kategori '
+          '(${response.statusCode}).',
+        );
       }
 
-      final Map<String, dynamic> result =
-          jsonDecode(response.body) as Map<String, dynamic>;
+      final items = _extractItems(response.body);
 
-      final List<dynamic> data = result['data'] as List<dynamic>;
-
-      final List<String> categories = data
-          .map((item) {
-            final category = item as Map<String, dynamic>;
-            return category['nama_kategori']?.toString() ?? '';
-          })
+      final categories = items
+          .whereType<Map>()
+          .map((item) => (item['nama_kategori'] ?? '').toString().trim())
           .where((name) => name.isNotEmpty)
           .toSet()
           .toList();
@@ -132,82 +322,147 @@ class _ExploreTabsState extends State<ExploreTabs> {
     }
   }
 
-  Future<void> _fetchDestinations() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  // =========================================================
+  // FILTER KATEGORI
+  // =========================================================
 
-    try {
-      final response = await http.get(
-        Uri.parse(_apiUrl),
-        headers: {'Accept': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-
-        // Mendukung respons berbentuk: [...] atau {"data": [...]}
-        final List<dynamic> items = jsonResponse is List
-            ? jsonResponse
-            : (jsonResponse['data'] as List<dynamic>? ?? []);
-
-        final destinations = items.map<Map<String, dynamic>>((item) {
-          final destination = Map<String, dynamic>.from(item);
-
-          // Mengambil kategori pertama dari relasi kategoris
-          final kategoris = destination['kategoris'] as List<dynamic>? ?? [];
-          final kategori = kategoris.isNotEmpty
-              ? kategoris[0]['nama_kategori'] ?? 'Wisata'
-              : 'Wisata';
-
-          // Mengambil foto pertama dari relasi foto_destinasis
-          final fotoDestinasis =
-              destination['foto_destinasis'] as List<dynamic>? ?? [];
-
-          final linkFoto = fotoDestinasis.isNotEmpty
-              ? fotoDestinasis[0]['link_photo']
-              : null;
-
-          final imageUrl = 'http://127.0.0.1:8000/api/wisata/foto/$linkFoto';
-          return {
-            ...destination,
-            'id': destination['id_wisata'] ?? '',
-            'title': destination['nama_wisata'] ?? '',
-            'tag': kategori,
-            'location': destination['alamat_detail_wisata'] ?? '',
-            'price': destination['harga_tiket_masuk'],
-            'image': imageUrl,
-            'rating': destination['rating'] ?? '-',
-            'actionText': 'Lihat Detail →',
-
-            'jenis_data': 'wisata',
-          };
-        }).toList();
-
-        // Lanjutkan proses penggunaan destinations seperti kode kamu sebelumnya.
-
-        if (!mounted) return;
-
-        setState(() {
-          _destinations = destinations;
-        });
-      } else {
-        throw Exception('Gagal mengambil data wisata (${response.statusCode})');
-      }
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _errorMessage = e.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+  bool _matchesDestinationCategory(Map<String, dynamic> destination) {
+    if (_selectedCategories.isEmpty) {
+      return true;
     }
+
+    final rawCategories = destination['kategoris'];
+    final destinationCategories = <String>[];
+
+    if (rawCategories is List) {
+      for (final item in rawCategories) {
+        if (item is Map) {
+          final name = item['nama_kategori']?.toString();
+
+          if (name != null && name.trim().isNotEmpty) {
+            destinationCategories.add(name.trim().toLowerCase());
+          }
+        }
+      }
+    } else if (rawCategories is Map) {
+      final name = rawCategories['nama_kategori']?.toString();
+
+      if (name != null && name.trim().isNotEmpty) {
+        destinationCategories.add(name.trim().toLowerCase());
+      }
+    } else if (rawCategories is String && rawCategories.trim().isNotEmpty) {
+      destinationCategories.add(rawCategories.trim().toLowerCase());
+    }
+
+    return _selectedCategories.any(
+      (category) =>
+          destinationCategories.contains(category.trim().toLowerCase()),
+    );
+  }
+
+  // =========================================================
+  // SEARCH, FILTER TIPE, DAN SORTING
+  // =========================================================
+
+  List<Map<String, dynamic>> get _filteredDestinations {
+    final query = _searchQuery.trim().toLowerCase();
+
+    final results = _destinations.where((destination) {
+      final title = (destination['title'] ?? '').toString().toLowerCase();
+
+      final location = (destination['location'] ?? '').toString().toLowerCase();
+
+      final tag = (destination['tag'] ?? '').toString().toLowerCase();
+
+      final jenis = (destination['jenis_data'] ?? '').toString().toLowerCase();
+
+      final categoryNames = _extractRelation(destination['kategoris'])
+          .map((item) => (item['nama_kategori'] ?? '').toString().toLowerCase())
+          .join(' ');
+
+      // Search berdasarkan nama, alamat, dan seluruh kategori.
+      final matchesSearch =
+          query.isEmpty ||
+          title.contains(query) ||
+          location.contains(query) ||
+          tag.contains(query) ||
+          categoryNames.contains(query);
+
+      // Filter tipe destinasi.
+      final matchesFilter = switch (_selectedFilter) {
+        'Wisata' => jenis == 'wisata',
+        'Restoran' => jenis == 'restoran',
+        'Hotel' => jenis == 'hotel',
+        _ => true,
+      };
+
+      // Filter kategori yang dipilih.
+      final matchesCategory = _matchesDestinationCategory(destination);
+
+      return matchesSearch && matchesFilter && matchesCategory;
+    }).toList();
+
+    // Sorting rating tertinggi.
+    if (_selectedSort == 'Rating Tertinggi') {
+      results.sort((a, b) {
+        final ratingA = _toDouble(a['rating']);
+        final ratingB = _toDouble(b['rating']);
+
+        return ratingB.compareTo(ratingA);
+      });
+    } else if (_selectedSort == 'Nama A-Z') {
+      results.sort(
+        (a, b) => '${a['title']}'.toLowerCase().compareTo(
+          '${b['title']}'.toLowerCase(),
+        ),
+      );
+    }
+
+    return results;
+  }
+
+  // =========================================================
+  // CONTROL CALLBACKS
+  // =========================================================
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value;
+      _currentPage = 1;
+    });
+  }
+
+  void _onFilterChanged(String filter) {
+    setState(() {
+      _selectedFilter = filter;
+      _currentPage = 1;
+    });
+  }
+
+  void _onCategoriesChanged(Set<String> categories) {
+    setState(() {
+      _selectedCategories = Set<String>.from(categories);
+      _currentPage = 1;
+    });
+  }
+
+  void _goToPage(int page) {
+    if (_totalPages == 0) return;
+
+    setState(() {
+      _currentPage = page.clamp(1, _totalPages);
+    });
+  }
+
+  // =========================================================
+  // LIFECYCLE
+  // =========================================================
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDestinations();
+    _fetchCategories();
   }
 
   @override
@@ -215,6 +470,11 @@ class _ExploreTabsState extends State<ExploreTabs> {
     _searchController.dispose();
     super.dispose();
   }
+
+  // =========================================================
+  // MAIN UI
+  // Desain utama dipertahankan.
+  // =========================================================
 
   @override
   Widget build(BuildContext context) {
@@ -232,12 +492,7 @@ class _ExploreTabsState extends State<ExploreTabs> {
                 children: [
                   _buildSearchBar(),
                   const SizedBox(height: 12),
-                  _buildCategoryChips(),
-                  const SizedBox(height: 12),
-                  _buildSubFilters(),
-                  const SizedBox(height: 12),
 
-                  // Memanggil komponen DestinationCard yang di-import terpisah
                   if (_isLoading)
                     const Center(
                       child: Padding(
@@ -249,13 +504,13 @@ class _ExploreTabsState extends State<ExploreTabs> {
                     Center(
                       child: Column(
                         children: [
-                          Text(
-                            'Gagal memuat destinasi',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
+                          const Text('Gagal memuat destinasi'),
                           const SizedBox(height: 8),
+                          Text(
+                            _errorMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 12),
+                          ),
                           TextButton(
                             onPressed: _fetchDestinations,
                             child: const Text('Coba lagi'),
@@ -271,14 +526,19 @@ class _ExploreTabsState extends State<ExploreTabs> {
                       ),
                     )
                   else
-                    ..._filteredDestinations.map(
-                      (dest) => _buildDestinationCard(
-                        context: context,
-                        data: dest,
-                        onItineraryPressed: () {
-                          // Tambahkan logika itinerary di sini.
-                        },
-                      ),
+                    Column(
+                      children: [
+                        ..._paginatedDestinations.map(
+                          (dest) => _buildDestinationCard(
+                            context: context,
+                            data: dest,
+                            onItineraryPressed: () {
+                              // Logika itinerary tetap di sini.
+                            },
+                          ),
+                        ),
+                        _buildPagination(),
+                      ],
                     ),
 
                   const SizedBox(height: 16),
@@ -292,6 +552,76 @@ class _ExploreTabsState extends State<ExploreTabs> {
       ),
     );
   }
+
+  // =========================================================
+  // PAGINATION UI
+  // =========================================================
+
+  Widget _buildPagination() {
+    final totalPages = _totalPages;
+
+    if (totalPages <= 1) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 24),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 4,
+        children: [
+          IconButton(
+            tooltip: 'Halaman sebelumnya',
+            onPressed: _currentPage > 1
+                ? () => _goToPage(_currentPage - 1)
+                : null,
+            icon: const Icon(Icons.chevron_left),
+          ),
+          ...List.generate(totalPages, (index) {
+            final page = index + 1;
+            final active = page == _currentPage;
+
+            return InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => _goToPage(page),
+              child: Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active ? AppColors.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: active ? AppColors.primary : AppColors.border,
+                  ),
+                ),
+                child: Text(
+                  '$page',
+                  style: TextStyle(
+                    color: active ? Colors.white : AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            );
+          }),
+          IconButton(
+            tooltip: 'Halaman berikutnya',
+            onPressed: _currentPage < totalPages
+                ? () => _goToPage(_currentPage + 1)
+                : null,
+            icon: const Icon(Icons.chevron_right),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // SEARCH BAR DAN FILTER
+  // =========================================================
 
   Widget _buildSearchBar() {
     return Column(
@@ -333,182 +663,27 @@ class _ExploreTabsState extends State<ExploreTabs> {
           style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                height: 45,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.search,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value;
-                          });
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Cari destinasi, kuliner, aktivitas...',
-                          hintStyle: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                          border: InputBorder.none,
-                          isDense: true,
-                          suffixIcon: _searchQuery.trim().isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.close, size: 16),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {
-                                      _searchQuery = '';
-                                    });
-                                  },
-                                )
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              height: 45,
-              width: 45,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(Icons.tune, color: AppColors.primary, size: 20),
-            ),
-          ],
+
+        CustomSearchBar(
+          controller: _searchController,
+          onChanged: _onSearchChanged,
+          categories: _categories,
+          isLoadingCategories: _isLoadingCategories,
+          categoryError: _categoryError,
+          onRetryCategories: _fetchCategories,
+          selectedFilter: _selectedFilter,
+          selectedCategories: _selectedCategories,
+          onApplyFilter: _onFilterChanged,
+          onApplyCategories: _onCategoriesChanged,
         ),
       ],
     );
   }
 
-  Widget _buildCategoryChips() {
-    if (_isLoadingCategories) {
-      return const SizedBox(
-        height: 36,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      );
-    }
-
-    if (_categoryError != null) {
-      return SizedBox(
-        height: 36,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: _fetchCategories,
-            child: const Text('Gagal memuat kategori. Coba lagi'),
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: 36,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
-        itemBuilder: (context, index) {
-          final category = _categories[index];
-          final isSelected = _selectedCategory == category;
-
-          return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ChoiceChip(
-              label: ManropeFont(
-                category,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isSelected ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-              selected: isSelected,
-              selectedColor: AppColors.primary,
-              backgroundColor: AppColors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: isSelected ? Colors.transparent : AppColors.border,
-                ),
-              ),
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() {
-                    _selectedCategory = category;
-                  });
-                }
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSubFilters() {
-    return Row(
-      children: [
-        _subFilterItem('Semua', _selectedFilter == 'Semua'),
-        const SizedBox(width: 8),
-        _subFilterItem('Wisata', _selectedFilter == 'Wisata'),
-        const SizedBox(width: 8),
-        _subFilterItem('Restoran', _selectedFilter == 'Restoran'),
-        const SizedBox(width: 8),
-        _subFilterItem('Hotel', _selectedFilter == 'Hotel'),
-      ],
-    );
-  }
-
-  Widget _subFilterItem(String label, bool active) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedFilter = label;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: active
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: active ? AppColors.primary : AppColors.border,
-          ),
-        ),
-        child: ManropeFont(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: active ? AppColors.primary : AppColors.textSecondary,
-            fontWeight: active ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
+  // =========================================================
+  // AI BANNER
+  // Desain dipertahankan.
+  // =========================================================
 
   Widget _buildAiPlannerBanner() {
     return Container(
@@ -545,225 +720,353 @@ class _ExploreTabsState extends State<ExploreTabs> {
             style: TextStyle(fontSize: 11, color: Colors.white70),
           ),
           SizedBox(height: 12),
-          // ... tombol banner dll
         ],
       ),
     );
   }
+
+  // =========================================================
+  // DESTINATION CARD
+  // Struktur desain card dipertahankan.
+  // =========================================================
 
   Widget _buildDestinationCard({
     required BuildContext context,
     required Map<String, dynamic> data,
     VoidCallback? onItineraryPressed,
   }) {
-    // Helper untuk memformat harga
     String formatPrice(dynamic price) {
-      if (price == null) return '';
+      if (price == null || price.toString().trim().isEmpty) {
+        return 'Harga belum tersedia';
+      }
+
       final parsedPrice = double.tryParse(price.toString());
-      if (parsedPrice == null || parsedPrice == 0) {
+
+      if (parsedPrice == null) {
+        return price.toString();
+      }
+
+      if (parsedPrice == 0) {
         return 'Gratis';
       }
-      return 'Rp $price';
+
+      return 'Rp ${parsedPrice.toStringAsFixed(0)}';
     }
 
     final String priceText = formatPrice(data['price']);
+    final String title = data['title']?.toString() ?? 'Tanpa nama';
+
+    final String location = _firstNonEmpty([
+      data['location'],
+      data['subdistrict'],
+    ], fallback: 'Kecamatan tidak diketahui');
+
+    final String description = data['deskripsi']?.toString().trim() ?? '';
+
+    final String? imageUrl = data['image']?.toString().trim();
+    final String tag = data['tag']?.toString() ?? '';
+    final String rating = data['rating']?.toString() ?? '-';
+    final String jenis = data['jenis_data']?.toString() ?? 'wisata';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border, width: 0.8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
           onTap: () {
-            // Navigasi ke Halaman Detail (Placeholder)
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    DetailDestinationTabs(wisataId: data['id']),
-              ),
-            );
+            if (jenis == 'wisata') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      DetailDestinationTabs(wisataId: data['id']),
+                ),
+              );
+            } else {
+              // Hindari mengirim ID restoran ke halaman detail wisata.
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Halaman detail restoran belum dihubungkan.'),
+                ),
+              );
+            }
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- Gambar & Tag / Favorite ---
               Stack(
                 children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(12),
-                    ),
-                    child: Image.network(
-                      data['image'] ?? '',
-                      height: 160,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        debugPrint('URL Error: ${data['image']}');
-                        return Container(
-                          height: 160,
-                          color: Colors.grey.shade200,
-                          child: const Center(
-                            child: Icon(
-                              Icons.broken_image,
-                              size: 40,
-                              color: Colors.grey,
+                  SizedBox(
+                    height: 200,
+                    width: double.infinity,
+                    child: imageUrl != null && imageUrl.isNotEmpty
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              debugPrint('Gagal memuat gambar: $imageUrl');
+
+                              return Container(
+                                color: Colors.grey.shade100,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.image_not_supported_outlined,
+                                    size: 42,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: Colors.grey.shade100,
+                            child: const Center(
+                              child: Icon(
+                                Icons.image_outlined,
+                                size: 42,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
-                        );
-                      },
-                    ),
                   ),
-                  if ((data['tag'] ?? '').isNotEmpty)
-                    Positioned(
-                      top: 10,
-                      left: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 65,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: ManropeFont(
-                          data['tag'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.35),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
+                  ),
+
+                  if (tag.isNotEmpty)
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ManropeFont(
+                          tag,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.favorite_border,
-                        size: 16,
-                        color: AppColors.textPrimary,
+                    ),
+
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Material(
+                      color: AppColors.surface,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () {
+                          // Hubungkan ke fitur favorit jika tersedia.
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(9),
+                          child: Icon(
+                            Icons.favorite_border,
+                            size: 19,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.star_rounded,
+                            color: Colors.amber,
+                            size: 17,
+                          ),
+                          const SizedBox(width: 4),
+                          ManropeFont(
+                            rating,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
 
-              // --- Detail Konten ---
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Judul & Rating
+                    ManropeFont(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 9),
+
                     Row(
                       children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 17,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 5),
                         Expanded(
                           child: ManropeFont(
-                            data['title'] ?? '',
+                            location,
                             style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.star, size: 14, color: Colors.amber),
-                        const SizedBox(width: 4),
-                        ManropeFont(
-                          '${data['rating'] ?? '-'}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
 
-                    // Lokasi Kecamatan (Dipersingkat) & Harga Tiket
+                    const SizedBox(height: 12),
+
+                    ManropeFont(
+                      description.isNotEmpty
+                          ? description
+                          : 'Informasi deskripsi belum tersedia.',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                        height: 1.6,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    Divider(height: 1, thickness: 0.8, color: AppColors.border),
+
+                    const SizedBox(height: 13),
+
                     Row(
                       children: [
-                        const Icon(
-                          Icons.location_on_outlined,
-                          size: 14,
-                          color: AppColors.textSecondary,
+                        Container(
+                          padding: const EdgeInsets.all(9),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.confirmation_number_outlined,
+                            size: 19,
+                            color: AppColors.primary,
+                          ),
                         ),
-                        const SizedBox(width: 4),
+
+                        const SizedBox(width: 10),
+
                         Expanded(
-                          child: ManropeFont(
-                            data['location'] ??
-                                data['subdistrict'] ??
-                                'Kecamatan tidak diketahui',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis, // Memotong teks dengan titik-titik (...)
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ManropeFont(
+                                jenis == 'restoran'
+                                    ? 'Harga rata-rata'
+                                    : 'Harga tiket',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              ManropeFont(
+                                priceText,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: priceText == 'Gratis'
+                                      ? Colors.green.shade700
+                                      : AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
-                        if (priceText.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          const ManropeFont(
-                            '•',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          ManropeFont(
-                            priceText,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: priceText == 'Gratis'
-                                  ? Colors.green
-                                  : AppColors.textSecondary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+
+                        const SizedBox(width: 8),
+
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 20,
+                          color: AppColors.primary,
+                        ),
                       ],
                     ),
-
-                    // Deskripsi Singkat Destinasi
-                    if ((data['description'] ?? '').isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      ManropeFont(
-                        data['description'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                          height: 1.3,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
                   ],
                 ),
               ),

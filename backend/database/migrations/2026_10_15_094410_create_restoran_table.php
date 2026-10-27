@@ -15,14 +15,14 @@ return new class extends Migration {
             $table->unsignedInteger('id_kecamatan');
             // Atribut warisan dari desinasi
             $table->string('nama_restoran');
-            $table->text('alamat_Detail_restoran');
+            $table->text('alamat_detail_restoran');
             $table->decimal('latitude', 10, 8);
             $table->decimal('longitude', 11, 8);
             $table->text('deskripsi')->nullable();
             $table->string('link_on_maps')->nullable();
             // Atribut khusus restoran
             $table->decimal('harga_makan_per_orang', 12, 2)->nullable();
-            $table->enum('type_food', ['Halal', 'Vegetarian', 'Semua'])->default('Semua');
+            $table->enum('type_food', ['Halal', 'Non Halal', 'Vegetarian', 'Semua'])->default('Semua');
             $table->timestamps();
 
             $table->foreign('id_kecamatan')

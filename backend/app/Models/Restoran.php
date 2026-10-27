@@ -49,6 +49,8 @@ class Restoran extends Model
             'destinasi',
             'kategori_destinasi',
             'destinasi_id',
+            'id_kategori',
+            'id_restoran',
             'id_kategori'
         );
     }
@@ -60,6 +62,8 @@ class Restoran extends Model
             'destinasi',
             'fasilitas_destinasi',
             'destinasi_id',
+            'id_fasilitas',
+            'id_restoran',
             'id_fasilitas'
         )->withTimestamps();
     }

@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             KategoriSeeder::class,
             KecamatanSeeder::class,
             FasilitasSeeder::class,
+            WisataSeeder::class,
+            RestoranSeeder::class,
         ]);
     }
-} 
+}

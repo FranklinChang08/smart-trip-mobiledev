@@ -29,9 +29,6 @@ Route::get('/kategori', function (Request $request) {
     ]);
 });
 
-Route::get('/wisata', [ExploreController::class, 'index']);
-Route::get('/wisata/{id}', [ExploreController::class, 'show']);
-
 Route::get('/kecamatan', function () {
     return response()->json([
         'success' => true,
@@ -43,6 +40,11 @@ Route::prefix('wisata')->name('wisata.')->group(function () {
     Route::get('/', [ExploreController::class, 'index']);
     Route::get('/{id}', [ExploreController::class, 'show']);
     Route::get('/foto/{path}', [FotoController::class, 'showFotoDestinasi'])->where('path', '.*');
+});
+Route::prefix('restoran')->name('restoran.')->group(function () {
+    Route::get('/', [ExploreController::class, 'indexRestoran']);
+    Route::get('/{id}', [ExploreController::class, 'show']);
+    Route::get('/foto/{path}', [FotoController::class, 'showFotoRestoran'])->where('path', '.*');
 });
 
 Route::get('/kategori-list', [ExploreController::class, 'showKategori']);
