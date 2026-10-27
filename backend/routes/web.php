@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\FasilitasController;
 use App\Http\Controllers\Admin\FotoDestinasiController;
 use App\Http\Controllers\Admin\KategoriController;
 use App\Http\Controllers\Admin\KecamatanController;
+use App\Http\Controllers\Admin\PenginapanController;
 use App\Http\Controllers\Admin\RestoranController;
 use App\Http\Controllers\Admin\WisataController;
 use App\Http\Middleware\AdminMiddleware;
@@ -39,6 +40,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/{restoran}', [RestoranController::class, 'show'])->name('show');
             Route::put('/{restoran}', [RestoranController::class, 'update'])->name('update');
             Route::delete('/{restoran}', [RestoranController::class, 'destroy'])->name('destroy');
+
+            Route::delete('/foto/{id}', [FotoDestinasiController::class, 'destroy'])->name('foto.destroy');
+        });
+
+        Route::prefix('penginapan')->name('penginapan.')->group(function () {
+            Route::get('/', [PenginapanController::class, 'index'])->name('index');
+            Route::get('/form-penginapan', [PenginapanController::class, 'create'])->name('create');
+            Route::post('/form-penginapan/store', [PenginapanController::class, 'store'])->name('store');
+            Route::get('/{penginapan}', [PenginapanController::class, 'show'])->name('show');
+            Route::put('/{penginapan}', [PenginapanController::class, 'update'])->name('update');
+            Route::delete('/{penginapan}', [PenginapanController::class, 'destroy'])->name('destroy');
 
             Route::delete('/foto/{id}', [FotoDestinasiController::class, 'destroy'])->name('foto.destroy');
         });

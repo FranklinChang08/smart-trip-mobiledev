@@ -40,12 +40,23 @@
             <!-- Data Restoran -->
             <a href="{{ route('admin.restoran.index') }}"
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('admin.restoran*') ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary' }}">
+                <svg class="w-5 h-5 shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" class="lucide lucide-utensils preview-icon">
+                    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+                    <path d="M7 2v20" />
+                    <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+                </svg>
+                <span>Data Restoran</span>
+            </a>
+            <a href="{{ route('admin.penginapan.index') }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('admin.penginapan*') ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary' }}">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                         d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
                     </path>
                 </svg>
-                <span>Data Restoran</span>
+                <span>Data Penginapan</span>
             </a>
         </nav>
     </div>
@@ -55,14 +66,14 @@
         <div class="p-3 rounded-xl bg-background border border-[#F3F4F6] flex items-center gap-3 overflow-hidden">
             <div
                 class="w-9 h-9 rounded-full bg-primary text-white font-bold text-sm flex items-center justify-center shrink-0">
-                {{ strtoupper(substr(Auth::user()->nama_pengguna ?? Auth::user()->name ?? 'A', 0, 1)) }}
+                {{ strtoupper(substr(Auth::user()->nama_pengguna ?? (Auth::user()->name ?? 'A'), 0, 1)) }}
             </div>
             <div class="overflow-hidden">
                 <div class="text-xs font-bold text-textPrimary truncate">
-                    {{ Auth::user()->nama_pengguna ?? Auth::user()->name ?? 'Administrator' }}
+                    {{ Auth::user()->nama_pengguna ?? (Auth::user()->name ?? 'Administrator') }}
                 </div>
-                <div class="text-[0.6875rem] text-textSecondary truncate">{{ Auth::user()->email ??
-                    'admin@smarttrip.com' }}
+                <div class="text-[0.6875rem] text-textSecondary truncate">
+                    {{ Auth::user()->email ?? 'admin@smarttrip.com' }}
                 </div>
             </div>
         </div>

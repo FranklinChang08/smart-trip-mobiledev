@@ -213,6 +213,8 @@
                     jenisKategori = 'restoran';
                 } else if (window.location.pathname.includes('/wisata')) {
                     jenisKategori = 'wisata';
+                } else if (window.location.pathname.includes('/penginapan')) {
+                    jenisKategori = 'penginapan';
                 }
 
                 const storeUrl = '/admin/kategori/form-kategori/store';

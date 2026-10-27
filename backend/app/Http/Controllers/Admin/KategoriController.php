@@ -13,7 +13,7 @@ class KategoriController extends Controller
         // Validasi input
         $validated = $request->validate([
             'nama_kategori' => 'required|string|max:255',
-            'jenis_kategori' => 'required|in:wisata,restoran',
+            'jenis_kategori' => 'required|in:wisata,restoran,penginapan',
         ], [
             'nama_kategori.required' => 'Nama kategori wajib diisi.',
             'jenis_kategori.required' => 'Jenis kategori tidak valid.',
