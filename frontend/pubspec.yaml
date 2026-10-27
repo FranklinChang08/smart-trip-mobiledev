@@ -39,6 +39,7 @@ dependencies:
   font_awesome_flutter: ^11.0.0
   http: ^1.6.0
   shared_preferences: ^2.5.5
+  flutter_svg: ^2.3.0
 
 
 dev_dependencies:
