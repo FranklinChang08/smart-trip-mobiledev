@@ -12,7 +12,6 @@ class TripSummaryBottomSheet extends StatelessWidget {
   final String budget;
   final List<String> selectedThemes;
   final List<String> selectedAreas;
-  final String notes;
   final VoidCallback onFinishAndGoHome;
 
   const TripSummaryBottomSheet({
@@ -24,7 +23,6 @@ class TripSummaryBottomSheet extends StatelessWidget {
     required this.budget,
     required this.selectedThemes,
     required this.selectedAreas,
-    required this.notes,
     required this.onFinishAndGoHome,
   });
 
@@ -162,14 +160,7 @@ class TripSummaryBottomSheet extends StatelessWidget {
                       label: 'Area Batam',
                       value: selectedAreas.join(', '),
                     ),
-                    if (notes.isNotEmpty) ...[
-                      const Divider(height: 16),
-                      _buildSummaryRow(
-                        icon: Icons.note_outlined,
-                        label: 'Catatan',
-                        value: notes,
-                      ),
-                    ],
+
                   ],
                 ),
               ),

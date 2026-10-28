@@ -212,11 +212,14 @@ class TripPlanService {
 
       final body = jsonEncode({
         'nama_rencana': plan.tripName,
+        'hari_start': plan.startDate.toIso8601String().split('T').first,
+        'hari_end': plan.endDate.toIso8601String().split('T').first,
         'tanggal_mulai': plan.startDate.toIso8601String().split('T').first,
         'tanggal_selesai': plan.endDate.toIso8601String().split('T').first,
         'titik_awal': plan.startLocation,
+        'budget_trip': numericBudget,
         'total_anggaran': numericBudget,
-        'catatan': plan.notes,
+        'type_food': plan.isHalal ? 'Halal' : (plan.isSeafood ? 'Seafood' : 'Semua'),
         'kategori_minat': plan.selectedThemes,
         'kecamatan_pilihan': plan.selectedAreas,
         'is_halal': plan.isHalal,
@@ -253,39 +256,10 @@ class TripPlanService {
       // Tandai semua rencana lainnya menjadi tidak aktif dan hilangkan duplikasi jika ada
       final updatedPlans = plans
           .where((p) => p.id != planToSave.id)
-          .map((p) => SavedTripPlan(
-        id: p.id,
-        tripName: p.tripName,
-        startDate: p.startDate,
-        endDate: p.endDate,
-        startLocation: p.startLocation,
-        budget: p.budget,
-        selectedThemes: p.selectedThemes,
-        selectedAreas: p.selectedAreas,
-        isHalal: p.isHalal,
-        isSeafood: p.isSeafood,
-        notes: p.notes,
-        isActive: false,
-        details: p.details,
-        createdAt: p.createdAt,
-      )).toList();
+          .map((p) => p.copyWith(isActive: false))
+          .toList();
 
-      final activeNewPlan = SavedTripPlan(
-        id: planToSave.id,
-        tripName: planToSave.tripName,
-        startDate: planToSave.startDate,
-        endDate: planToSave.endDate,
-        startLocation: planToSave.startLocation,
-        budget: planToSave.budget,
-        selectedThemes: planToSave.selectedThemes,
-        selectedAreas: planToSave.selectedAreas,
-        isHalal: planToSave.isHalal,
-        isSeafood: planToSave.isSeafood,
-        notes: planToSave.notes,
-        isActive: true,
-        details: planToSave.details,
-        createdAt: planToSave.createdAt,
-      );
+      final activeNewPlan = planToSave.copyWith(isActive: true);
 
       // Tambahkan rencana yang baru di posisi pertama
       updatedPlans.insert(0, activeNewPlan);

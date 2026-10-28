@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\DetailItinerary;
+use App\Models\HariPerjalanan;
+use App\Models\ItemPerjalanan;
 use App\Models\Kategori;
 use App\Models\Kecamatan;
 use App\Models\PreferensiPerjalanan;
@@ -22,8 +24,11 @@ class RencanaPerjalananController extends Controller
         $user = auth('sanctum')->user() ?? $request->user();
         $userId = $user?->id_pengguna;
 
-        $query = RencanaPerjalanan::with(['preferensi.kategoris', 'detailItineraries'])
-            ->orderBy('created_at', 'desc');
+        $query = RencanaPerjalanan::with([
+            'preferensi.kategoris',
+            'hariPerjalanan.itemPerjalanan',
+            'detailItineraries',
+        ])->orderBy('created_at', 'desc');
 
         if ($userId) {
             $query->where(function ($q) use ($userId) {
@@ -46,6 +51,7 @@ class RencanaPerjalananController extends Controller
     {
         $plan = RencanaPerjalanan::with([
             'preferensi.kategoris',
+            'hariPerjalanan.itemPerjalanan.destinasi',
             'detailItineraries.wisata.fotoDestinasis',
             'detailItineraries.restoran',
         ])->find($id);
@@ -64,26 +70,43 @@ class RencanaPerjalananController extends Controller
         ]);
     }
 
-    // Membuat Rencana Perjalanan & Mengisi Preferensi Perjalanan
+    // Membuat Rencana Perjalanan & Mengisi Preferensi Perjalanan (Sesuai ERD)
     public function store(Request $request)
     {
         $validated = $request->validate([
             'nama_rencana' => 'required|string|max:255',
-            'tanggal_mulai' => 'required|date',
-            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'titik_awal' => 'required|string|max:255',
+            'hari_start' => 'nullable|date',
+            'hari_end' => 'nullable|date',
+            'tanggal_mulai' => 'nullable|date',
+            'tanggal_selesai' => 'nullable|date',
+            'titik_awal' => 'nullable|string|max:255',
+            'budget_trip' => 'nullable|numeric|min:0',
             'total_anggaran' => 'nullable|numeric|min:0',
-            'catatan' => 'nullable|string',
+            'type_food' => 'nullable|string|max:50',
+            'start_time' => 'nullable|string',
+            'end_time' => 'nullable|string',
             'kategori_minat' => 'nullable|array',
             'kecamatan_pilihan' => 'nullable|array',
             'is_halal' => 'nullable|boolean',
             'is_seafood' => 'nullable|boolean',
-            'custom_destinations' => 'nullable|array', // Untuk Memilih Destinasi Kustom
+            'custom_destinations' => 'nullable|array',
         ]);
 
-        $start = Carbon::parse($validated['tanggal_mulai']);
-        $end = Carbon::parse($validated['tanggal_selesai']);
+        $startDateStr = $validated['hari_start'] ?? $validated['tanggal_mulai'] ?? now()->toDateString();
+        $endDateStr = $validated['hari_end'] ?? $validated['tanggal_selesai'] ?? $startDateStr;
+
+        $start = Carbon::parse($startDateStr);
+        $end = Carbon::parse($endDateStr);
+        if ($end->lt($start)) {
+            $end = $start->copy();
+        }
         $totalDays = max(1, $start->diffInDays($end) + 1);
+
+        $budget = $validated['budget_trip'] ?? $validated['total_anggaran'] ?? null;
+        $typeFood = $validated['type_food'] ?? ($request->boolean('is_halal') ? 'Halal' : 'Semua');
+        $startTime = $validated['start_time'] ?? '08:30';
+        $endTime = $validated['end_time'] ?? '21:00';
+        $titikAwal = $validated['titik_awal'] ?? 'Pelabuhan Ferry Batam Center';
 
         $userId = $request->user()?->id_pengguna;
 
@@ -96,30 +119,15 @@ class RencanaPerjalananController extends Controller
                 RencanaPerjalanan::where('status', 'aktif')->update(['status' => 'selesai']);
             }
 
-            // Simpan Header Rencana Perjalanan
-            $plan = RencanaPerjalanan::create([
+            // 1. Simpan Preferensi Perjalanan (USERS 1 --- Mengisi --- 1 PREFERENSI)
+            $preferensi = PreferensiPerjalanan::create([
                 'id_pengguna' => $userId,
-                'nama_rencana' => $validated['nama_rencana'],
-                'tanggal_mulai' => $start->toDateString(),
-                'tanggal_selesai' => $end->toDateString(),
-                'total_hari' => $totalDays,
-                'titik_awal' => $validated['titik_awal'],
-                'total_anggaran' => $validated['total_anggaran'] ?? null,
-                'catatan' => $validated['catatan'] ?? null,
-                'status' => 'aktif',
+                'type_food' => $typeFood,
+                'maks_budget_trip' => $budget,
+                'kecamatan_pilihan' => $validated['kecamatan_pilihan'] ?? ['Batam Kota', 'Lubuk Baja'],
             ]);
 
-            $isHalal = filter_var($request->input('is_halal', false), FILTER_VALIDATE_BOOLEAN);
-            $isSeafood = filter_var($request->input('is_seafood', false), FILTER_VALIDATE_BOOLEAN);
-
-            // Simpan Preferensi Perjalanan
-            $preferensi = $plan->preferensi()->create([
-                'kecamatan_pilihan' => $validated['kecamatan_pilihan'] ?? ['Batam Kota', 'Nongsa'],
-                'is_halal' => $isHalal,
-                'is_seafood' => $isSeafood,
-            ]);
-
-            // Simpan Relasi Minat Wisata ke Tabel Pivot preferensi_kategori
+            // Simpan Relasi Minat Wisata ke Tabel Pivot preferensi_kategori (PREFERENSI M --- Memiliki --- M KATEGORI)
             $selectedThemes = $validated['kategori_minat'] ?? [];
             if (!empty($selectedThemes)) {
                 $categoryIds = [];
@@ -138,27 +146,49 @@ class RencanaPerjalananController extends Controller
                 }
             }
 
-            // Susun Detail Itinerary
+            // 2. Simpan Rencana Perjalanan (PREFERENSI 1 --- Mendasari --- M RENCANA PERJALANAN)
+            $plan = RencanaPerjalanan::create([
+                'id_pengguna' => $userId,
+                'id_preferensi' => $preferensi->id_preferensi,
+                'nama_rencana' => $validated['nama_rencana'],
+                'hari_start' => $start->toDateString(),
+                'hari_end' => $end->toDateString(),
+                'total_hari' => $totalDays,
+                'titik_awal' => $titikAwal,
+                'budget_trip' => $budget,
+                'type_food' => $typeFood,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'status' => 'aktif',
+            ]);
+
+            $isHalal = strtolower($typeFood) === 'halal' || $request->boolean('is_halal');
+            $isSeafood = $request->boolean('is_seafood') || str_contains(strtolower($typeFood), 'seafood');
+
+            // 3. Susun Detail Itinerary (HARI PERJALANAN & ITEM PERJALANAN)
             if (!empty($validated['custom_destinations'])) {
-                // Memilih Destinasi Kustom
                 $this->saveCustomItinerary($plan, $validated['custom_destinations']);
             } else {
-                // Memperoleh Rekomendasi
                 $this->generateRecommendationItinerary(
                     $plan,
                     $totalDays,
-                    $validated['titik_awal'],
+                    $titikAwal,
                     $validated['kecamatan_pilihan'] ?? [],
                     $selectedThemes,
                     $isHalal,
-                    $isSeafood
+                    $isSeafood,
+                    $startTime,
+                    $endTime
                 );
             }
 
             DB::commit();
 
-            $fullPlan = RencanaPerjalanan::with(['preferensi.kategoris', 'detailItineraries'])
-                ->find($plan->id_rencana);
+            $fullPlan = RencanaPerjalanan::with([
+                'preferensi.kategoris',
+                'hariPerjalanan.itemPerjalanan',
+                'detailItineraries',
+            ])->find($plan->id_rencana);
 
             return response()->json([
                 'success' => true,
@@ -201,7 +231,7 @@ class RencanaPerjalananController extends Controller
             DetailItinerary::create([
                 'id_rencana' => $plan->id_rencana,
                 'hari_ke' => $item['hari_ke'] ?? 1,
-                'urutan' => $item['urutan'] ?? ($index + 1),
+                'urutan' => $index + 1,
                 'tipe_item' => $item['tipe_item'] ?? 'wisata',
                 'id_wisata' => $item['id_wisata'] ?? null,
                 'id_restoran' => $item['id_restoran'] ?? null,
@@ -223,7 +253,9 @@ class RencanaPerjalananController extends Controller
         array $selectedAreas,
         array $selectedThemes,
         bool $isHalal = false,
-        bool $isSeafood = false
+        bool $isSeafood = false,
+        string $defaultStartTime = '08:30',
+        string $defaultEndTime = '21:00'
     ) {
         // Ambil data kecamatan terpilih
         $kecamatanIds = Kecamatan::whereIn('nama_kecamatan', $selectedAreas)
@@ -261,11 +293,23 @@ class RencanaPerjalananController extends Controller
 
         $wisataIdx = 0;
         $restoranIdx = 0;
+        $baseDate = Carbon::parse($plan->hari_start ?? now());
 
         for ($day = 1; $day <= $totalDays; $day++) {
+            $currentDayDate = $baseDate->copy()->addDays($day - 1)->toDateString();
             $order = 1;
 
-            // Titik Kedatangan Awal
+            // Simpan ke HARI PERJALANAN (Sesuai ERD)
+            $hariRecord = HariPerjalanan::create([
+                'id_rencana' => $plan->id_rencana,
+                'tanggal' => $currentDayDate,
+                'urutan_hari' => $day,
+                'lokasi_awal' => $day === 1 ? $startLocation : 'Hotel / Penginapan',
+                'lokasi_akhir' => 'Hotel / Penginapan',
+                'estimasi_biaya' => 0,
+            ]);
+
+            // Titik Kedatangan Awal (Hari 1)
             if ($day === 1) {
                 DetailItinerary::create([
                     'id_rencana' => $plan->id_rencana,
@@ -274,7 +318,7 @@ class RencanaPerjalananController extends Controller
                     'tipe_item' => 'titik_awal',
                     'nama_tempat' => $startLocation,
                     'kategori' => 'Titik Awal & Penjemputan',
-                    'waktu_mulai' => '08:30',
+                    'waktu_mulai' => $defaultStartTime,
                     'waktu_selesai' => '09:00',
                     'estimasi_biaya' => 0,
                     'catatan' => 'Titik awal penjemputan dan briefing rute perjalanan Batam.',
@@ -282,16 +326,26 @@ class RencanaPerjalananController extends Controller
                 ]);
             }
 
-            // Wisata Budaya / Sejarah / Landmark
+            // Wisata Pagi
             $pagiWisata = $availableWisata->get($wisataIdx % max(1, $availableWisata->count()));
             $wisataIdx++;
+            if ($pagiWisata) {
+                ItemPerjalanan::create([
+                    'id_hari' => $hariRecord->id_hari,
+                    'destinasi_type' => Wisata::class,
+                    'destinasi_id' => $pagiWisata->id_wisata,
+                    'urutan_item' => 1,
+                    'depature_time' => '09:15',
+                    'arrival_time' => '11:30',
+                ]);
+            }
             DetailItinerary::create([
                 'id_rencana' => $plan->id_rencana,
                 'hari_ke' => $day,
                 'urutan' => $order++,
                 'tipe_item' => 'wisata',
                 'id_wisata' => $pagiWisata?->id_wisata,
-                'nama_tempat' => $pagiWisata?->nama_wisata ?? ($day == 1 ? 'Museum Raja Ali Haji & Ikon Welcome to Batam' : 'Taman Rusa Sekupang & Kawasan Hijau'),
+                'nama_tempat' => $pagiWisata?->nama_wisata ?? 'Museum Raja Ali Haji & Ikon Welcome to Batam',
                 'kategori' => 'Wisata Pagi Unggulan',
                 'waktu_mulai' => '09:15',
                 'waktu_selesai' => '11:30',
@@ -300,16 +354,26 @@ class RencanaPerjalananController extends Controller
                 'is_kustom' => false,
             ]);
 
-            // Santap Siang Kuliner Khas
+            // Santap Siang Kuliner
             $siangResto = $availableRestoran->get($restoranIdx % max(1, $availableRestoran->count()));
             $restoranIdx++;
+            if ($siangResto) {
+                ItemPerjalanan::create([
+                    'id_hari' => $hariRecord->id_hari,
+                    'destinasi_type' => Restoran::class,
+                    'destinasi_id' => $siangResto->id_restoran,
+                    'urutan_item' => 2,
+                    'depature_time' => '12:00',
+                    'arrival_time' => '13:30',
+                ]);
+            }
             DetailItinerary::create([
                 'id_rencana' => $plan->id_rencana,
                 'hari_ke' => $day,
                 'urutan' => $order++,
                 'tipe_item' => 'restoran',
                 'id_restoran' => $siangResto?->id_restoran,
-                'nama_tempat' => $siangResto?->nama_restoran ?? ($day == 1 ? 'Kuliner Mie Tarempa Khas Kepri' : 'Sentra Makan Siang Selera Melayu'),
+                'nama_tempat' => $siangResto?->nama_restoran ?? 'Kuliner Mie Tarempa Khas Kepri',
                 'kategori' => $isHalal ? 'Kuliner Halal Khas Batam' : 'Kuliner Khas Batam',
                 'waktu_mulai' => '12:00',
                 'waktu_selesai' => '13:30',
@@ -318,16 +382,26 @@ class RencanaPerjalananController extends Controller
                 'is_kustom' => false,
             ]);
 
-            // Spot Sore: Wisata Pantai / Wisata Belanja
+            // Spot Sore
             $soreWisata = $availableWisata->get($wisataIdx % max(1, $availableWisata->count()));
             $wisataIdx++;
+            if ($soreWisata) {
+                ItemPerjalanan::create([
+                    'id_hari' => $hariRecord->id_hari,
+                    'destinasi_type' => Wisata::class,
+                    'destinasi_id' => $soreWisata->id_wisata,
+                    'urutan_item' => 3,
+                    'depature_time' => '14:30',
+                    'arrival_time' => '17:30',
+                ]);
+            }
             DetailItinerary::create([
                 'id_rencana' => $plan->id_rencana,
                 'hari_ke' => $day,
                 'urutan' => $order++,
                 'tipe_item' => 'wisata',
                 'id_wisata' => $soreWisata?->id_wisata,
-                'nama_tempat' => $soreWisata?->nama_wisata ?? ($day == 1 ? 'Grand Batam Mall & Pusat Belanja Nagoya' : 'Kawasan Jembatan 1 Barelang & Sunset Senja'),
+                'nama_tempat' => $soreWisata?->nama_wisata ?? 'Grand Batam Mall & Nagoya',
                 'kategori' => 'Wisata Sore & Belanja',
                 'waktu_mulai' => '14:30',
                 'waktu_selesai' => '17:30',
@@ -336,9 +410,19 @@ class RencanaPerjalananController extends Controller
                 'is_kustom' => false,
             ]);
 
-            // Spot Malam: Santap Malam Seafood Kelong
+            // Spot Malam
             $malamResto = $availableRestoran->get($restoranIdx % max(1, $availableRestoran->count()));
             $restoranIdx++;
+            if ($malamResto) {
+                ItemPerjalanan::create([
+                    'id_hari' => $hariRecord->id_hari,
+                    'destinasi_type' => Restoran::class,
+                    'destinasi_id' => $malamResto->id_restoran,
+                    'urutan_item' => 4,
+                    'depature_time' => '18:30',
+                    'arrival_time' => '20:30',
+                ]);
+            }
             DetailItinerary::create([
                 'id_rencana' => $plan->id_rencana,
                 'hari_ke' => $day,
