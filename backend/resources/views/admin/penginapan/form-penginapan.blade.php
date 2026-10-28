@@ -196,7 +196,7 @@
 
             <x-fasilitas-selection :all-fasilitas="$fasilitas ?? []" :selected-fasilitas="$selectedFasilitas ?? []" />
 
-            <x-upload-foto :is-edit="$isEdit" :foto-penginapan="$fotoDestinasi ?? []" :penginapan="$penginapan ?? []" />
+            <x-upload-foto :is-edit="$isEdit" :foto-destinasi="$fotoDestinasi ?? []" :destinasi="$penginapan ?? []" />
 
             <div class="flex justify-end gap-3">
                 <a href="{{ route('admin.penginapan.index') }}"

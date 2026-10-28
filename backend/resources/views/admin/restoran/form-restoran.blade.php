@@ -207,7 +207,7 @@
             <x-jam-operasional :initial-data="$jamOperasional ?? []" />
 
             {{-- Upload Foto --}}
-            <x-upload-foto :is-edit="$isEdit" :foto-wisata="$fotoDestinasi ?? []" :wisata="$restoran ?? []" />
+            <x-upload-foto :is-edit="$isEdit" :foto-destinasi="$fotoDestinasi ?? []" :destinasi="$restoran ?? []" />
 
             {{-- Tombol Bawah --}}
             <div class="flex justify-end gap-3">

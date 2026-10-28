@@ -1,7 +1,7 @@
    @props([
        'isEdit' => false,
-       'fotoWisata' => collect(),
-       'wisata' => null,
+       'fotoDestinasi' => collect(),
+       'destinasi' => null,
    ])
 
    <div class="bg-white p-6 rounded-xl border border-border shadow-sm space-y-4" data-photo-upload>
@@ -15,16 +15,17 @@
        </p>
 
        {{-- TAMBAHKAN ID DAN WRAPPER DI SINI --}}
-       @if ($isEdit && isset($fotoWisata) && $fotoWisata->isNotEmpty())
+       @if ($isEdit && isset($fotoDestinasi) && $fotoDestinasi->isNotEmpty())
            <div id="existing-photos-container" class="space-y-3">
                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                   @foreach ($fotoWisata as $foto)
+
+                   @foreach ($fotoDestinasi as $foto)
                        <div class="rounded-lg border border-border p-1.5 relative group bg-white shadow-sm"
                            data-photo-id="{{ $foto->id_photo ?? $foto->id }}">
 
                            {{-- Gambar Foto --}}
                            <img src="{{ asset('storage/' . $foto->link_photo) }}"
-                               alt="Foto {{ $wisata->nama_wisata ?? ($wisata->nama_restoran ?? 'Destinasi') }}"
+                               alt="Foto {{ $destinasi->nama_wisata ?? ($destinasi->nama_restoran ?? ($destinasi->nama_lokasi ?? ($destinasi->nama_penginapan ?? 'Destinasi'))) }}"
                                class="h-28 w-full rounded-md object-cover">
 
                            {{-- Tombol Hapus Absolute di Kanan Atas --}}
@@ -95,12 +96,12 @@
                return;
            }
 
-           let deleteUrl = `/admin/wisata/foto/${photoId}`;
+           let deleteUrl = `/admin/destinasi/foto/${photoId}`;
 
            if (window.location.pathname.includes('/restoran')) {
                deleteUrl = `/admin/restoran/foto/${photoId}`;
-           } else if (window.location.pathname.includes('/wisata')) {
-               deleteUrl = `/admin/wisata/foto/${photoId}`;
+           } else if (window.location.pathname.includes('/destinasi')) {
+               deleteUrl = `/admin/destinasi/foto/${photoId}`;
            }
 
            const photoCard = buttonElement.closest('[data-photo-id]');
@@ -306,8 +307,8 @@
                        true);
                    dropzone.classList.add('opacity-60', 'cursor-not-allowed');
                    uploadStatus.textContent = selectedFiles.length ?
-                       'Mengirim ' + selectedFiles.length + ' foto bersama data wisata...' :
-                       'Mengirim data wisata tanpa foto baru.';
+                       'Mengirim ' + selectedFiles.length + ' foto bersama data destinasi...' :
+                       'Mengirim data destinasi tanpa foto baru.';
                });
            });
        });
