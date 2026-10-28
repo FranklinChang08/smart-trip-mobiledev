@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\FasilitasController;
 use App\Http\Controllers\Admin\FotoDestinasiController;
 use App\Http\Controllers\Admin\KategoriController;
 use App\Http\Controllers\Admin\KecamatanController;
+use App\Http\Controllers\Admin\LokasiTransportasiController;
 use App\Http\Controllers\Admin\PenginapanController;
 use App\Http\Controllers\Admin\RestoranController;
 use App\Http\Controllers\Admin\WisataController;
@@ -51,6 +52,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/{penginapan}', [PenginapanController::class, 'show'])->name('show');
             Route::put('/{penginapan}', [PenginapanController::class, 'update'])->name('update');
             Route::delete('/{penginapan}', [PenginapanController::class, 'destroy'])->name('destroy');
+
+            Route::delete('/foto/{id}', [FotoDestinasiController::class, 'destroy'])->name('foto.destroy');
+        });
+        Route::prefix('lokasi')->name('lokasi.')->group(function () {
+            Route::get('/', [LokasiTransportasiController::class, 'index'])->name('index');
+            Route::get('/form-lokasi', [LokasiTransportasiController::class, 'create'])->name('create');
+            Route::post('/form-lokasi/store', [LokasiTransportasiController::class, 'store'])->name('store');
+            Route::get('/{lokasi}', [LokasiTransportasiController::class, 'show'])->name('show');
+            Route::put('/{lokasi}', [LokasiTransportasiController::class, 'update'])->name('update');
+            Route::delete('/{lokasi}', [LokasiTransportasiController::class, 'destroy'])->name('destroy');
 
             Route::delete('/foto/{id}', [FotoDestinasiController::class, 'destroy'])->name('foto.destroy');
         });

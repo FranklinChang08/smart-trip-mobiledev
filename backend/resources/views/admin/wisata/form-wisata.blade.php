@@ -183,7 +183,7 @@
             {{-- Jam operasional. Komponen perlu menerima data lama untuk mode edit. --}}
             <x-jam-operasional :initial-data="$jamOperasional ?? []" />
 
-            <x-upload-foto :is-edit="$isEdit" :foto-wisata="$fotoDestinasi ?? []" :wisata="$wisata ?? []" />
+            <x-upload-foto :is-edit="$isEdit" :foto-destinasi="$fotoDestinasi ?? []" :destinasi="$wisata ?? []" />
 
             <div class="flex justify-end gap-3">
                 <a href="{{ route('admin.wisata.index') }}"
