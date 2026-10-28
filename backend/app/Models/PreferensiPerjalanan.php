@@ -17,21 +17,25 @@ class PreferensiPerjalanan extends Model
 
     protected $fillable = [
         'id_preferensi',
-        'id_rencana',
+        'id_pengguna',
+        'type_food',
+        'maks_budget_trip',
         'kecamatan_pilihan',
-        'is_halal',
-        'is_seafood',
     ];
 
     protected $casts = [
         'kecamatan_pilihan' => 'array',
-        'is_halal' => 'boolean',
-        'is_seafood' => 'boolean',
+        'maks_budget_trip' => 'decimal:2',
     ];
 
-    public function rencana()
+    public function pengguna()
     {
-        return $this->belongsTo(RencanaPerjalanan::class, 'id_rencana', 'id_rencana');
+        return $this->belongsTo(User::class, 'id_pengguna', 'id_pengguna');
+    }
+
+    public function rencanaPerjalanan()
+    {
+        return $this->hasMany(RencanaPerjalanan::class, 'id_preferensi', 'id_preferensi');
     }
 
     public function kategoris()

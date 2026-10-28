@@ -11,7 +11,6 @@ class TripStep2Form extends StatefulWidget {
   final List<TripAreaModel> availableAreas;
   final bool isHalalOnly;
   final bool isSeafoodSpecialist;
-  final TextEditingController notesController;
   final ValueChanged<String> onToggleTheme;
   final ValueChanged<String> onToggleArea;
   final ValueChanged<bool> onToggleHalal;
@@ -32,7 +31,6 @@ class TripStep2Form extends StatefulWidget {
     this.availableAreas = kBatamKecamatanList,
     required this.isHalalOnly,
     required this.isSeafoodSpecialist,
-    required this.notesController,
     required this.onToggleTheme,
     required this.onToggleArea,
     required this.onToggleHalal,
@@ -77,8 +75,6 @@ class _TripStep2FormState extends State<TripStep2Form> {
         _buildAreasSection(),
         const SizedBox(height: 16),
         _buildFoodPreferencesSection(),
-        const SizedBox(height: 16),
-        _buildNotesSection(),
         const SizedBox(height: 24),
       ],
     );
@@ -184,7 +180,6 @@ class _TripStep2FormState extends State<TripStep2Form> {
           ),
           const SizedBox(height: 12),
 
-          // Jika kategori banyak (> 8), sediakan pencarian cepat kategori
           if (widget.availableThemes.length > 8) ...[
             Container(
               margin: const EdgeInsets.only(bottom: 10),
@@ -290,7 +285,6 @@ class _TripStep2FormState extends State<TripStep2Form> {
     );
   }
 
-  // Bagian Pilihan Kecamatan (Layout Ringkas Grid 2-Kolom dengan Pencarian & Toggle)
   Widget _buildAreasSection() {
     final filteredAreas = widget.availableAreas.where((area) {
       if (_kecamatanSearchQuery.isEmpty) return true;
@@ -585,53 +579,6 @@ class _TripStep2FormState extends State<TripStep2Form> {
     );
   }
 
-  Widget _buildNotesSection() {
-    return _buildCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle(
-            icon: Icons.note_alt_outlined,
-            title: 'Catatan Khusus (Opsional)',
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Tuliskan kebutuhan khusus seperti rombongan lansia, anak kecil, atau preferensi lainnya.',
-            style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: widget.notesController,
-            maxLines: 3,
-            style:
-                const TextStyle(fontSize: 13, color: AppColors.textPrimary),
-            decoration: InputDecoration(
-              hintText:
-                  'Contoh: Bersama rombongan keluarga 4 orang, utamakan destinasi ramah anak.',
-              hintStyle:
-                  TextStyle(fontSize: 12, color: Colors.grey.shade400),
-              filled: true,
-              fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.all(12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildCard({required Widget child}) {
     return Container(

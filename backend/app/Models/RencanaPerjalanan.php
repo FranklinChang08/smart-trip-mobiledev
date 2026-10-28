@@ -18,21 +18,24 @@ class RencanaPerjalanan extends Model
     protected $fillable = [
         'id_rencana',
         'id_pengguna',
+        'id_preferensi',
         'nama_rencana',
-        'tanggal_mulai',
-        'tanggal_selesai',
+        'hari_start',
+        'hari_end',
         'total_hari',
         'titik_awal',
-        'total_anggaran',
-        'catatan',
+        'budget_trip',
+        'type_food',
+        'start_time',
+        'end_time',
         'status',
     ];
 
     protected $casts = [
-        'tanggal_mulai' => 'date',
-        'tanggal_selesai' => 'date',
+        'hari_start' => 'date',
+        'hari_end' => 'date',
         'total_hari' => 'integer',
-        'total_anggaran' => 'decimal:2',
+        'budget_trip' => 'decimal:2',
     ];
 
     public function pengguna()
@@ -42,7 +45,13 @@ class RencanaPerjalanan extends Model
 
     public function preferensi()
     {
-        return $this->hasOne(PreferensiPerjalanan::class, 'id_rencana', 'id_rencana');
+        return $this->belongsTo(PreferensiPerjalanan::class, 'id_preferensi', 'id_preferensi');
+    }
+
+    public function hariPerjalanan()
+    {
+        return $this->hasMany(HariPerjalanan::class, 'id_rencana', 'id_rencana')
+            ->orderBy('urutan_hari', 'asc');
     }
 
     public function detailItineraries()
