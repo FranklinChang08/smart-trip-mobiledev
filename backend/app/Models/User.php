@@ -48,4 +48,14 @@ class User extends Authenticatable
     {
         return strtolower($this->role ?? '') === 'admin';
     }
+
+    public function preferensi()
+    {
+        return $this->hasOne(PreferensiPerjalanan::class, 'id_pengguna', 'id_pengguna');
+    }
+
+    public function rencanaPerjalanan()
+    {
+        return $this->hasMany(RencanaPerjalanan::class, 'id_pengguna', 'id_pengguna');
+    }
 }

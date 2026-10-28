@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/components/trip_plan/trip_bottom_action_bar.dart';
-import 'package:frontend/components/trip_plan/trip_plan_header.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 import 'package:frontend/components/trip_plan/trip_step1_form.dart';
 import 'package:frontend/components/trip_plan/trip_step2_form.dart';
@@ -47,7 +46,6 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
 
   bool _isHalalOnly = true;
   bool _isSeafoodSpecialist = true;
-  late final TextEditingController _notesController;
 
   @override
   void initState() {
@@ -56,7 +54,6 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       text: 'Liburan Akhir Pekan di Batam',
     );
     _budgetController = TextEditingController(text: '5.000.000');
-    _notesController = TextEditingController();
 
     final now = DateTime.now();
     _startDate = DateTime(
@@ -85,7 +82,6 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     _scrollController.dispose();
     _tripNameController.dispose();
     _budgetController.dispose();
-    _notesController.dispose();
     super.dispose();
   }
 
@@ -605,7 +601,6 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       selectedAreas: _selectedAreas.toList(),
       isHalal: _isHalalOnly,
       isSeafood: _isSeafoodSpecialist,
-      notes: _notesController.text.trim(),
       isActive: true,
     );
 
@@ -622,7 +617,6 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
           budget: _budgetController.text.trim(),
           selectedThemes: _selectedThemes.toList(),
           selectedAreas: _selectedAreas.toList(),
-          notes: _notesController.text.trim(),
           onFinishAndGoHome: () async {
             _planSaved = true;
             final nav = Navigator.of(context);
@@ -678,7 +672,6 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       selectedAreas: _selectedAreas.toList(),
       isHalal: _isHalalOnly,
       isSeafood: _isSeafoodSpecialist,
-      notes: _notesController.text.trim(),
       isActive: true,
     );
 
@@ -762,7 +755,6 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                 selectedAreas: _selectedAreas,
                 isHalalOnly: _isHalalOnly,
                 isSeafoodSpecialist: _isSeafoodSpecialist,
-                notesController: _notesController,
                 onToggleTheme: (theme) {
                   setState(() {
                     if (_selectedThemes.contains(theme)) {
@@ -818,3 +810,270 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     );
   }
 }
+
+/// ============================================================================
+/// KOMPONEN HEADER & NAVIGASI BAWAH HALAMAN BUAT RENCANA PERJALANAN
+/// ============================================================================
+
+/// Header AppBar khusus halaman pembuatan rencana perjalanan
+class TripPlanHeader extends StatelessWidget implements PreferredSizeWidget {
+  final int currentStep;
+  final VoidCallback onBack;
+
+  const TripPlanHeader({
+    super.key,
+    required this.currentStep,
+    required this.onBack,
+  });
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 4);
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+        onPressed: onBack,
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'SmartTrip',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          Text(
+            'Langkah ${currentStep + 1} dari 2',
+            style: const TextStyle(
+              fontSize: 11.5,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.help_outline, color: AppColors.textSecondary, size: 20),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Lengkapi formulir rencana dan preferensi liburan Anda di Batam.',
+                  style: TextStyle(fontSize: 12),
+                ),
+                backgroundColor: Colors.grey.shade800,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          },
+        ),
+      ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(3),
+        child: LinearProgressIndicator(
+          value: (currentStep + 1) / 2.0,
+          backgroundColor: Colors.grey.shade200,
+          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+          minHeight: 3,
+        ),
+      ),
+    );
+  }
+}
+
+/// Bilah tombol navigasi bawah halaman pembuatan rencana perjalanan
+class TripBottomActionBar extends StatelessWidget {
+  final int currentStep;
+  final VoidCallback onCancelOrBack;
+  final VoidCallback onContinueToStep2;
+  final VoidCallback onSavePreferences;
+  final VoidCallback onViewRecommendations;
+
+  const TripBottomActionBar({
+    super.key,
+    required this.currentStep,
+    required this.onCancelOrBack,
+    required this.onContinueToStep2,
+    required this.onSavePreferences,
+    required this.onViewRecommendations,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 12,
+        bottom: MediaQuery.of(context).padding.bottom + 12,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: currentStep == 0
+          ? _buildStep1BottomBar()
+          : _buildStep2BottomBar(context),
+    );
+  }
+
+  Widget _buildStep1BottomBar() {
+    return Row(
+      children: [
+        OutlinedButton(
+          onPressed: onCancelOrBack,
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+          child: const Text(
+            'Batal',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: onContinueToStep2,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 0,
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ManropeFont(
+                  'Lanjutkan ke Preferensi',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(width: 6),
+                Icon(Icons.arrow_forward, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStep2BottomBar(BuildContext context) {
+    return Row(
+      children: [
+        OutlinedButton(
+          onPressed: onCancelOrBack,
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.arrow_back, size: 15, color: AppColors.textPrimary),
+              SizedBox(width: 4),
+              Text(
+                'Kembali',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton(
+          onPressed: onSavePreferences,
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            side: const BorderSide(color: AppColors.primary, width: 1.2),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.save_outlined, size: 15, color: AppColors.primary),
+              SizedBox(width: 4),
+              Text(
+                'Simpan',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: onViewRecommendations,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 0,
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.auto_awesome, size: 15),
+                SizedBox(width: 5),
+                Flexible(
+                  child: ManropeFont(
+                    'Rekomendasi',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
