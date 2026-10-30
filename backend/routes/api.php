@@ -15,6 +15,9 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'profile']);
+    Route::put('/user/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/user/password', [AuthController::class, 'updatePassword']);
 });
 
 Route::get('/kategori', function (Request $request) {
@@ -43,7 +46,7 @@ Route::prefix('wisata')->name('wisata.')->group(function () {
 });
 Route::prefix('restoran')->name('restoran.')->group(function () {
     Route::get('/', [ExploreController::class, 'indexRestoran']);
-    Route::get('/{id}', [ExploreController::class, 'show']);
+    Route::get('/{id}', [ExploreController::class, 'showRestoran']);
     Route::get('/foto/{path}', [FotoController::class, 'showFotoRestoran'])->where('path', '.*');
 });
 

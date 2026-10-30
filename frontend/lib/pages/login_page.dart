@@ -87,7 +87,7 @@ class _LoginPageState extends State<LoginPage> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
+        MaterialPageRoute(builder: (_) => const HomePage(isGuest: false)),
       );
     } else {
       final errorMsg = result.errorMessage ?? 'Login gagal.';
@@ -457,10 +457,17 @@ class _LoginPageState extends State<LoginPage> {
       width: double.infinity,
       height: 48,
       child: OutlinedButton.icon(
-        onPressed: () {
+        onPressed: () async {
+          // Bersihkan sesi lama agar mode tamu tidak terhubung ke akun sebelumnya
+          await AuthService.clearToken();
+          await AuthService.clearUser();
+
+          if (!context.mounted) return;
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const HomePage()),
+            MaterialPageRoute(
+              builder: (_) => const HomePage(isGuest: true),
+            ),
           );
         },
         style: OutlinedButton.styleFrom(
@@ -507,11 +514,11 @@ class _LoginPageState extends State<LoginPage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
+                MaterialPageRoute(builder: (_) => const RegisterPage()),
               );
             },
             child: ManropeFont(
-              'Masuk Sekarang',
+              'Daftar Sekarang',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,

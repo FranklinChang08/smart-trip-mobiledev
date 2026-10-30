@@ -165,12 +165,15 @@ class _RegisterPageState extends State<RegisterPage> {
 
       setState(() => _isLoading = false);
 
-      final msg = data['message'] ?? 'Terjadi kesalahan saat pendaftaran.';
+      String msg = data['message']?.toString() ?? 'Terjadi kesalahan saat pendaftaran.';
+      if (msg.contains('SQLSTATE') || msg.contains('2002')) {
+        msg = 'Gagal terhubung ke database. Pastikan database MySQL (Laragon/XAMPP) sudah dijalankan.';
+      }
       if (mounted) {
         AppNotification.showError(
           context,
           title: 'Pendaftaran Gagal',
-          message: msg.toString(),
+          message: msg,
         );
       }
     } catch (e) {
@@ -499,7 +502,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ManropeFont(
-                    'Sudah akun SmartTrip? ',
+                    'Sudah punya akun SmartTrip? ',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
