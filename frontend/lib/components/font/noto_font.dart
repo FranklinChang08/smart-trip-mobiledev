@@ -6,6 +6,7 @@ class NotoFont extends StatelessWidget {
   final TextStyle? style;
   final int? maxLines;
   final TextOverflow? overflow;
+  final TextAlign? textAlign;
 
   const NotoFont(
     this.text, {
@@ -13,6 +14,7 @@ class NotoFont extends StatelessWidget {
     this.style,
     this.maxLines,
     this.overflow,
+    this.textAlign,
   });
 
   @override
@@ -21,7 +23,8 @@ class NotoFont extends StatelessWidget {
       text,
       maxLines: maxLines,
       overflow: overflow,
-      style: GoogleFonts.notoSerifHebrew(textStyle: style),
+      textAlign: textAlign,
+      style: GoogleFonts.manrope(textStyle: style),
     );
   }
 }

@@ -5,13 +5,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:flutter/services.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 
 class DetailDestinationTabs extends StatefulWidget {
   final String wisataId;
+  final String jenis;
 
-  const DetailDestinationTabs({super.key, required this.wisataId});
+  const DetailDestinationTabs({
+    super.key,
+    required this.wisataId,
+    this.jenis = 'wisata',
+  });
 
   @override
   State<DetailDestinationTabs> createState() => _DetailDestinationTabsState();
@@ -24,6 +30,8 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
   bool _isLoading = true;
   String? _errorMessage;
   Map<String, dynamic>? _wisataData;
+
+  bool get _isRestoran => widget.jenis == 'restoran';
 
   String get _baseUrl {
     if (kIsWeb) {
@@ -41,6 +49,20 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
     _fetchDetailWisata();
   }
 
+  String _formatNumber(dynamic number) {
+    if (number == null) return '0';
+    try {
+      final double val = double.parse(number.toString());
+      final int intVal = val.toInt();
+      return intVal.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (Match m) => '${m[1]}.',
+      );
+    } catch (_) {
+      return number.toString();
+    }
+  }
+
   String _resolveImageUrl(dynamic linkFoto) {
     if (linkFoto == null || linkFoto.toString().isEmpty) {
       return 'http://127.0.0.1:8000/storage/placeholder.jpg';
@@ -49,7 +71,11 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
     if (fotoStr.startsWith('http://') || fotoStr.startsWith('https://')) {
       return fotoStr;
     }
-    return '$_baseUrl/wisata/foto/$fotoStr';
+    final cleanPath = fotoStr.replaceFirst(RegExp(r'^/+'), '');
+    if (_isRestoran) {
+      return '$_baseUrl/restoran/foto/$cleanPath';
+    }
+    return '$_baseUrl/wisata/foto/$cleanPath';
   }
 
   Future<void> _fetchDetailWisata() async {
@@ -59,8 +85,9 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
     });
 
     try {
+      final endpoint = _isRestoran ? 'restoran' : 'wisata';
       final response = await http.get(
-        Uri.parse('$_baseUrl/wisata/${widget.wisataId}'),
+        Uri.parse('$_baseUrl/$endpoint/${widget.wisataId}'),
         headers: {'Accept': 'application/json'},
       );
 
@@ -71,15 +98,15 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
             : jsonResponse;
 
         if (rawData == null) {
-          throw Exception('Data destinasi kosong.');
+          throw Exception('Data kosong.');
         }
 
         final destination = Map<String, dynamic>.from(rawData);
 
         final kategoris = destination['kategoris'] as List<dynamic>? ?? [];
         final kategori = kategoris.isNotEmpty
-            ? kategoris[0]['nama_kategori'] ?? 'Wisata Alam'
-            : 'Wisata Alam';
+            ? kategoris[0]['nama_kategori'] ?? (_isRestoran ? 'Restoran' : 'Wisata Alam')
+            : (_isRestoran ? 'Restoran' : 'Wisata Alam');
 
         final fotoDestinasis =
             destination['foto_destinasis'] as List<dynamic>? ?? [];
@@ -94,45 +121,97 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
           destination['image_url'] ?? mainFotoLink,
         );
 
+        // Ekstraksi fasilitas
+        List<String> extractedFacilities = [];
+        final rawFasilitas = destination['fasilitas'];
+        if (rawFasilitas is List && rawFasilitas.isNotEmpty) {
+          extractedFacilities = rawFasilitas
+              .map((f) => f is Map ? f['nama_fasilitas']?.toString() ?? '' : f.toString())
+              .where((s) => s.isNotEmpty)
+              .toList();
+        }
+        if (extractedFacilities.isEmpty) {
+          extractedFacilities = _isRestoran
+              ? ['Area Parkir', 'Toilet', 'Pembayaran QRIS', 'AC']
+              : ['Area Parkir', 'Toilet Umum', 'Musholla', 'Warung Makan'];
+        }
+
+        // Ekstraksi jam operasional
+        final jamOperasis = destination['jam_operasis'] as List<dynamic>? ?? [];
+        String jamStr = '';
+        if (jamOperasis.isNotEmpty) {
+          final firstJam = jamOperasis[0];
+          final buka = (firstJam['jam_buka'] ?? '').toString();
+          final tutup = (firstJam['jam_tutup'] ?? '').toString();
+          if (buka.length >= 5 && tutup.length >= 5) {
+            jamStr = 'Buka: ${buka.substring(0, 5)} - ${tutup.substring(0, 5)} WIB';
+          }
+        }
+        if (jamStr.isEmpty) {
+          jamStr = _isRestoran ? 'Buka: 10.00 - 22.00 WIB' : 'Waktu Terbaik: 16.30 - 18.30 WIB';
+        }
+
+        // Ekstraksi keunggulan
+        List<String> advantages = [];
+        if (_isRestoran) {
+          if (destination['type_food'] != null && destination['type_food'].toString().isNotEmpty) {
+            advantages.add('Kategori: ${destination['type_food']}');
+          }
+          advantages.add(kategori);
+          advantages.add('Rekomendasi Kuliner');
+        } else {
+          advantages = ['Spot Foto Menarik', 'Panorama Indah', 'Akses Mudah'];
+        }
+
+        final title = _isRestoran
+            ? (destination['nama_restoran'] ?? 'Restoran Pilihan')
+            : (destination['nama_wisata'] ?? 'Destinasi Wisata');
+
+        final location = _isRestoran
+            ? (destination['alamat_Detail_restoran'] ?? destination['alamat_detail_restoran'] ?? destination['alamat'] ?? 'Kota Batam')
+            : (destination['alamat_detail_wisata'] ?? destination['alamat'] ?? 'Kota Batam');
+
+        final priceStr = _isRestoran
+            ? (destination['harga_makan_per_orang'] != null
+                ? 'Rp ${_formatNumber(destination['harga_makan_per_orang'])} / orang'
+                : 'Harga Variatif')
+            : (destination['harga_tiket_masuk'] != null
+                ? (destination['harga_tiket_masuk'].toString() == '0' || destination['harga_tiket_masuk'].toString() == '0.00'
+                    ? 'Gratis'
+                    : 'Rp ${_formatNumber(destination['harga_tiket_masuk'])}')
+                : 'Gratis');
+
         setState(() {
           _wisataData = {
             ...destination,
-            'id': destination['id_wisata'] ?? widget.wisataId,
-            'title': destination['nama_wisata'] ?? 'Destinasi Wisata',
-            'subtitle': destination['subtitle'] ?? 'Landmark & Pesona Wisata',
+            'id': destination[_isRestoran ? 'id_restoran' : 'id_wisata'] ?? widget.wisataId,
+            'title': title,
+            'subtitle': _isRestoran
+                ? (destination['type_food'] != null ? 'Kuliner ${destination['type_food']} Batam' : 'Kuliner Khas Batam')
+                : (destination['subtitle'] ?? 'Landmark & Pesona Wisata'),
             'tag': kategori,
-            'location':
-                destination['alamat_detail_wisata'] ??
-                destination['alamat'] ??
-                'Lokasi belum tersedia',
-            'price': destination['harga_tiket_masuk'] ?? 'Gratis',
+            'location': location,
+            'price': priceStr,
             'image': imageUrl,
             'gallery': galleryImages,
             'rating': destination['rating'] ?? '4.8',
             'review_count': destination['review_count'] ?? '1.2K+',
-            'description':
-                destination['deskripsi_wisata'] ??
-                destination['deskripsi'] ??
-                'Deskripsi belum tersedia.',
-            'visit_duration': destination['visit_duration'] ?? '1.5 - 2 Jam',
-            'ticket_price': destination['harga_tiket_masuk'] ?? 'Gratis (Free)',
+            'description': destination['deskripsi'] ?? destination['deskripsi_wisata'] ?? 'Deskripsi belum tersedia.',
+            'visit_duration': _isRestoran ? '1 - 1.5 Jam' : (destination['visit_duration'] ?? '1.5 - 2 Jam'),
+            'ticket_price': priceStr,
             'parking_price': destination['harga_parkir'] ?? 'Rp 2.000 - 5.000',
-            'distance': destination['distance'] ?? '14.2 km',
-            'best_time':
-                destination['best_time'] ?? 'Waktu Terbaik: 16.30 - 18.30 WIB',
-            'main_advantages':
-                destination['main_advantages'] ??
-                ['Spot Foto Menarik', 'Panorama Indah', 'Akses Mudah'],
-            'facilities':
-                destination['facilities'] ??
-                ['Area Parkir', 'Toilet Umum', 'Musholla', 'Warung Makan'],
+            'distance': destination['kecamatan']?['nama_kecamatan'] ?? destination['distance'] ?? 'Kota Batam',
+            'best_time': jamStr,
+            'main_advantages': advantages,
+            'facilities': extractedFacilities,
             'reviews': destination['reviews'] ?? [],
+            'link_on_maps': destination['link_on_maps'] ?? '',
           };
           _isLoading = false;
         });
       } else if (response.statusCode == 404) {
         setState(() {
-          _errorMessage = 'Destinasi wisata tidak ditemukan.';
+          _errorMessage = _isRestoran ? 'Data restoran tidak ditemukan.' : 'Destinasi wisata tidak ditemukan.';
           _isLoading = false;
         });
       } else {
@@ -459,22 +538,22 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
                         children: [
                           _buildInfoCard(
                             Icons.access_time,
-                            'Est. Waktu Kunjungan',
+                            _isRestoran ? 'Est. Waktu Santap' : 'Est. Waktu Kunjungan',
                             data['visit_duration'].toString(),
                           ),
                           _buildInfoCard(
-                            Icons.confirmation_number_outlined,
-                            'Tiket Masuk',
+                            _isRestoran ? Icons.restaurant_menu : Icons.confirmation_number_outlined,
+                            _isRestoran ? 'Estimasi Menu' : 'Tiket Masuk',
                             data['ticket_price'].toString(),
                           ),
                           _buildInfoCard(
-                            Icons.local_parking,
-                            'Biaya Parkir',
-                            data['parking_price'].toString(),
+                            _isRestoran ? Icons.verified_outlined : Icons.local_parking,
+                            _isRestoran ? 'Tipe Kuliner' : 'Biaya Parkir',
+                            _isRestoran ? (data['type_food']?.toString() ?? 'Halal') : data['parking_price'].toString(),
                           ),
                           _buildInfoCard(
-                            Icons.directions_car,
-                            'Jarak Tempuh',
+                            Icons.location_on_outlined,
+                            'Kecamatan',
                             data['distance'].toString(),
                           ),
                         ],
@@ -503,15 +582,15 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
                           children: [
                             Row(
                               children: [
-                                const Icon(
-                                  Icons.wb_sunny_outlined,
+                                Icon(
+                                  _isRestoran ? Icons.storefront : Icons.wb_sunny_outlined,
                                   color: AppColors.tertiary,
                                   size: 18,
                                 ),
                                 const SizedBox(width: 8),
-                                const ManropeFont(
-                                  'Waktu Kunjungan',
-                                  style: TextStyle(
+                                ManropeFont(
+                                  _isRestoran ? 'Jam Operasional' : 'Waktu Kunjungan',
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.tertiary,
@@ -559,9 +638,9 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const ManropeFont(
-                              'Tentang Destinasi',
-                              style: TextStyle(
+                            ManropeFont(
+                              _isRestoran ? 'Tentang Restoran' : 'Tentang Destinasi',
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -577,9 +656,9 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
                             ),
                             if (mainAdvantages.isNotEmpty) ...[
                               const SizedBox(height: 12),
-                              const ManropeFont(
-                                'KEUNGGULAN UTAMA',
-                                style: TextStyle(
+                              ManropeFont(
+                                _isRestoran ? 'INFORMASI KULINER' : 'KEUNGGULAN UTAMA',
+                                style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.textSecondary,
@@ -755,7 +834,20 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
                                         color: AppColors.primary,
                                       ),
                                     ),
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      final mapsUrl = (data['link_on_maps'] ?? '').toString();
+                                      Clipboard.setData(ClipboardData(
+                                        text: mapsUrl.isNotEmpty ? mapsUrl : data['location'].toString(),
+                                      ));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(mapsUrl.isNotEmpty
+                                              ? 'Link Google Maps berhasil disalin!'
+                                              : 'Alamat berhasil disalin!'),
+                                          duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
                                     icon: const Icon(
                                       Icons.navigation,
                                       size: 16,
@@ -778,7 +870,17 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
                                         color: AppColors.border,
                                       ),
                                     ),
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      Clipboard.setData(ClipboardData(
+                                        text: data['location'].toString(),
+                                      ));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Alamat berhasil disalin ke clipboard!'),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
                                     icon: const Icon(
                                       Icons.copy,
                                       size: 16,
@@ -832,9 +934,9 @@ class _DetailDestinationTabsState extends State<DetailDestinationTabs> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const ManropeFont(
-                      'Tiket Masuk',
-                      style: TextStyle(
+                    ManropeFont(
+                      _isRestoran ? 'Harga / Orang' : 'Tiket Masuk',
+                      style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
                       ),

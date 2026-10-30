@@ -25,8 +25,9 @@ class AuthService {
         ? 'http://10.0.2.2:8000/api'
         : 'http://127.0.0.1:8000/api';
   }
-  static const String _tokenKey = 'auth_token';
 
+  static const String _tokenKey = 'auth_token';
+  static const String _userKey = 'auth_user';
 
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,6 +42,27 @@ class AuthService {
   static Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+  }
+
+  static Future<void> saveUser(Map<String, dynamic> user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userKey, jsonEncode(user));
+  }
+
+  static Future<Map<String, dynamic>?> getSavedUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userStr = prefs.getString(_userKey);
+    if (userStr != null && userStr.isNotEmpty) {
+      try {
+        return jsonDecode(userStr) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  static Future<void> clearUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_userKey);
   }
 
   static Future<bool> isLoggedIn() async {
@@ -68,11 +90,15 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final token = data['token'] as String;
+        final user = data['user'] as Map<String, dynamic>?;
         await saveToken(token);
+        if (user != null) {
+          await saveUser(user);
+        }
         return AuthResult(
           success: true,
           token: token,
-          user: data['user'] as Map<String, dynamic>?,
+          user: user,
         );
       }
 
@@ -88,9 +114,10 @@ class AuthService {
 
       return AuthResult(success: false, errorMessage: errorMsg);
     } catch (e) {
-      return AuthResult(
+      return const AuthResult(
         success: false,
-        errorMessage: 'Tidak dapat terhubung ke server. Periksa koneksi internet.',
+        errorMessage:
+            'Tidak dapat terhubung ke server. Periksa koneksi internet.',
       );
     }
   }
@@ -110,5 +137,6 @@ class AuthService {
       } catch (_) {}
     }
     await clearToken();
+    await clearUser();
   }
 }

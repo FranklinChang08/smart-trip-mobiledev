@@ -172,8 +172,11 @@ class _ExploreTabsState extends State<ExploreTabs> {
         : (isWisata ? 'Wisata' : 'Restoran');
 
     final rawPrice = isWisata
-        ? item['harga_tiket_masuk']
-        : (item['harga_rata_rata'] ?? item['harga_per_orang'] ?? item['harga']);
+        ? (item['harga_tiket_masuk'] ?? item['harga_tiket'] ?? item['harga'])
+        : (item['harga_makan_per_orang'] ??
+            item['harga_rata_rata'] ??
+            item['harga_per_orang'] ??
+            item['harga']);
 
     return {
       // Data asli dari API tetap dipertahankan.
@@ -735,9 +738,11 @@ class _ExploreTabsState extends State<ExploreTabs> {
     required Map<String, dynamic> data,
     VoidCallback? onItineraryPressed,
   }) {
-    String formatPrice(dynamic price) {
+    final String jenis = data['jenis_data']?.toString() ?? 'wisata';
+
+    String formatPrice(dynamic price, String jenis) {
       if (price == null || price.toString().trim().isEmpty) {
-        return 'Harga belum tersedia';
+        return jenis == 'restoran' ? 'Harga belum tersedia' : 'Gratis';
       }
 
       final parsedPrice = double.tryParse(price.toString());
@@ -747,13 +752,23 @@ class _ExploreTabsState extends State<ExploreTabs> {
       }
 
       if (parsedPrice == 0) {
-        return 'Gratis';
+        return jenis == 'restoran' ? 'Harga belum tersedia' : 'Gratis';
       }
 
-      return 'Rp ${parsedPrice.toStringAsFixed(0)}';
+      final int intVal = parsedPrice.toInt();
+      final formatted = intVal.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (Match m) => '${m[1]}.',
+      );
+
+      if (jenis == 'restoran') {
+        return 'Rp $formatted / orang';
+      }
+
+      return 'Rp $formatted';
     }
 
-    final String priceText = formatPrice(data['price']);
+    final String priceText = formatPrice(data['price'], jenis);
     final String title = data['title']?.toString() ?? 'Tanpa nama';
 
     final String location = _firstNonEmpty([
@@ -766,7 +781,6 @@ class _ExploreTabsState extends State<ExploreTabs> {
     final String? imageUrl = data['image']?.toString().trim();
     final String tag = data['tag']?.toString() ?? '';
     final String rating = data['rating']?.toString() ?? '-';
-    final String jenis = data['jenis_data']?.toString() ?? 'wisata';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -788,22 +802,17 @@ class _ExploreTabsState extends State<ExploreTabs> {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () {
-            if (jenis == 'wisata') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      DetailDestinationTabs(wisataId: data['id']),
+            final id = data['id']?.toString() ?? '';
+            if (id.isEmpty) return;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DetailDestinationTabs(
+                  wisataId: id,
+                  jenis: jenis,
                 ),
-              );
-            } else {
-              // Hindari mengirim ID restoran ke halaman detail wisata.
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Halaman detail restoran belum dihubungkan.'),
-                ),
-              );
-            }
+              ),
+            );
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
