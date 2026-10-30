@@ -103,9 +103,9 @@
             </a>
             <a href=""
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" class="lucide lucide-house-cog preview-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-house-cog preview-icon">
                     <path
                         d="M10.584 21H5a2 2 0 01-2-2v-9a2 2 0 01.709-1.527l7-6a2 2 0 012.582 0l7 6A2 2 0 0121 10.001v.583" />
                     <path d="M14 12H10a1 1 0 00-1 1v8" />
@@ -125,34 +125,113 @@
     </div>
 
     <!-- Footer Sidebar + Logout -->
-    <div class="p-4 border-t border-[#F3F4F6] flex flex-col gap-3">
-        <div class="p-3 rounded-xl bg-background border border-[#F3F4F6] flex items-center gap-3 overflow-hidden">
-            <div
-                class="w-9 h-9 rounded-full bg-primary text-white font-bold text-sm flex items-center justify-center shrink-0">
-                {{ strtoupper(substr(Auth::user()->nama_pengguna ?? (Auth::user()->name ?? 'A'), 0, 1)) }}
-            </div>
-            <div class="overflow-hidden">
-                <div class="text-xs font-bold text-textPrimary truncate">
-                    {{ Auth::user()->nama_pengguna ?? (Auth::user()->name ?? 'Administrator') }}
-                </div>
-                <div class="text-[0.6875rem] text-textSecondary truncate">
-                    {{ Auth::user()->email ?? 'admin@smarttrip.com' }}
-                </div>
-            </div>
-        </div>
-
+    <div class="p-4 border-t border-[#F3F4F6]">
         <!-- Tombol Logout -->
-        <form action="{{ route('admin.logout') }}" method="POST">
+        <form id="admin-logout-form" action="{{ route('admin.logout') }}" method="POST" class="hidden">
             @csrf
-            <button type="submit"
-                class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#DC2626] bg-transparent border border-transparent hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#B91C1C] cursor-pointer transition-colors">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
-                    </path>
-                </svg>
-                <span>Logout</span>
-            </button>
         </form>
+
+        <button type="button" onclick="openLogoutModal()"
+            class="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#DC2626] bg-transparent border border-transparent hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#B91C1C] cursor-pointer transition-colors">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                </path>
+            </svg>
+            <span>Logout</span>
+        </button>
     </div>
 </aside>
+
+<!-- Modal Konfirmasi Logout Admin -->
+<div id="logout-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs transition-opacity duration-200 opacity-0 pointer-events-none font-manrope"
+    role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
+
+    <!-- Card Dialog -->
+    <div id="logout-modal-content"
+        class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 flex flex-col items-center text-center transform scale-95 transition-transform duration-200">
+
+        <!-- Icon Badge -->
+        <div
+            class="w-14 h-14 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4 ring-8 ring-red-50/50">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                </path>
+            </svg>
+        </div>
+
+        <!-- Heading -->
+        <h3 id="logout-modal-title" class="text-base font-extrabold text-gray-900 mb-1.5">
+            Konfirmasi Keluar
+        </h3>
+
+        <!-- Deskripsi -->
+        <p class="text-xs text-gray-500 leading-relaxed mb-6">
+            Apakah Anda yakin ingin keluar ?
+        </p>
+
+        <!-- Tombol Aksi -->
+        <div class="flex items-center gap-3 w-full">
+            <button type="button" onclick="closeLogoutModal()"
+                class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition cursor-pointer">
+                Batal
+            </button>
+            <button type="button" onclick="submitLogoutForm()"
+                class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-sm shadow-red-600/30 transition cursor-pointer">
+                Ya, Keluar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLogoutModal() {
+        const modal = document.getElementById('logout-modal');
+        const content = document.getElementById('logout-modal-content');
+        if (!modal || !content) return;
+
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modal.classList.add('opacity-100');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeLogoutModal() {
+        const modal = document.getElementById('logout-modal');
+        const content = document.getElementById('logout-modal-content');
+        if (!modal || !content) return;
+
+        modal.classList.remove('opacity-100');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function submitLogoutForm() {
+        const form = document.getElementById('admin-logout-form');
+        if (form) {
+            form.submit();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('logout-modal');
+        if (modal) {
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
+                    closeLogoutModal();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeLogoutModal();
+            }
+        });
+    });
+</script>

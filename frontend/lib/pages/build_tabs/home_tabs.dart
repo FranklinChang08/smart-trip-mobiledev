@@ -168,7 +168,9 @@ class _HomeTabsState extends State<HomeTabs> {
             'location': kecamatan is Map
                 ? kecamatan['nama_kecamatan'] ?? 'Kelong Apung'
                 : 'Kelong Apung',
-            'price': resto['harga_rata_rata'] ?? 'Rp 45.000',
+            'price': resto['harga_makan_per_orang'] != null
+                ? 'Rp ${double.tryParse(resto['harga_makan_per_orang'].toString())?.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => "${m[1]}.") ?? resto['harga_makan_per_orang']}'
+                : (resto['harga_rata_rata'] ?? 'Rp 45.000'),
             'desc': resto['deskripsi'] ?? 'Kuliner lezat khas Batam.',
             'jam': resto['jam_operasional'] ?? '10:00 - 21:00 WIB',
             'image': imageUrl,
@@ -239,7 +241,7 @@ class _HomeTabsState extends State<HomeTabs> {
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 2,
+                         blurRadius: 2,
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -413,13 +415,29 @@ class _HomeTabsState extends State<HomeTabs> {
             // List Restoran
             Column(
               children: _restaurants.map((resto) {
-                return _buildFoodCard(
-                  resto['title'],
-                  resto['location'],
-                  resto['price'],
-                  resto['desc'],
-                  resto['jam'],
-                  resto['image'],
+                return GestureDetector(
+                  onTap: () {
+                    final id = resto['id']?.toString() ?? '';
+                    if (id.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DetailDestinationTabs(
+                            wisataId: id,
+                            jenis: 'restoran',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: _buildFoodCard(
+                    resto['title'],
+                    resto['location'],
+                    resto['price'],
+                    resto['desc'],
+                    resto['jam'],
+                    resto['image'],
+                  ),
                 );
               }).toList(),
             ),

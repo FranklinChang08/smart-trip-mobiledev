@@ -129,7 +129,6 @@
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                     <h2 class="text-xl font-serif font-bold text-gray-900">Data Destinasi Terbaru</h2>
-                    <p class="text-xs text-gray-400 mt-0.5">Daftar Data Wisata dan Kuliner dari Basis Data</p>
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">

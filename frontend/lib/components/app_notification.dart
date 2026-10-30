@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
@@ -103,17 +104,17 @@ class _TopNotificationWidgetState extends State<_TopNotificationWidget>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 350),
     );
 
-    _offsetAnimation = Tween<Offset>(
-      begin: const Offset(0.0, -1.2),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-      reverseCurve: Curves.easeInBack,
-    ));
+    _offsetAnimation =
+        Tween<Offset>(begin: const Offset(0.3, -1.0), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: Curves.easeOutBack,
+            reverseCurve: Curves.easeInBack,
+          ),
+        );
 
     _fadeAnimation = CurvedAnimation(
       parent: _controller,
@@ -173,11 +174,15 @@ class _TopNotificationWidgetState extends State<_TopNotificationWidget>
         break;
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Ukuran notifikasi setengah lebar dan berada di ujung kanan
+    final maxCardWidth = (screenWidth * 0.52).clamp(280.0, 380.0);
+
     return SafeArea(
       child: Align(
-        alignment: Alignment.topCenter,
+        alignment: Alignment.topRight,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          padding: const EdgeInsets.only(top: 12, right: 16, left: 16),
           child: SlideTransition(
             position: _offsetAnimation,
             child: FadeTransition(
@@ -187,13 +192,17 @@ class _TopNotificationWidgetState extends State<_TopNotificationWidget>
                 child: GestureDetector(
                   onTap: _dismiss,
                   onVerticalDragUpdate: (details) {
-                    if (details.primaryDelta != null && details.primaryDelta! < -4) {
+                    if (details.primaryDelta != null &&
+                        details.primaryDelta! < -4) {
                       _dismiss();
                     }
                   },
                   child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    constraints: BoxConstraints(maxWidth: maxCardWidth),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
@@ -201,34 +210,31 @@ class _TopNotificationWidgetState extends State<_TopNotificationWidget>
                       boxShadow: [
                         BoxShadow(
                           color: badgeColor.withValues(alpha: 0.12),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                          spreadRadius: 2,
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                          spreadRadius: 1,
                         ),
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Container(
-                          width: 42,
-                          height: 42,
+                          width: 38,
+                          height: 38,
                           decoration: BoxDecoration(
                             color: badgeColor.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
-                            iconData,
-                            color: badgeColor,
-                            size: 24,
-                          ),
+                          child: Icon(iconData, color: badgeColor, size: 22),
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -236,26 +242,28 @@ class _TopNotificationWidgetState extends State<_TopNotificationWidget>
                             children: [
                               ManropeFont(
                                 widget.title,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 14,
+                                  fontSize: 13.5,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               ManropeFont(
                                 widget.message,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w500,
-                                  fontSize: 12.5,
+                                  fontSize: 12,
                                   color: AppColors.textSecondary,
                                   height: 1.3,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         IconButton(
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),

@@ -43,27 +43,28 @@ class ExploreController extends Controller
 
         $wisata = $query->get();
 
-        // Menyesuaikan data agar lebih mudah digunakan Flutter
         $data = $wisata->map(function ($item) {
             $result = $item->toArray();
 
             $result['kategori'] = $item->kategoris
                 ->pluck('nama_kategori')
-                ->first() ?? 'Wisata';
+                ->first() ?? 'Wisata Alam';
 
             return $result;
         });
 
         return response()->json([
             'success' => true,
+            'message' => 'Data destinasi wisata berhasil diambil.',
             'data' => $data,
-        ]);
+        ], 200);
     }
 
     public function indexRestoran(Request $request)
     {
         $query = Restoran::with([
             'kecamatan',
+            'kategoris',
             'fasilitas',
             'jamOperasis',
             'fotoDestinasis',
@@ -94,7 +95,6 @@ class ExploreController extends Controller
 
         $restoran = $query->get();
 
-        // Menyesuaikan data agar lebih mudah digunakan Flutter
         $data = $restoran->map(function ($item) {
             $result = $item->toArray();
 
@@ -108,7 +108,7 @@ class ExploreController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data restoran berhasil diambil.',
-            'data' => $restoran,
+            'data' => $data,
         ], 200);
     }
 
@@ -130,6 +130,28 @@ class ExploreController extends Controller
         return response()->json([
             'message' => 'Detail destinasi wisata berhasil diambil.',
             'data' => $wisata,
+        ], 200);
+    }
+
+    public function showRestoran(string $id)
+    {
+        $restoran = Restoran::with([
+            'kecamatan',
+            'kategoris',
+            'fasilitas',
+            'jamOperasis',
+            'fotoDestinasis',
+        ])->find($id);
+
+        if (!$restoran) {
+            return response()->json([
+                'message' => 'Restoran tidak ditemukan.',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Detail restoran berhasil diambil.',
+            'data' => $restoran,
         ], 200);
     }
 
