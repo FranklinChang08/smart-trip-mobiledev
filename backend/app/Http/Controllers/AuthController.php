@@ -52,9 +52,9 @@ class AuthController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'nama_pengguna' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id_pengguna . ',id_pengguna',
-            'no_hp' => 'required|string|max:25',
+            'nama_pengguna' => 'required|string|max:100',
+            'email' => 'required|string|email|max:100|unique:users,email,' . $user->id_pengguna . ',id_pengguna',
+            'no_hp' => 'required|string|min:10|max:15|unique:users,no_hp,' . $user->id_pengguna . ',id_pengguna',
         ]);
 
         $user->update([

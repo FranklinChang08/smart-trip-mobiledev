@@ -18,24 +18,27 @@ use Illuminate\Support\Str;
 
 class RencanaPerjalananController extends Controller
 {
-    // Melihat History Itinerary Perjalanan
+    // Daftar riwayat rencana perjalanan
     public function index(Request $request)
     {
         $user = auth('sanctum')->user() ?? $request->user();
         $userId = $user?->id_pengguna;
 
+        if (!$userId) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Daftar riwayat rencana perjalanan berhasil diambil',
+                'data' => [],
+            ]);
+        }
+
         $query = RencanaPerjalanan::with([
             'preferensi.kategoris',
             'hariPerjalanan.itemPerjalanan',
             'detailItineraries',
-        ])->orderBy('created_at', 'desc');
-
-        if ($userId) {
-            $query->where(function ($q) use ($userId) {
-                $q->where('id_pengguna', $userId)
-                  ->orWhereNull('id_pengguna');
-            });
-        }
+        ])
+        ->where('id_pengguna', $userId)
+        ->orderBy('created_at', 'desc');
 
         $plans = $query->get();
 
@@ -46,7 +49,7 @@ class RencanaPerjalananController extends Controller
         ]);
     }
 
-    // Melihat Detail Rencana Perjalanan
+    // Detail rencana perjalanan
     public function show($id)
     {
         $plan = RencanaPerjalanan::with([
@@ -70,7 +73,7 @@ class RencanaPerjalananController extends Controller
         ]);
     }
 
-    // Membuat Rencana Perjalanan & Mengisi Preferensi Perjalanan (Sesuai ERD)
+    // Buat rencana perjalanan baru
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -108,18 +111,17 @@ class RencanaPerjalananController extends Controller
         $endTime = $validated['end_time'] ?? '21:00';
         $titikAwal = $validated['titik_awal'] ?? 'Pelabuhan Ferry Batam Center';
 
-        $userId = $request->user()?->id_pengguna;
+        $user = auth('sanctum')->user() ?? $request->user();
+        $userId = $user?->id_pengguna;
 
         DB::beginTransaction();
         try {
-            // Ubah rencana sebelumnya menjadi status selesai agar hanya rencana terbaru yang aktif
+            // Nonaktifkan rencana sebelumnya
             if ($userId) {
                 RencanaPerjalanan::where('id_pengguna', $userId)->where('status', 'aktif')->update(['status' => 'selesai']);
-            } else {
-                RencanaPerjalanan::where('status', 'aktif')->update(['status' => 'selesai']);
             }
 
-            // 1. Simpan Preferensi Perjalanan (USERS 1 --- Mengisi --- 1 PREFERENSI)
+            // Simpan preferensi perjalanan
             $preferensi = PreferensiPerjalanan::create([
                 'id_pengguna' => $userId,
                 'type_food' => $typeFood,
@@ -127,7 +129,7 @@ class RencanaPerjalananController extends Controller
                 'kecamatan_pilihan' => $validated['kecamatan_pilihan'] ?? ['Batam Kota', 'Lubuk Baja'],
             ]);
 
-            // Simpan Relasi Minat Wisata ke Tabel Pivot preferensi_kategori (PREFERENSI M --- Memiliki --- M KATEGORI)
+            // Simpan relasi minat kategori
             $selectedThemes = $validated['kategori_minat'] ?? [];
             if (!empty($selectedThemes)) {
                 $categoryIds = [];
@@ -146,7 +148,7 @@ class RencanaPerjalananController extends Controller
                 }
             }
 
-            // 2. Simpan Rencana Perjalanan (PREFERENSI 1 --- Mendasari --- M RENCANA PERJALANAN)
+            // Simpan rencana perjalanan
             $plan = RencanaPerjalanan::create([
                 'id_pengguna' => $userId,
                 'id_preferensi' => $preferensi->id_preferensi,
@@ -165,7 +167,7 @@ class RencanaPerjalananController extends Controller
             $isHalal = strtolower($typeFood) === 'halal' || $request->boolean('is_halal');
             $isSeafood = $request->boolean('is_seafood') || str_contains(strtolower($typeFood), 'seafood');
 
-            // 3. Susun Detail Itinerary (HARI PERJALANAN & ITEM PERJALANAN)
+            // Susun detail itinerary
             if (!empty($validated['custom_destinations'])) {
                 $this->saveCustomItinerary($plan, $validated['custom_destinations']);
             } else {
@@ -204,10 +206,17 @@ class RencanaPerjalananController extends Controller
         }
     }
 
-    // Menghapus Rencana Perjalanan
-    public function destroy($id)
+    // Hapus rencana perjalanan
+    public function destroy(Request $request, $id)
     {
-        $plan = RencanaPerjalanan::find($id);
+        $user = auth('sanctum')->user() ?? $request->user();
+        $userId = $user?->id_pengguna;
+
+        $query = RencanaPerjalanan::query();
+        if ($userId) {
+            $query->where('id_pengguna', $userId);
+        }
+        $plan = $query->find($id);
 
         if (!$plan) {
             return response()->json([
@@ -224,7 +233,7 @@ class RencanaPerjalananController extends Controller
         ]);
     }
 
-    // Menyimpan destinasi kustom pilihan pengguna
+    // Simpan destinasi kustom
     private function saveCustomItinerary(RencanaPerjalanan $plan, array $customItems)
     {
         foreach ($customItems as $index => $item) {
@@ -257,23 +266,23 @@ class RencanaPerjalananController extends Controller
         string $defaultStartTime = '08:30',
         string $defaultEndTime = '21:00'
     ) {
-        // Ambil data kecamatan terpilih
+        // Ambil data kecamatan
         $kecamatanIds = Kecamatan::whereIn('nama_kecamatan', $selectedAreas)
             ->pluck('id_kecamatan')
             ->toArray();
 
-        // Ambil wisata yang sesuai
-        $wisataQuery = Wisata::query();
+        // Ambil data wisata
+        $wisataQuery = Wisata::with(['kategoris', 'kecamatan']);
         if (!empty($kecamatanIds)) {
             $wisataQuery->whereIn('id_kecamatan', $kecamatanIds);
         }
         $availableWisata = $wisataQuery->take(15)->get();
         if ($availableWisata->count() < 3) {
-            $availableWisata = Wisata::take(15)->get();
+            $availableWisata = Wisata::with(['kategoris', 'kecamatan'])->take(15)->get();
         }
 
-        // Ambil restoran yang sesuai
-        $restoranQuery = Restoran::query();
+        // Ambil data restoran
+        $restoranQuery = Restoran::with(['kategoris', 'kecamatan']);
         if (!empty($kecamatanIds)) {
             $restoranQuery->whereIn('id_kecamatan', $kecamatanIds);
         }
@@ -283,12 +292,13 @@ class RencanaPerjalananController extends Controller
         if ($isSeafood) {
             $restoranQuery->where(function ($q) {
                 $q->where('nama_restoran', 'like', '%seafood%')
-                  ->orWhere('nama_restoran', 'like', '%kelong%');
+                  ->orWhere('nama_restoran', 'like', '%kelong%')
+                  ->orWhere('type_food', 'like', '%seafood%');
             });
         }
         $availableRestoran = $restoranQuery->take(10)->get();
         if ($availableRestoran->count() < 2) {
-            $availableRestoran = Restoran::take(10)->get();
+            $availableRestoran = Restoran::with(['kategoris', 'kecamatan'])->take(10)->get();
         }
 
         $wisataIdx = 0;
@@ -299,7 +309,7 @@ class RencanaPerjalananController extends Controller
             $currentDayDate = $baseDate->copy()->addDays($day - 1)->toDateString();
             $order = 1;
 
-            // Simpan ke HARI PERJALANAN (Sesuai ERD)
+            // Simpan hari perjalanan
             $hariRecord = HariPerjalanan::create([
                 'id_rencana' => $plan->id_rencana,
                 'tanggal' => $currentDayDate,
@@ -309,7 +319,7 @@ class RencanaPerjalananController extends Controller
                 'estimasi_biaya' => 0,
             ]);
 
-            // Titik Kedatangan Awal (Hari 1)
+            // Titik awal hari 1
             if ($day === 1) {
                 DetailItinerary::create([
                     'id_rencana' => $plan->id_rencana,
@@ -321,12 +331,12 @@ class RencanaPerjalananController extends Controller
                     'waktu_mulai' => $defaultStartTime,
                     'waktu_selesai' => '09:00',
                     'estimasi_biaya' => 0,
-                    'catatan' => 'Titik awal penjemputan dan briefing rute perjalanan Batam.',
+                    'catatan' => 'Titik kumpul awal kedatangan dan briefing rute perjalanan Batam.',
                     'is_kustom' => false,
                 ]);
             }
 
-            // Wisata Pagi
+            // Wisata pagi
             $pagiWisata = $availableWisata->get($wisataIdx % max(1, $availableWisata->count()));
             $wisataIdx++;
             if ($pagiWisata) {
@@ -339,6 +349,13 @@ class RencanaPerjalananController extends Controller
                     'arrival_time' => '11:30',
                 ]);
             }
+
+            $pagiKat = $pagiWisata?->kategoris?->first()?->nama_kategori
+                ?? ($pagiWisata?->kecamatan ? 'Wisata ' . $pagiWisata->kecamatan->nama_kecamatan : 'Wisata Unggulan');
+            $pagiDesc = !empty($pagiWisata?->deskripsi)
+                ? Str::limit(trim(preg_replace('/\s+/', ' ', $pagiWisata->deskripsi)), 130, '...')
+                : 'Objek wisata populer di ' . ($pagiWisata?->kecamatan?->nama_kecamatan ?? 'Kota Batam');
+
             DetailItinerary::create([
                 'id_rencana' => $plan->id_rencana,
                 'hari_ke' => $day,
@@ -346,15 +363,15 @@ class RencanaPerjalananController extends Controller
                 'tipe_item' => 'wisata',
                 'id_wisata' => $pagiWisata?->id_wisata,
                 'nama_tempat' => $pagiWisata?->nama_wisata ?? 'Museum Raja Ali Haji & Ikon Welcome to Batam',
-                'kategori' => 'Wisata Pagi Unggulan',
+                'kategori' => $pagiKat,
                 'waktu_mulai' => '09:15',
                 'waktu_selesai' => '11:30',
                 'estimasi_biaya' => $pagiWisata?->harga_tiket_masuk ?? 15000,
-                'catatan' => 'Menikmati udara sejuk dan spot foto ikonik Batam.',
+                'catatan' => $pagiDesc,
                 'is_kustom' => false,
             ]);
 
-            // Santap Siang Kuliner
+            // Kuliner siang
             $siangResto = $availableRestoran->get($restoranIdx % max(1, $availableRestoran->count()));
             $restoranIdx++;
             if ($siangResto) {
@@ -367,6 +384,21 @@ class RencanaPerjalananController extends Controller
                     'arrival_time' => '13:30',
                 ]);
             }
+
+            $siangKat = $siangResto?->kategoris?->first()?->nama_kategori;
+            if (!$siangKat) {
+                if (!empty($siangResto?->type_food)) {
+                    $siangKat = str_contains(strtolower($siangResto->type_food), 'seafood')
+                        ? 'Restoran Seafood'
+                        : 'Kuliner ' . $siangResto->type_food;
+                } else {
+                    $siangKat = 'Kuliner Khas Batam';
+                }
+            }
+            $siangDesc = !empty($siangResto?->deskripsi)
+                ? Str::limit(trim(preg_replace('/\s+/', ' ', $siangResto->deskripsi)), 130, '...')
+                : 'Santap siang kuliner nikmat di ' . ($siangResto?->kecamatan?->nama_kecamatan ?? 'Kota Batam');
+
             DetailItinerary::create([
                 'id_rencana' => $plan->id_rencana,
                 'hari_ke' => $day,
@@ -374,15 +406,15 @@ class RencanaPerjalananController extends Controller
                 'tipe_item' => 'restoran',
                 'id_restoran' => $siangResto?->id_restoran,
                 'nama_tempat' => $siangResto?->nama_restoran ?? 'Kuliner Mie Tarempa Khas Kepri',
-                'kategori' => $isHalal ? 'Kuliner Halal Khas Batam' : 'Kuliner Khas Batam',
+                'kategori' => $siangKat,
                 'waktu_mulai' => '12:00',
                 'waktu_selesai' => '13:30',
                 'estimasi_biaya' => $siangResto?->harga_makan_per_orang ?? 45000,
-                'catatan' => 'Istirahat dan santap siang kuliner khas lokal.',
+                'catatan' => $siangDesc,
                 'is_kustom' => false,
             ]);
 
-            // Spot Sore
+            // Wisata sore
             $soreWisata = $availableWisata->get($wisataIdx % max(1, $availableWisata->count()));
             $wisataIdx++;
             if ($soreWisata) {
@@ -395,6 +427,13 @@ class RencanaPerjalananController extends Controller
                     'arrival_time' => '17:30',
                 ]);
             }
+
+            $soreKat = $soreWisata?->kategoris?->first()?->nama_kategori
+                ?? ($soreWisata?->kecamatan ? 'Wisata ' . $soreWisata->kecamatan->nama_kecamatan : 'Wisata Unggulan');
+            $soreDesc = !empty($soreWisata?->deskripsi)
+                ? Str::limit(trim(preg_replace('/\s+/', ' ', $soreWisata->deskripsi)), 130, '...')
+                : 'Jelajah destinasi wisata di ' . ($soreWisata?->kecamatan?->nama_kecamatan ?? 'Kota Batam');
+
             DetailItinerary::create([
                 'id_rencana' => $plan->id_rencana,
                 'hari_ke' => $day,
@@ -402,15 +441,15 @@ class RencanaPerjalananController extends Controller
                 'tipe_item' => 'wisata',
                 'id_wisata' => $soreWisata?->id_wisata,
                 'nama_tempat' => $soreWisata?->nama_wisata ?? 'Grand Batam Mall & Nagoya',
-                'kategori' => 'Wisata Sore & Belanja',
+                'kategori' => $soreKat,
                 'waktu_mulai' => '14:30',
                 'waktu_selesai' => '17:30',
                 'estimasi_biaya' => $soreWisata?->harga_tiket_masuk ?? 10000,
-                'catatan' => 'Jelajah destinasi wisata sore dan pemandangan senja.',
+                'catatan' => $soreDesc,
                 'is_kustom' => false,
             ]);
 
-            // Spot Malam
+            // Kuliner malam
             $malamResto = $availableRestoran->get($restoranIdx % max(1, $availableRestoran->count()));
             $restoranIdx++;
             if ($malamResto) {
@@ -423,6 +462,21 @@ class RencanaPerjalananController extends Controller
                     'arrival_time' => '20:30',
                 ]);
             }
+
+            $malamKat = $malamResto?->kategoris?->first()?->nama_kategori;
+            if (!$malamKat) {
+                if (!empty($malamResto?->type_food)) {
+                    $malamKat = str_contains(strtolower($malamResto->type_food), 'seafood')
+                        ? 'Restoran Seafood'
+                        : 'Kuliner ' . $malamResto->type_food;
+                } else {
+                    $malamKat = 'Santap Malam Khas Batam';
+                }
+            }
+            $malamDesc = !empty($malamResto?->deskripsi)
+                ? Str::limit(trim(preg_replace('/\s+/', ' ', $malamResto->deskripsi)), 130, '...')
+                : 'Makan malam nikmat dan santai di ' . ($malamResto?->kecamatan?->nama_kecamatan ?? 'Kota Batam');
+
             DetailItinerary::create([
                 'id_rencana' => $plan->id_rencana,
                 'hari_ke' => $day,
@@ -430,33 +484,31 @@ class RencanaPerjalananController extends Controller
                 'tipe_item' => 'restoran',
                 'id_restoran' => $malamResto?->id_restoran,
                 'nama_tempat' => $malamResto?->nama_restoran ?? 'Seafood Kelong Tepi Laut Batam',
-                'kategori' => $isSeafood ? 'Santap Malam Seafood Kelong' : 'Santap Malam Khas Batam',
+                'kategori' => $malamKat,
                 'waktu_mulai' => '18:30',
                 'waktu_selesai' => '20:30',
                 'estimasi_biaya' => $malamResto?->harga_makan_per_orang ?? 85000,
-                'catatan' => 'Menikmati hidangan lezat dengan panorama pesisir malam hari.',
+                'catatan' => $malamDesc,
                 'is_kustom' => false,
             ]);
         }
     }
 
-    // Menjadikan Rencana Perjalanan Sebagai Rencana Aktif
+    // Aktifkan rencana perjalanan
     public function setActive(Request $request, $id)
     {
         $user = auth('sanctum')->user() ?? $request->user();
         $userId = $user?->id_pengguna;
 
-        if ($userId) {
-            RencanaPerjalanan::where(function ($q) use ($userId) {
-                $q->where('id_pengguna', $userId)->orWhereNull('id_pengguna');
-            })->update(['status' => 'selesai']);
-            $plan = RencanaPerjalanan::where(function ($q) use ($userId) {
-                $q->where('id_pengguna', $userId)->orWhereNull('id_pengguna');
-            })->find($id);
-        } else {
-            RencanaPerjalanan::query()->update(['status' => 'selesai']);
-            $plan = RencanaPerjalanan::find($id);
+        if (!$userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Silakan login terlebih dahulu',
+            ], 401);
         }
+
+        RencanaPerjalanan::where('id_pengguna', $userId)->update(['status' => 'selesai']);
+        $plan = RencanaPerjalanan::where('id_pengguna', $userId)->find($id);
 
         if (!$plan) {
             return response()->json([
