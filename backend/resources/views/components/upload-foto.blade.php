@@ -96,13 +96,17 @@
                return;
            }
 
-           let deleteUrl = `/admin/destinasi/foto/${photoId}`;
+            let deleteUrl = `/admin/wisata/foto/${photoId}`;
 
-           if (window.location.pathname.includes('/restoran')) {
-               deleteUrl = `/admin/restoran/foto/${photoId}`;
-           } else if (window.location.pathname.includes('/destinasi')) {
-               deleteUrl = `/admin/destinasi/foto/${photoId}`;
-           }
+            if (window.location.pathname.includes('/restoran')) {
+                deleteUrl = `/admin/restoran/foto/${photoId}`;
+            } else if (window.location.pathname.includes('/penginapan')) {
+                deleteUrl = `/admin/penginapan/foto/${photoId}`;
+            } else if (window.location.pathname.includes('/lokasi')) {
+                deleteUrl = `/admin/lokasi/foto/${photoId}`;
+            } else if (window.location.pathname.includes('/wisata')) {
+                deleteUrl = `/admin/wisata/foto/${photoId}`;
+            }
 
            const photoCard = buttonElement.closest('[data-photo-id]');
            photoCard.style.opacity = '0.5';

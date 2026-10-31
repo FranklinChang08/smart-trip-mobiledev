@@ -8,25 +8,34 @@
     <title>SmartTrip - Login Admin</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+            -webkit-text-fill-color: #111827 !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+    </style>
 </head>
 
 <body
-    class="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-background selection:bg-teal-600 selection:text-white">
+    class="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-background font-manrope antialiased selection:bg-teal-600 selection:text-white">
 
     <div class="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl border border-border/90 shadow-sm p-6 sm:p-8">
 
         <!-- Logo & Header -->
         <div class="flex flex-col items-center">
-            <div class="relative flex flex-col items-center mb-4">
+            <div class="relative flex flex-col items-center mb-3">
                 <div
-                    class="w-28 h-28 rounded-full bg-white shadow-lg shadow-black/5 border border-gray-100 flex items-center justify-center p-4">
+                    class="w-24 h-24 rounded-full bg-white shadow-lg shadow-black/5 border border-gray-100 flex items-center justify-center p-3.5">
                     <img src="{{ asset('images/logo_smarttrip.png') }}" alt="SmartTrip Logo"
                         class="w-full h-full object-contain">
                 </div>
 
                 <div
                     class="-mt-3 bg-white px-3 py-1 rounded-full border-[1.2px] border-textPrimary shadow-sm flex items-center gap-1.5 z-10">
-                    <span class="w-1 h-2.5 rounded-sm bg-textPrimary"></span>
+                    <span class="w-1 h-2.5 rounded-sm bg-primary"></span>
                     <span class="text-[10px] font-bold tracking-tight text-textPrimary">
                         1.1301° N, 104.0529° E
                     </span>
@@ -34,7 +43,7 @@
             </div>
 
             <div class="text-center mt-1 mb-6">
-                <h1 class="font-noto text-2xl font-bold text-textPrimary leading-snug">
+                <h1 class="font-manrope text-2xl font-bold text-textPrimary leading-snug">
                     Selamat Datang, Admin
                 </h1>
                 <p class="text-xs text-textSecondary font-medium mt-1.5">
@@ -43,27 +52,7 @@
             </div>
         </div>
 
-        <!-- Feedback Messages (Success / Status) -->
-        @if (session('status'))
-            <div
-                class="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                <span>{{ session('status') }}</span>
-            </div>
-        @endif
-
-        @if (session('success'))
-            <div
-                class="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                <span>{{ session('success') }}</span>
-            </div>
-        @endif
-
+        <!-- Feedback Messages -->
         @if (session('error'))
             <div
                 class="mb-4 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">

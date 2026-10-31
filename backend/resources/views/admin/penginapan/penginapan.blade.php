@@ -136,7 +136,7 @@
                                         <form
                                             action="{{ route('admin.penginapan.destroy', ['penginapan' => $penginapan->id_penginapan]) }}"
                                             method="POST"
-                                            onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?');"
+                                            onsubmit="return confirmDelete(event, this, '{{ addslashes($penginapan->nama_penginapan) }}');"
                                             class="inline-block">
                                             @csrf
                                             @method('DELETE')
