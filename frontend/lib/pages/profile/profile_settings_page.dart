@@ -9,14 +9,12 @@ class ProfileSettingsPage extends StatefulWidget {
   final String initialName;
   final String initialEmail;
   final String initialPhone;
-  final String initialLocation;
 
   const ProfileSettingsPage({
     super.key,
     this.initialName = 'Nadira Safitri',
     this.initialEmail = 'nadira.safitri@gmail.com',
     this.initialPhone = '812-7890-8821',
-    this.initialLocation = 'Singapura / Batam',
   });
 
   @override
@@ -27,7 +25,6 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
-  late final TextEditingController _locationController;
 
   bool _isSaving = false;
 
@@ -36,10 +33,12 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     super.initState();
     _nameController = TextEditingController(text: widget.initialName);
     _emailController = TextEditingController(text: widget.initialEmail);
-    _locationController = TextEditingController(text: widget.initialLocation);
 
     String phone = widget.initialPhone;
     phone = phone.replaceFirst(RegExp(r'^\+?62\s*'), '');
+    if (phone.startsWith('0')) {
+      phone = phone.substring(1);
+    }
     _phoneController = TextEditingController(text: phone);
   }
 
@@ -48,7 +47,6 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _locationController.dispose();
     super.dispose();
   }
 
@@ -56,7 +54,6 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     String phone = _phoneController.text.trim();
-    final location = _locationController.text.trim();
 
     if (name.isEmpty) {
       AppNotification.showError(
@@ -85,52 +82,49 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       return;
     }
 
-    if (location.isEmpty) {
-      AppNotification.showError(
-        context,
-        title: 'Form Belum Lengkap',
-        message: 'Domisili / Kota asal wajib diisi.',
-      );
-      return;
+    // Normalisasi format nomor telepon
+    String cleanDigits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanDigits.startsWith('62')) {
+      cleanDigits = cleanDigits.substring(2);
+    } else if (cleanDigits.startsWith('0')) {
+      cleanDigits = cleanDigits.substring(1);
     }
-
-    if (!phone.startsWith('+62') && !phone.startsWith('0')) {
-      phone = '+62 $phone';
-    } else if (phone.startsWith('0')) {
-      phone = '+62 ${phone.substring(1)}';
-    }
+    final formattedPhone = '0$cleanDigits';
 
     setState(() => _isSaving = true);
 
-    // Simpan ke sesi user yang sedang aktif
-    final savedUser = await AuthService.getSavedUser() ?? {};
-    savedUser['nama_pengguna'] = name;
-    savedUser['email'] = email;
-    savedUser['no_hp'] = phone;
-    savedUser['domisili'] = location;
-    savedUser['lokasi'] = location;
-    await AuthService.saveUser(savedUser);
+    // Kirim data pembaruan profil ke database backend
+    final result = await AuthService.updateProfile(
+      name: name,
+      email: email,
+      phone: formattedPhone,
+    );
 
-    await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
     setState(() => _isSaving = false);
 
-    AppNotification.showSuccess(
-      context,
-      title: 'Berhasil Disimpan',
-      message: 'Perubahan profil Anda berhasil disimpan.',
-    );
+    if (result['success'] == true) {
+      AppNotification.showSuccess(
+        context,
+        title: 'Berhasil Disimpan',
+        message: result['message']?.toString() ?? 'Perubahan profil Anda berhasil disimpan ke database.',
+      );
 
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
+      await Future.delayed(const Duration(milliseconds: 400));
+      if (!mounted) return;
 
-    Navigator.pop(context, {
-      'nama_pengguna': name,
-      'email': email,
-      'no_hp': phone,
-      'domisili': location,
-      'lokasi': location,
-    });
+      Navigator.pop(context, result['user'] ?? {
+        'nama_pengguna': name,
+        'email': email,
+        'no_hp': formattedPhone,
+      });
+    } else {
+      AppNotification.showError(
+        context,
+        title: 'Gagal Menyimpan',
+        message: result['message']?.toString() ?? 'Terjadi kesalahan saat menyimpan ke database.',
+      );
+    }
   }
 
   @override
@@ -289,28 +283,6 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                             color: AppColors.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.location_on_outlined,
-                              size: 14,
-                              color: Color(0xFF0D9488),
-                            ),
-                            const SizedBox(width: 4),
-                            ManropeFont(
-                              _locationController.text.isNotEmpty
-                                  ? _locationController.text
-                                  : widget.initialLocation,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF0D9488),
-                              ),
-                            ),
-                          ],
-                        ),
                         const SizedBox(height: 18),
                         const Divider(color: Color(0xFFF1F5F9), thickness: 1),
                       ],
@@ -412,22 +384,6 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                               ],
                             ),
                           ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Domisili / Kota Asal *
-                        ProfileTextField(
-                          label: 'Domisili / Kota Asal',
-                          isRequired: true,
-                          controller: _locationController,
-                          hintText: 'Contoh: Singapura / Batam',
-                          prefix: const Icon(
-                            Icons.location_on_outlined,
-                            size: 19,
-                            color: AppColors.textSecondary,
-                          ),
-                          onChanged: (_) => setState(() {}),
                         ),
                       ],
                     ),

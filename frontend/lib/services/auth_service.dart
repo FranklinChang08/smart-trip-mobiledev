@@ -139,4 +139,105 @@ class AuthService {
     await clearToken();
     await clearUser();
   }
+
+  // Ambil profil pengguna
+  static Future<Map<String, dynamic>?> getProfile() async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) {
+      return await getSavedUser();
+    }
+
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/user'),
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final user = data['user'] as Map<String, dynamic>?;
+        if (user != null) {
+          final savedUser = await getSavedUser() ?? {};
+          savedUser.addAll(user);
+          await saveUser(savedUser);
+          return savedUser;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetch live profile: $e');
+    }
+
+    return await getSavedUser();
+  }
+
+  // Perbarui profil pengguna di database
+  static Future<Map<String, dynamic>> updateProfile({
+    required String name,
+    required String email,
+    required String phone,
+  }) async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) {
+      return {
+        'success': false,
+        'message': 'Sesi telah berakhir, silakan login kembali.',
+      };
+    }
+
+    try {
+      final response = await http
+          .put(
+            Uri.parse('$_baseUrl/user/profile'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'nama_pengguna': name,
+              'email': email,
+              'no_hp': phone,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        final updatedUser = data['user'] as Map<String, dynamic>? ?? {};
+        final savedUser = await getSavedUser() ?? {};
+        savedUser.addAll(updatedUser);
+        await saveUser(savedUser);
+
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Profil berhasil diperbarui.',
+          'user': savedUser,
+        };
+      }
+
+      String errorMsg = data['message'] ?? 'Gagal memperbarui profil.';
+      if (data.containsKey('errors')) {
+        final errors = data['errors'] as Map<String, dynamic>;
+        errorMsg = errors.values.first is List
+            ? (errors.values.first as List).first.toString()
+            : errors.values.first.toString();
+      }
+
+      return {
+        'success': false,
+        'message': errorMsg,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Gagal terhubung ke server. Periksa koneksi Anda.',
+      };
+    }
+  }
 }

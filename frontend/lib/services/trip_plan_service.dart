@@ -7,7 +7,7 @@ import 'package:frontend/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
-/// untuk mengambil data master rencana perjalanan langsung
+/// Layanan manajemen data rencana perjalanan
 class TripPlanService {
   static String get _baseUrl {
     if (kIsWeb) return 'http://127.0.0.1:8000/api';
@@ -16,7 +16,7 @@ class TripPlanService {
         : 'http://127.0.0.1:8000/api';
   }
 
-  /// Pemetaan icon untuk kategori wisata Batam
+  /// Pemetaan icon kategori
   static IconData getIconForCategory(String name) {
     switch (name.toLowerCase().trim()) {
       case 'wisata alam':
@@ -40,7 +40,7 @@ class TripPlanService {
     }
   }
 
-  /// deskripsi ringkas untuk kategori wisata Batam
+  /// Deskripsi kategori wisata
   static String getDescForCategory(String name) {
     switch (name.toLowerCase().trim()) {
       case 'wisata alam':
@@ -64,7 +64,7 @@ class TripPlanService {
     }
   }
 
-  /// Mengambil daftar kategori wisata
+  /// Daftar kategori wisata
   static Future<List<TripThemeModel>> fetchCategories() async {
     try {
       final response = await http
@@ -95,7 +95,7 @@ class TripPlanService {
     return kTripThemes;
   }
 
-  /// Deskripsi khas kecamatan di Batam
+  /// Deskripsi kecamatan
   static String getDescForKecamatan(String name) {
     switch (name.toLowerCase().trim()) {
       case 'batam kota':
@@ -127,7 +127,7 @@ class TripPlanService {
     }
   }
 
-  /// Icon khas kecamatan
+  /// Icon kecamatan
   static String getIconForKecamatan(String name) {
     switch (name.toLowerCase().trim()) {
       case 'batam kota':
@@ -191,7 +191,14 @@ class TripPlanService {
     return kBatamKecamatanList;
   }
 
-  static const String _storageKey = 'saved_batam_trip_plans';
+  static Future<String> _getStorageKey() async {
+    final user = await AuthService.getSavedUser();
+    final userId = user?['id_pengguna'] ?? user?['id'];
+    if (userId != null) {
+      return 'saved_batam_trip_plans_$userId';
+    }
+    return 'saved_batam_trip_plans_guest';
+  }
 
   /// Menyimpan rencana perjalanan 
   static Future<SavedTripPlan?> saveTripPlan(SavedTripPlan plan) async {
@@ -248,12 +255,13 @@ class TripPlanService {
 
     final planToSave = savedResult ?? plan;
 
-    // Simpan ke local cache perangkat
+    // Simpan ke cache lokal
     try {
+      final storageKey = await _getStorageKey();
       final prefs = await SharedPreferences.getInstance();
       final plans = await getAllTripPlans();
 
-      // Tandai semua rencana lainnya menjadi tidak aktif dan hilangkan duplikasi jika ada
+      // Nonaktifkan rencana lainnya
       final updatedPlans = plans
           .where((p) => p.id != planToSave.id)
           .map((p) => p.copyWith(isActive: false))
@@ -261,11 +269,11 @@ class TripPlanService {
 
       final activeNewPlan = planToSave.copyWith(isActive: true);
 
-      // Tambahkan rencana yang baru di posisi pertama
+      // Tambahkan rencana baru
       updatedPlans.insert(0, activeNewPlan);
 
       final jsonList = updatedPlans.map((p) => p.toJson()).toList();
-      await prefs.setString(_storageKey, jsonEncode(jsonList));
+      await prefs.setString(storageKey, jsonEncode(jsonList));
       return activeNewPlan;
     } catch (e) {
       debugPrint('Error saving trip plan: $e');
@@ -273,8 +281,16 @@ class TripPlanService {
     }
   }
 
-  /// Mengambil seluruh daftar rencana perjalanan
+  /// Seluruh daftar rencana perjalanan
   static Future<List<SavedTripPlan>> getAllTripPlans() async {
+    final storageKey = await _getStorageKey();
+    final prefs = await SharedPreferences.getInstance();
+
+    // Bersihkan cache lama
+    if (prefs.containsKey('saved_batam_trip_plans')) {
+      await prefs.remove('saved_batam_trip_plans');
+    }
+
     try {
       final token = await AuthService.getToken();
       final headers = <String, String>{
@@ -297,12 +313,11 @@ class TripPlanService {
           final list = (json['data'] as List)
               .map((e) => SavedTripPlan.fromJson(e as Map<String, dynamic>))
               .toList();
-          if (list.isNotEmpty) {
-            final prefs = await SharedPreferences.getInstance();
-            final jsonList = list.map((p) => p.toJson()).toList();
-            await prefs.setString(_storageKey, jsonEncode(jsonList));
-            return list;
-          }
+
+          // Perbarui cache lokal
+          final jsonList = list.map((p) => p.toJson()).toList();
+          await prefs.setString(storageKey, jsonEncode(jsonList));
+          return list;
         }
       }
     } catch (e) {
@@ -310,8 +325,7 @@ class TripPlanService {
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString(_storageKey);
+      final jsonStr = prefs.getString(storageKey);
       if (jsonStr != null && jsonStr.isNotEmpty) {
         final List decoded = jsonDecode(jsonStr);
         return decoded
@@ -388,6 +402,7 @@ class TripPlanService {
     }
 
     try {
+      final storageKey = await _getStorageKey();
       final prefs = await SharedPreferences.getInstance();
       final plans = await getAllTripPlans();
       final updated = plans.map((p) {
@@ -410,7 +425,7 @@ class TripPlanService {
       }).toList();
 
       final jsonList = updated.map((p) => p.toJson()).toList();
-      await prefs.setString(_storageKey, jsonEncode(jsonList));
+      await prefs.setString(storageKey, jsonEncode(jsonList));
     } catch (e) {
       debugPrint('Error setting active plan: $e');
     }
@@ -442,11 +457,12 @@ class TripPlanService {
     }
 
     try {
+      final storageKey = await _getStorageKey();
       final prefs = await SharedPreferences.getInstance();
       final plans = await getAllTripPlans();
       final updated = plans.where((p) => p.id != planId).toList();
       final jsonList = updated.map((p) => p.toJson()).toList();
-      await prefs.setString(_storageKey, jsonEncode(jsonList));
+      await prefs.setString(storageKey, jsonEncode(jsonList));
       return true;
     } catch (_) {}
 
