@@ -31,7 +31,6 @@ class _ProfileTabsState extends State<ProfileTabs> {
   String _name = 'Nadira Safitri';
   String _email = 'nadira.safitri@gmail.com';
   String _phone = '+62 812-7890-8821';
-  String _location = 'Singapura / Batam';
   String _passwordUpdated = '2 bulan lalu';
   final String _preferenceUpdated = '2 bulan lalu';
 
@@ -55,26 +54,32 @@ class _ProfileTabsState extends State<ProfileTabs> {
     final loggedIn = await AuthService.isLoggedIn();
     final user = await AuthService.getSavedUser();
     if (mounted) {
-      setState(() {
-        _isGuestMode = widget.isGuest || !loggedIn || user == null;
-        if (user != null) {
-          if (user['nama_pengguna'] != null) {
-            _name = user['nama_pengguna'].toString();
-          }
-          if (user['email'] != null) {
-            _email = user['email'].toString();
-          }
-          if (user['no_hp'] != null) {
-            _phone = user['no_hp'].toString();
-          }
-          if (user['domisili'] != null && user['domisili'].toString().isNotEmpty) {
-            _location = user['domisili'].toString();
-          } else if (user['lokasi'] != null && user['lokasi'].toString().isNotEmpty) {
-            _location = user['lokasi'].toString();
-          }
-        }
-      });
+      _applyUserData(user, loggedIn);
     }
+
+    if (loggedIn && !widget.isGuest) {
+      final freshUser = await AuthService.getProfile();
+      if (mounted && freshUser != null) {
+        _applyUserData(freshUser, true);
+      }
+    }
+  }
+
+  void _applyUserData(Map<String, dynamic>? user, bool loggedIn) {
+    setState(() {
+      _isGuestMode = widget.isGuest || !loggedIn || user == null;
+      if (user != null) {
+        if (user['nama_pengguna'] != null) {
+          _name = user['nama_pengguna'].toString();
+        }
+        if (user['email'] != null) {
+          _email = user['email'].toString();
+        }
+        if (user['no_hp'] != null) {
+          _phone = user['no_hp'].toString();
+        }
+      }
+    });
   }
 
   String _formatMaskedPhone(String phoneRaw) {
@@ -245,9 +250,13 @@ class _ProfileTabsState extends State<ProfileTabs> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: _loadProfile,
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Profil Saya
@@ -358,7 +367,7 @@ class _ProfileTabsState extends State<ProfileTabs> {
 
                     const SizedBox(width: 16),
 
-                    // Detail Nama & Lokasi
+                    // Detail nama & email
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,29 +391,6 @@ class _ProfileTabsState extends State<ProfileTabs> {
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.location_on_outlined,
-                                size: 14,
-                                color: Color(0xFF0D9488),
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: ManropeFont(
-                                  _location,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0D9488),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
                           ),
                         ],
                       ),
@@ -458,7 +444,6 @@ class _ProfileTabsState extends State<ProfileTabs> {
                               initialName: _name,
                               initialEmail: _email,
                               initialPhone: _phone,
-                              initialLocation: _location,
                             ),
                           ),
                         );
@@ -473,12 +458,8 @@ class _ProfileTabsState extends State<ProfileTabs> {
                             if (res['no_hp'] != null) {
                               _phone = res['no_hp'].toString();
                             }
-                            if (res['domisili'] != null) {
-                              _location = res['domisili'].toString();
-                            } else if (res['lokasi'] != null) {
-                              _location = res['lokasi'].toString();
-                            }
                           });
+                          _loadProfile();
                         }
                       },
                     ),
@@ -551,8 +532,9 @@ class _ProfileTabsState extends State<ProfileTabs> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildGuestProfileView() {
     return Scaffold(

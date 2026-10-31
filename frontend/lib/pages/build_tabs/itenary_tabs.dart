@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 import 'package:frontend/core/theme/app_colors.dart';
+import 'package:frontend/pages/create_trip_plan_page.dart';
 import 'package:frontend/pages/trip_itinerary_page.dart';
 import 'package:frontend/services/trip_plan_service.dart';
 
 class TripItineraryTab extends StatefulWidget {
-  const TripItineraryTab({super.key});
+  final bool isGuest;
+  final VoidCallback? onLoginPrompt;
+
+  const TripItineraryTab({
+    super.key,
+    this.isGuest = false,
+    this.onLoginPrompt,
+  });
 
   @override
   State<TripItineraryTab> createState() => _TripItineraryTabState();
@@ -45,6 +53,24 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _openCreateTripPlan() async {
+    if (widget.isGuest) {
+      if (widget.onLoginPrompt != null) {
+        widget.onLoginPrompt!();
+      }
+      return;
+    }
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateTripPlanPage()),
+    );
+
+    if (result == true || result != null) {
+      await _loadPlans();
     }
   }
 
@@ -124,10 +150,11 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final heroPlan = _activePlan ??
-        (_allPlans.isNotEmpty ? _allPlans.first : SavedTripPlan.defaultPlan());
-    final otherPlans =
-        _allPlans.where((p) => p.id != heroPlan.id).toList();
+    final SavedTripPlan? heroPlan = _activePlan ??
+        (_allPlans.isNotEmpty ? _allPlans.first : null);
+    final otherPlans = heroPlan != null
+        ? _allPlans.where((p) => p.id != heroPlan.id).toList()
+        : <SavedTripPlan>[];
 
     return RefreshIndicator(
       onRefresh: _loadPlans,
@@ -138,7 +165,7 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Atas
+            // Header
             const ManropeFont(
               'Rencana Perjalanan',
               style: TextStyle(
@@ -150,411 +177,621 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
             const SizedBox(height: 20),
 
             if (_isLoading)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: const Column(
-                  children: [
-                    CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation(AppColors.primary),
-                    ),
-                    SizedBox(height: 12),
-                    ManropeFont(
-                      'Menghubungkan ke basis data...',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            // Kartu Utama Rencana Perjalanan
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Gambar
-                  Container(
-                    height: 110,
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF1E293B),
-                          AppColors.primary.withValues(alpha: 0.85),
-                        ],
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.calendar_today,
-                                    size: 11,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    heroPlan.durationLabel,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: heroPlan.isActive
-                                    ? const Color(0xFFC05400)
-                                    : Colors.blueGrey,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                heroPlan.isActive ? 'Aktif' : 'Tersimpan',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        ManropeFont(
-                          heroPlan.tripName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Isi Ringkasan
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on_outlined,
-                              size: 16,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Mulai dari: ${heroPlan.startLocation}',
-                                style: const TextStyle(
-                                  fontSize: 12.5,
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.map_outlined,
-                              size: 16,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Rute: ${heroPlan.routeLabel}',
-                                style: const TextStyle(
-                                  fontSize: 12.5,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.account_balance_wallet_outlined,
-                              size: 16,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Estimasi Anggaran: ${heroPlan.budget.startsWith('Rp') ? heroPlan.budget : 'Rp ${heroPlan.budget}'}',
-                              style: const TextStyle(
-                                fontSize: 12.5,
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Tombol Aksi Buka Itinerary
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () => _openTripDetail(heroPlan),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.timeline, size: 16),
-                                SizedBox(width: 8),
-                                ManropeFont(
-                                  'Buka Susunan Itinerary',
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(width: 4),
-                                Icon(Icons.arrow_forward, size: 15),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Bagian Rencana Perjalanan Lainnya (Jika ada lebih dari 1 rencana di database)
-            if (otherPlans.isNotEmpty) ...[
-              const SizedBox(height: 28),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const ManropeFont(
-                    'Riwayat Rencana Lainnya',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    '${otherPlans.length} Rencana',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: otherPlans.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final p = otherPlans[index];
-                  return Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ManropeFont(
-                                p.tripName,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                p.durationLabel,
-                                style: const TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                            PopupMenuButton<String>(
-                              icon: const Icon(
-                                Icons.more_vert,
-                                size: 18,
-                                color: AppColors.textSecondary,
-                              ),
-                              onSelected: (val) {
-                                if (val == 'activate') {
-                                  _setActivePlan(p.id);
-                                } else if (val == 'delete') {
-                                  _confirmDeletePlan(p);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'activate',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.check_circle_outline,
-                                          size: 16, color: AppColors.primary),
-                                      SizedBox(width: 8),
-                                      Text('Jadikan Rencana Aktif'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.delete_outline,
-                                          size: 16, color: Colors.red),
-                                      SizedBox(width: 8),
-                                      Text('Hapus Rencana',
-                                          style: TextStyle(color: Colors.red)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Mulai: ${p.startLocation} • Rute: ${p.routeLabel}',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: Colors.grey.shade600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              p.budget.startsWith('Rp')
-                                  ? p.budget
-                                  : 'Rp ${p.budget}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            TextButton.icon(
-                              onPressed: () => _openTripDetail(p),
-                              icon: const Icon(Icons.arrow_forward, size: 14),
-                              label: const Text(
-                                'Buka Itinerary',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.primary,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+              _buildLoadingState()
+            else if (_allPlans.isEmpty || heroPlan == null)
+              EmptyTripPlanView(
+                onCreatePlan: _openCreateTripPlan,
+                isGuest: widget.isGuest,
+              )
+            else ...[
+              _buildHeroPlanCard(heroPlan),
+              if (otherPlans.isNotEmpty) ...[
+                const SizedBox(height: 28),
+                _buildOtherPlansSection(otherPlans),
+              ],
             ],
 
             const SizedBox(height: 90),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: const Column(
+        children: [
+          CircularProgressIndicator(
+            strokeWidth: 2.5,
+            valueColor: AlwaysStoppedAnimation(AppColors.primary),
+          ),
+          SizedBox(height: 14),
+          ManropeFont(
+            'Menghubungkan ke basis data...',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroPlanCard(SavedTripPlan heroPlan) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Banner hero
+          Container(
+            height: 110,
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF1E293B),
+                  AppColors.primary.withValues(alpha: 0.85),
+                ],
+              ),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 11,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            heroPlan.durationLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: heroPlan.isActive
+                            ? const Color(0xFFC05400)
+                            : Colors.blueGrey,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        heroPlan.isActive ? 'Aktif' : 'Tersimpan',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                ManropeFont(
+                  heroPlan.tripName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Ringkasan rencana
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Mulai dari: ${heroPlan.startLocation}',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.map_outlined,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Rute: ${heroPlan.routeLabel}',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet_outlined,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Estimasi Anggaran: ${heroPlan.budget.startsWith('Rp') ? heroPlan.budget : 'Rp ${heroPlan.budget}'}',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Tombol buka itinerary
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _openTripDetail(heroPlan),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.timeline, size: 16),
+                        SizedBox(width: 8),
+                        ManropeFont(
+                          'Buka Susunan Itinerary',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward, size: 15),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOtherPlansSection(List<SavedTripPlan> otherPlans) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const ManropeFont(
+              'Riwayat Rencana Lainnya',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            Text(
+              '${otherPlans.length} Rencana',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: otherPlans.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final p = otherPlans[index];
+            return Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ManropeFont(
+                          p.tripName,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          p.durationLabel,
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        icon: const Icon(
+                          Icons.more_vert,
+                          size: 18,
+                          color: AppColors.textSecondary,
+                        ),
+                        onSelected: (val) {
+                          if (val == 'activate') {
+                            _setActivePlan(p.id);
+                          } else if (val == 'delete') {
+                            _confirmDeletePlan(p);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'activate',
+                            child: Row(
+                              children: [
+                                Icon(Icons.check_circle_outline,
+                                    size: 16, color: AppColors.primary),
+                                SizedBox(width: 8),
+                                Text('Jadikan Rencana Aktif'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline,
+                                    size: 16, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Hapus Rencana',
+                                    style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Mulai: ${p.startLocation} • Rute: ${p.routeLabel}',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Colors.grey.shade600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        p.budget.startsWith('Rp') ? p.budget : 'Rp ${p.budget}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => _openTripDetail(p),
+                        icon: const Icon(Icons.arrow_forward, size: 14),
+                        label: const Text(
+                          'Buka Itinerary',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class EmptyTripPlanView extends StatelessWidget {
+  final VoidCallback? onCreatePlan;
+  final bool isGuest;
+
+  const EmptyTripPlanView({
+    super.key,
+    this.onCreatePlan,
+    this.isGuest = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Ikon badge
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE6F7F5),
+                  border: Border.all(
+                    color: const Color(0xFF99F6E4),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.luggage_outlined,
+                    color: Color(0xFF0F766E),
+                    size: 42,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F766E),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 2.2,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.add,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Judul
+          const ManropeFont(
+            'Belum Ada Rencana Perjalanan',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Deskripsi
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: ManropeFont(
+              'Anda belum memiliki rencana perjalanan yang tersimpan. Ayo buat rencana liburan cerdas Anda di Batam sekarang!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Ringkasan fitur
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: const Column(
+              children: [
+                _BenefitRow(
+                  icon: Icons.auto_awesome,
+                  color: Color(0xFFC05400),
+                  text: 'Rekomendasi rute cerdas & terorganisir',
+                ),
+                SizedBox(height: 10),
+                _BenefitRow(
+                  icon: Icons.restaurant_menu_rounded,
+                  color: Color(0xFF0F766E),
+                  text: 'Pilihan kuliner & destinasi terbaik Batam',
+                ),
+                SizedBox(height: 10),
+                _BenefitRow(
+                  icon: Icons.account_balance_wallet_outlined,
+                  color: Color(0xFF0284C7),
+                  text: 'Estimasi anggaran liburan yang fleksibel',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BenefitRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String text;
+
+  const _BenefitRow({
+    required this.icon,
+    required this.color,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Icon(icon, size: 13, color: color),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: ManropeFont(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

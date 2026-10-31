@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:frontend/components/app_notification.dart';
+import 'package:frontend/components/font/bebas_neue_font.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/components/text_field_v1.dart';
 import 'package:frontend/core/theme/app_colors.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../services/auth_service.dart';
 import 'home_page.dart';
@@ -173,17 +173,30 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               Image.asset(
                 'assets/images/logo_smarttrip.png',
-                width: 22,
-                height: 22,
+                width: 24,
+                height: 24,
               ),
-              const SizedBox(width: 6),
-              ManropeFont(
-                'SmartTrip',
-                style: GoogleFonts.lora(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                ),
+              const SizedBox(width: 8),
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  BebasNeueFont(
+                    'Smart',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  BebasNeueFont(
+                    'Trip',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -264,14 +277,14 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildWelcomeTitle() {
-    return Column(
+    return const Column(
       children: [
         ManropeFont(
           'Selamat Datang Kembali di\nSmartTrip',
           textAlign: TextAlign.center,
-          style: GoogleFonts.lora(
+          style: TextStyle(
             fontSize: 22,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
             color: AppColors.textPrimary,
             height: 1.25,
           ),

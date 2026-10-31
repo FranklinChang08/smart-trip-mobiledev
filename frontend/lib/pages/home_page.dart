@@ -320,7 +320,17 @@ class _HomePageState extends State<HomePage> {
           : currentIndex == 1
           ? ExploreTabs()
           : currentIndex == 2
-          ? TripItineraryTab(key: _itineraryKey)
+          ? TripItineraryTab(
+              key: _itineraryKey,
+              isGuest: _isGuest,
+              onLoginPrompt: () {
+                _showLoginPrompt(
+                  title: 'Buat Rencana Perjalanan',
+                  message:
+                      'Silakan masuk ke akun SmartTrip terlebih dahulu untuk mulai membuat dan menyimpan rencana liburan cerdas Anda.',
+                );
+              },
+            )
           : currentIndex == 3
           ? const Center(child: Text('Maps'))
           : ProfileTabs(

@@ -162,40 +162,45 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. BANNER HEADER ITINERARY
+            // Header itinerary
             _buildTripHeaderCard(),
 
-            // 2. DAY SELECTOR TABS
+            // Tab pemilih hari
             _buildDaySelectorTabs(),
 
-            // 3. DAY TITLE & HIGHLIGHT SUMMARY
+            // Judul hari & ringkasan
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Hari ${_selectedDayIndex + 1} • ${activeDate.day} ${_formatFullMonth(activeDate.month)} ${activeDate.year}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hari ${_selectedDayIndex + 1} • ${activeDate.day} ${_formatFullMonth(activeDate.month)} ${activeDate.year}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _getDayThemeSubtitle(_selectedDayIndex),
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade600,
+                        const SizedBox(height: 2),
+                        Text(
+                          _getDayThemeSubtitle(_selectedDayIndex),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
@@ -238,14 +243,14 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                 ),
               )
             else ...[
-              // 4. VERTICAL TIMELINE CARDS WITH TRANSIT BADGES
+              // Timeline destinasi harian
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: _buildTimelineForDay(_selectedDayIndex),
               ),
 
-              // 5. ESTIMASI ANGGARAN HARIAN
+              // Estimasi anggaran harian
               _buildDailyBudgetSummaryCard(),
             ],
 
@@ -483,7 +488,7 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Baris Slot Waktu & Kategori
+          // Waktu & kategori
           Row(
             children: [
               Container(
@@ -538,7 +543,7 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
           ),
           const SizedBox(height: 12),
 
-          // Judul Destinasi
+          // Nama destinasi
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -576,7 +581,7 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
           ),
           const SizedBox(height: 12),
 
-          // Detail Info Bar (Waktu Kunjungan, Tiket Masuk, Fasilitas)
+          // Info waktu & estimasi biaya
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -615,7 +620,7 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
           ),
           const SizedBox(height: 10),
 
-          // Tombol Tindakan (Buka Peta / Detail)
+          // Tombol aksi
           Row(
             children: [
               OutlinedButton.icon(
