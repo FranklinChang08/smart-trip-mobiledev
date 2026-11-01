@@ -112,6 +112,15 @@ class AuthService {
         errorMsg = data['message'].toString();
       }
 
+      // Filter pesan teknis SQL/database jika mode debug aktif agar tidak bocor ke user
+      if (response.statusCode >= 500 ||
+          errorMsg.contains('SQLSTATE') ||
+          errorMsg.contains('Connection refused') ||
+          errorMsg.contains('PDOException')) {
+        errorMsg =
+            'Tidak dapat terhubung ke server database. Pastikan database aktif atau coba beberapa saat lagi.';
+      }
+
       return AuthResult(success: false, errorMessage: errorMsg);
     } catch (e) {
       return const AuthResult(

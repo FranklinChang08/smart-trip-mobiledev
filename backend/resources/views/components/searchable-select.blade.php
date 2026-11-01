@@ -19,8 +19,7 @@
     @endif
 
     {{-- Input Hidden untuk Backend --}}
-    <input type="hidden" id="{{ $id }}" name="{{ $name }}" value="{{ $selectedValue }}"
-        @if ($required) required @endif>
+    <input type="hidden" id="{{ $id }}" name="{{ $name }}" value="{{ $selectedValue }}">
 
     {{-- Trigger Dropdown (Tampilan Utama) --}}
     <div class="select-trigger w-full px-3.5 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-between cursor-pointer select-none"

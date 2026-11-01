@@ -15,6 +15,9 @@
     {{-- Floating Toast Notification --}}
     @include('components.notification')
 
+    {{-- Universal Delete Confirmation Modal --}}
+    @include('components.modal-delete')
+
     <!-- A. Sidebar (Kiri) -->
     @include('components.sidebar')
 
