@@ -1,89 +1,99 @@
-{{-- Floating Compact Toast Notification System --}}
+{{-- Floating Notification System Matching Frontend AppNotification --}}
 <div id="toast-container"
-    style="position: fixed; top: 1.25rem; right: 1.25rem; z-index: 99999; max-width: 350px; width: calc(100% - 2.5rem); pointer-events: none; display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-end;">
+    class="fixed top-3 right-4 z-[99999] pointer-events-none flex flex-col gap-3 items-end max-w-[380px] w-[calc(100%-2rem)]">
 
     @if (session('success'))
-        <div class="toast-item bg-white rounded-xl shadow-lg border border-emerald-200 p-3 flex flex-col gap-1.5 transition-all duration-300 ease-out overflow-hidden relative"
-            style="pointer-events: auto; width: 100%; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.06);"
-            role="alert">
-            <div class="flex items-center gap-2.5">
-                {{-- Icon --}}
-                <div
-                    class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                </div>
-                {{-- Text Content --}}
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-xs font-bold text-gray-900 leading-tight">Berhasil!</h3>
-                    <p class="text-[11px] text-gray-600 mt-0.5 leading-tight truncate" title="{{ session('success') }}">
-                        {{ session('success') }}</p>
-                </div>
-                {{-- Close Button --}}
-                <button type="button" onclick="dismissToast(this.closest('.toast-item'))"
-                    class="text-gray-400 hover:text-gray-600 p-0.5 rounded-md hover:bg-gray-100 transition shrink-0 cursor-pointer"
-                    title="Tutup">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
-                        </path>
-                    </svg>
-                </button>
+        @php
+            $successTitle = session('success_title');
+            if (!$successTitle) {
+                $successTitle = \Illuminate\Support\Str::contains(session('success'), ['Selamat datang', 'login', 'Login'])
+                    ? 'Login Berhasil'
+                    : 'Berhasil';
+            }
+        @endphp
+        <div class="toast-item bg-white rounded-2xl p-3 px-3.5 flex items-center gap-3 transition-all duration-300 ease-out relative cursor-pointer font-manrope pointer-events-auto w-full"
+            style="border: 1.2px solid rgba(0, 104, 95, 0.25); box-shadow: 0 6px 16px rgba(0, 104, 95, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05); transform: translateY(-20px); opacity: 0;"
+            role="alert" onclick="dismissToast(this)">
+            {{-- Circular Icon Badge --}}
+            <div class="w-[38px] h-[38px] rounded-full flex items-center justify-center shrink-0"
+                style="background-color: rgba(0, 104, 95, 0.12); color: #00685F;">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd" />
+                </svg>
             </div>
-            {{-- Slim Progress Timer Bar --}}
-            <div class="w-full bg-emerald-100 h-0.5 rounded-full overflow-hidden">
-                <div
-                    class="toast-progress bg-emerald-500 h-full w-full rounded-full transition-all duration-[4000ms] ease-linear">
-                </div>
+
+            {{-- Text Content --}}
+            <div class="flex-1 min-w-0">
+                <h3 class="text-[13.5px] font-bold text-[#111827] leading-tight">
+                    {{ $successTitle }}
+                </h3>
+                <p class="text-xs text-[#6B7280] font-medium mt-0.5 leading-snug line-clamp-2" title="{{ session('success') }}">
+                    {{ session('success') }}
+                </p>
             </div>
+
+            {{-- Close Button --}}
+            <button type="button" onclick="event.stopPropagation(); dismissToast(this.closest('.toast-item'))"
+                class="text-gray-400 hover:text-gray-600 p-1 rounded-md transition shrink-0 cursor-pointer"
+                title="Tutup">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
     @endif
 
     @if (session('error'))
-        <div class="toast-item bg-white rounded-xl shadow-lg border border-red-200 p-3 flex flex-col gap-1.5 transition-all duration-300 ease-out overflow-hidden relative"
-            style="pointer-events: auto; width: 100%; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.06);"
-            role="alert">
-            <div class="flex items-center gap-2.5">
-                {{-- Icon --}}
-                <div
-                    class="w-7 h-7 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-200">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                        </path>
-                    </svg>
-                </div>
-                {{-- Text Content --}}
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-xs font-bold text-gray-900 leading-tight">Terjadi Kesalahan!</h3>
-                    <p class="text-[11px] text-gray-600 mt-0.5 leading-tight truncate" title="{{ session('error') }}">
-                        {{ session('error') }}</p>
-                </div>
-                {{-- Close Button --}}
-                <button type="button" onclick="dismissToast(this.closest('.toast-item'))"
-                    class="text-gray-400 hover:text-gray-600 p-0.5 rounded-md hover:bg-gray-100 transition shrink-0 cursor-pointer"
-                    title="Tutup">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
-                        </path>
-                    </svg>
-                </button>
+        <div class="toast-item bg-white rounded-2xl p-3 px-3.5 flex items-center gap-3 transition-all duration-300 ease-out relative cursor-pointer font-manrope pointer-events-auto w-full"
+            style="border: 1.2px solid rgba(220, 38, 38, 0.25); box-shadow: 0 6px 16px rgba(220, 38, 38, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05); transform: translateY(-20px); opacity: 0;"
+            role="alert" onclick="dismissToast(this)">
+            {{-- Circular Icon Badge --}}
+            <div class="w-[38px] h-[38px] rounded-full flex items-center justify-center shrink-0"
+                style="background-color: rgba(220, 38, 38, 0.12); color: #DC2626;">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clip-rule="evenodd" />
+                </svg>
             </div>
-            {{-- Slim Progress Timer Bar --}}
-            <div class="w-full bg-red-100 h-0.5 rounded-full overflow-hidden">
-                <div
-                    class="toast-progress bg-red-500 h-full w-full rounded-full transition-all duration-[4000ms] ease-linear">
-                </div>
+
+            {{-- Text Content --}}
+            <div class="flex-1 min-w-0">
+                <h3 class="text-[13.5px] font-bold text-[#111827] leading-tight">
+                    {{ session('error_title') ?? 'Gagal' }}
+                </h3>
+                <p class="text-xs text-[#6B7280] font-medium mt-0.5 leading-snug line-clamp-2" title="{{ session('error') }}">
+                    {{ session('error') }}
+                </p>
             </div>
+
+            {{-- Close Button --}}
+            <button type="button" onclick="event.stopPropagation(); dismissToast(this.closest('.toast-item'))"
+                class="text-gray-400 hover:text-gray-600 p-1 rounded-md transition shrink-0 cursor-pointer"
+                title="Tutup">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
     @endif
 </div>
 
 <script>
+    function showToastElement(el) {
+        if (!el) return;
+        requestAnimationFrame(() => {
+            el.style.transform = 'translateY(0)';
+            el.style.opacity = '1';
+        });
+    }
+
     function dismissToast(el) {
         if (!el) return;
+        el.style.transform = 'translateY(-20px)';
         el.style.opacity = '0';
-        el.style.transform = 'translateX(100%)';
         setTimeout(() => {
             el.remove();
         }, 300);
@@ -92,16 +102,10 @@
     document.addEventListener('DOMContentLoaded', function () {
         const toasts = document.querySelectorAll('.toast-item');
         toasts.forEach(toast => {
-            const progress = toast.querySelector('.toast-progress');
-            setTimeout(() => {
-                if (progress) {
-                    progress.style.width = '0%';
-                }
-            }, 50);
-
+            showToastElement(toast);
             setTimeout(() => {
                 dismissToast(toast);
-            }, 4000);
+            }, 3200);
         });
     });
 
@@ -110,49 +114,65 @@
         if (!container) return;
 
         const isSuccess = type === 'success';
+        const isWarning = type === 'warning';
+
+        let badgeBg, badgeColor, borderColor, shadowColor, defaultTitle, iconSvg;
+
+        if (isSuccess) {
+            badgeBg = 'rgba(0, 104, 95, 0.12)';
+            badgeColor = '#00685F';
+            borderColor = 'rgba(0, 104, 95, 0.25)';
+            shadowColor = 'rgba(0, 104, 95, 0.12)';
+            defaultTitle = 'Berhasil';
+            iconSvg = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`;
+        } else if (isWarning) {
+            badgeBg = 'rgba(245, 158, 11, 0.12)';
+            badgeColor = '#F59E0B';
+            borderColor = 'rgba(245, 158, 11, 0.25)';
+            shadowColor = 'rgba(245, 158, 11, 0.12)';
+            defaultTitle = 'Peringatan';
+            iconSvg = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>`;
+        } else {
+            badgeBg = 'rgba(220, 38, 38, 0.12)';
+            badgeColor = '#DC2626';
+            borderColor = 'rgba(220, 38, 38, 0.25)';
+            shadowColor = 'rgba(220, 38, 38, 0.12)';
+            defaultTitle = 'Gagal';
+            iconSvg = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>`;
+        }
+
         const toast = document.createElement('div');
-        toast.className = `toast-item bg-white rounded-xl shadow-lg ${isSuccess ? 'border border-emerald-200' : 'border border-red-200'} p-3 flex flex-col gap-1.5 transition-all duration-300 ease-out overflow-hidden relative`;
-        toast.style.pointerEvents = 'auto';
-        toast.style.width = '100%';
-        toast.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.06)';
+        toast.className = 'toast-item bg-white rounded-2xl p-3 px-3.5 flex items-center gap-3 transition-all duration-300 ease-out relative cursor-pointer font-manrope pointer-events-auto w-full';
+        toast.style.cssText = `border: 1.2px solid ${borderColor}; box-shadow: 0 6px 16px ${shadowColor}, 0 2px 6px rgba(0, 0, 0, 0.05); transform: translateY(-20px); opacity: 0;`;
         toast.setAttribute('role', 'alert');
 
-        const headerTitle = title || (isSuccess ? 'Berhasil!' : 'Terjadi Kesalahan!');
-        const iconColor = isSuccess ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200';
-        const iconSvg = isSuccess
-            ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>'
-            : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
-
         toast.innerHTML = `
-            <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 rounded-lg ${iconColor} flex items-center justify-center shrink-0 border">
-                    ${iconSvg}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-xs font-bold text-gray-900 leading-tight">${headerTitle}</h3>
-                    <p class="text-[11px] text-gray-600 mt-0.5 leading-tight truncate" title="${message}">${message}</p>
-                </div>
-                <button type="button" class="text-gray-400 hover:text-gray-600 p-0.5 rounded-md hover:bg-gray-100 transition shrink-0 cursor-pointer" title="Tutup">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
+            <div class="w-[38px] h-[38px] rounded-full flex items-center justify-center shrink-0" style="background-color: ${badgeBg}; color: ${badgeColor};">
+                ${iconSvg}
             </div>
-            <div class="w-full ${isSuccess ? 'bg-emerald-100' : 'bg-red-100'} h-0.5 rounded-full overflow-hidden">
-                <div class="toast-progress ${isSuccess ? 'bg-emerald-500' : 'bg-red-500'} h-full w-full rounded-full transition-all duration-[4000ms] ease-linear"></div>
+            <div class="flex-1 min-w-0">
+                <h3 class="text-[13.5px] font-bold text-[#111827] leading-tight">${title || defaultTitle}</h3>
+                <p class="text-xs text-[#6B7280] font-medium mt-0.5 leading-snug line-clamp-2" title="${message}">${message}</p>
             </div>
+            <button type="button" class="close-btn text-gray-400 hover:text-gray-600 p-1 rounded-md transition shrink-0 cursor-pointer" title="Tutup">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
         `;
 
-        toast.querySelector('button').addEventListener('click', () => dismissToast(toast));
-        container.appendChild(toast);
+        toast.addEventListener('click', () => dismissToast(toast));
+        const closeBtn = toast.querySelector('.close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissToast(toast);
+            });
+        }
 
-        const progress = toast.querySelector('.toast-progress');
-        setTimeout(() => {
-            if (progress) progress.style.width = '0%';
-        }, 50);
+        container.appendChild(toast);
+        showToastElement(toast);
 
         setTimeout(() => {
             dismissToast(toast);
-        }, 4000);
+        }, 3200);
     };
 </script>

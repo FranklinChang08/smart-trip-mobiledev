@@ -135,7 +135,7 @@
                                         <form
                                             action="{{ route('admin.lokasi.destroy', ['lokasi' => $lokasi->id_lokasi]) }}"
                                             method="POST"
-                                            onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?');"
+                                            onsubmit="return confirmDelete(event, this, '{{ addslashes($lokasi->nama_lokasi) }}');"
                                             class="inline-block">
                                             @csrf
                                             @method('DELETE')

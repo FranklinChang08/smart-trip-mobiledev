@@ -9,7 +9,13 @@
 @section('content')
     <div class="max-w-7xl mx-auto space-y-6">
 
-
+        <!-- Page Header -->
+        <div class="flex items-center gap-3">
+            <h1 class="text-2xl font-bold text-textPrimary tracking-tight">Data Restoran &amp; Kuliner</h1>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-[#934515] border border-orange-200">
+                {{ $restorans->total() }} Restoran Terdaftar
+            </span>
+        </div>
 
         <!-- WRAPPER 1: Form Pencarian & Tombol Tambah -->
         <form method="GET" action="{{ route('admin.restoran.index') }}"
@@ -24,7 +30,7 @@
                 </span>
                 <input type="text" name="search" value="{{ request('search') }}"
                     placeholder="Cari nama restoran atau lokasi kuliner..."
-                    class="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    class="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-[#934515] focus:border-transparent">
             </div>
 
             <!-- Tombol Tambah Restoran -->
@@ -42,11 +48,12 @@
 
             <!-- Opsi Aksi Multi-Selection -->
             <div class="bg-white flex items-center justify-between">
-                <div class="flex items-center space-x-2 text-sm text-textSecondary">
-                    <span class="font-medium text-textPrimary">0</span> data dipilih
+                <div class="flex items-center gap-1.5 text-sm text-textSecondary">
+                    <span class="font-semibold text-textPrimary" id="selected-count">0</span>
+                    <span>data dipilih</span>
                 </div>
-                <button type="button"
-                    class="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 text-xs font-semibold rounded-md border border-red-200 hover:bg-red-100 transition">
+                <button type="button" id="bulk-delete-btn" disabled
+                    class="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 text-xs font-semibold rounded-lg border border-red-200 hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
@@ -63,7 +70,7 @@
                         <tr
                             class="bg-background border-b border-border text-xs font-semibold text-textSecondary uppercase tracking-wider">
                             <th class="p-4 w-10 text-center">
-                                <input type="checkbox" class="rounded border-border text-primary focus:ring-primary">
+                                <input type="checkbox" id="select-all" class="rounded border-border text-[#235D52] focus:ring-[#235D52] cursor-pointer">
                             </th>
                             <th class="p-4">No</th>
                             <th class="p-4">Foto</th>
@@ -80,7 +87,7 @@
                         @forelse ($restorans as $restoran)
                             <tr class="hover:bg-slate-50 transition">
                                 <td class="p-4 text-center">
-                                    <input type="checkbox" class="rounded border-border text-primary focus:ring-primary"
+                                    <input type="checkbox" class="row-checkbox rounded border-border text-[#235D52] focus:ring-[#235D52] cursor-pointer"
                                         value="{{ $restoran->id_restoran }}">
                                 </td>
                                 <td class="p-4 text-textSecondary">
@@ -91,18 +98,21 @@
                                         $fotoUtama = $restoran->fotoDestinasis->first();
                                     @endphp
                                     <div
-                                        class="h-12 aspect-video rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs flex items-center justify-center text-xs text-slate-500 font-medium">
+                                        class="group relative h-12 w-20 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-gray-100 shadow-xs flex items-center justify-center text-xs text-slate-400 font-medium">
                                         @if ($fotoUtama && !empty($fotoUtama->link_photo))
                                             <img src="{{ asset('storage/' . $fotoUtama->link_photo) }}"
-                                                alt="{{ $restoran->nama_restoran }}" class="w-full h-full object-cover">
+                                                alt="{{ $restoran->nama_restoran }}"
+                                                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
                                         @else
-                                            Foto
+                                            <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
                                         @endif
                                     </div>
                                 </td>
                                 <td class="p-4">
-                                    <div class="font-bold text-textPrimary">{{ $restoran->nama_restoran }}</div>
-                                    <div class="text-xs text-textSecondary">
+                                    <div class="font-bold text-textPrimary leading-snug">{{ $restoran->nama_restoran }}</div>
+                                    <div class="text-xs text-textSecondary mt-0.5 line-clamp-2">
                                         {{ $restoran->alamat_Detail_restoran }}
                                         @if ($restoran->kecamatan)
                                             , {{ $restoran->kecamatan->nama_kecamatan }}
@@ -113,7 +123,7 @@
                                     <div class="flex flex-wrap gap-1">
                                         @forelse($restoran->kategoris as $kategori)
                                             <span
-                                                class="inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-teal-50 text-primary border border-teal-100">
+                                                class="inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full bg-teal-50 text-[#235D52] border border-teal-200">
                                                 {{ $kategori->nama_kategori }}
                                             </span>
                                         @empty
@@ -124,34 +134,47 @@
                                 <td class="p-4">
                                     @php
                                         $type = $restoran->type_food ?? 'Semua';
-                                        $badgeColor = match(strtolower($type)) {
+                                        $lowerType = strtolower($type);
+                                        $badgeClass = match($lowerType) {
                                             'halal' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                                             'vegetarian' => 'bg-purple-50 text-purple-700 border-purple-200',
                                             default => 'bg-slate-100 text-slate-700 border-slate-200',
                                         };
                                     @endphp
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {{ $badgeColor }}">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border {{ $badgeClass }}">
+                                        @if($lowerType === 'halal')
+                                            <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        @endif
                                         {{ $type }}
                                     </span>
                                 </td>
                                 <td class="p-4 text-textSecondary text-xs">
                                     @if ($restoran->jamOperasis->count() > 0)
-                                        {{ $restoran->jamOperasis->first()->jam_buka }} -
-                                        {{ $restoran->jamOperasis->first()->jam_tutup }}
+                                        <div class="flex items-center gap-1.5 font-medium text-slate-600">
+                                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span>{{ \Illuminate\Support\Str::substr($restoran->jamOperasis->first()->jam_buka, 0, 5) }} - {{ \Illuminate\Support\Str::substr($restoran->jamOperasis->first()->jam_tutup, 0, 5) }}</span>
+                                        </div>
                                     @else
-                                        -
+                                        <span class="text-slate-400">-</span>
                                     @endif
                                 </td>
-                                <td class="p-4 font-medium">
-                                    Rp{{ number_format($restoran->harga_makan_per_orang ?? 0, 0, ',', '.') }}
+                                <td class="p-4">
+                                    <div class="font-bold text-textPrimary">
+                                        Rp{{ number_format($restoran->harga_makan_per_orang ?? 0, 0, ',', '.') }}
+                                    </div>
+                                    <div class="text-[11px] text-textSecondary font-normal">/ orang</div>
                                 </td>
-                                <td class="p-4 text-xs font-mono text-textSecondary">
+                                <td class="p-4 text-xs font-mono text-textSecondary whitespace-nowrap">
                                     {{ $restoran->longitude }}&deg; E, {{ $restoran->latitude }}&deg; S
                                 </td>
                                 <td class="p-4 text-center">
-                                    <div class="flex items-center justify-center space-x-2">
+                                    <div class="flex items-center justify-center space-x-1.5">
                                         <a href="{{ route('admin.restoran.show', ['restoran' => $restoran->id_restoran]) }}"
-                                            class="p-1.5 text-slate-500 hover:text-primary transition"
+                                            class="p-2 text-slate-500 hover:text-[#235D52] hover:bg-teal-50 rounded-lg transition"
                                             title="Edit">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -161,12 +184,13 @@
                                         </a>
                                         <form action="{{ route('admin.restoran.destroy', ['restoran' => $restoran->id_restoran]) }}"
                                             method="POST"
-                                            onsubmit="return confirm('Apakah Anda yakin ingin menghapus data restoran ini?');"
+                                            onsubmit="return confirmDelete(event, this, '{{ addslashes($restoran->nama_restoran) }}');"
                                             class="inline-block">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"
-                                                class="p-1.5 text-slate-500 hover:text-red-600 transition" title="Hapus">
+                                                class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                title="Hapus">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -180,7 +204,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="p-6 text-center text-textSecondary italic">
+                                <td colspan="10" class="p-8 text-center text-textSecondary italic">
                                     Belum ada data restoran yang tersedia.
                                 </td>
                             </tr>
@@ -190,7 +214,7 @@
             </div>
 
             <!-- Pagination di Bawah Tabel -->
-            <div class="bg-white border-border pt-2 flex items-center justify-between">
+            <div class="bg-white border-border pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div class="text-sm text-textSecondary">
                     Menampilkan
                     <span class="font-medium text-textPrimary">{{ $restorans->firstItem() ?? 0 }}</span> sampai
@@ -205,4 +229,52 @@
         </div>
 
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const selectAll = document.getElementById('select-all');
+            const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+            const selectedCountEl = document.getElementById('selected-count');
+            const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+
+            function updateCount() {
+                const checked = document.querySelectorAll('.row-checkbox:checked');
+                const count = checked.length;
+                if (selectedCountEl) {
+                    selectedCountEl.textContent = count;
+                }
+                if (bulkDeleteBtn) {
+                    bulkDeleteBtn.disabled = count === 0;
+                }
+                if (selectAll) {
+                    selectAll.checked = rowCheckboxes.length > 0 && count === rowCheckboxes.length;
+                }
+            }
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    rowCheckboxes.forEach(cb => {
+                        cb.checked = selectAll.checked;
+                    });
+                    updateCount();
+                });
+            }
+
+            rowCheckboxes.forEach(cb => {
+                cb.addEventListener('change', updateCount);
+            });
+
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.addEventListener('click', function () {
+                    const checked = document.querySelectorAll('.row-checkbox:checked');
+                    if (checked.length === 0) return;
+                    confirmDelete(function () {
+                        if (window.showToast) {
+                            window.showToast('error', 'Fitur hapus massal sedang dalam pengembangan.');
+                        }
+                    }, `${checked.length} data restoran terpilih`);
+                });
+            }
+        });
+    </script>
 @endsection

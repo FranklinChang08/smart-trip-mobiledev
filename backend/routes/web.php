@@ -91,6 +91,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Alias kompatibilitas jika ada yang memanggil route('admin.restoran')
         Route::get('/restoran-redirect', [RestoranController::class, 'index'])->name('restoran');
 
+        // Alias route hapus foto destinasi agar kompatibel
+        Route::delete('/destinasi/foto/{id}', [FotoDestinasiController::class, 'destroy'])->name('destinasi.foto.destroy');
+        Route::delete('/foto/{id}', [FotoDestinasiController::class, 'destroy'])->name('foto.destroy');
+
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     });
 });

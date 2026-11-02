@@ -91,11 +91,24 @@ class _LoginPageState extends State<LoginPage> {
       );
     } else {
       final errorMsg = result.errorMessage ?? 'Login gagal.';
+      final isSystemError = errorMsg.toLowerCase().contains('server') ||
+          errorMsg.toLowerCase().contains('database') ||
+          errorMsg.toLowerCase().contains('sql') ||
+          errorMsg.toLowerCase().contains('koneksi') ||
+          errorMsg.toLowerCase().contains('terhubung');
+
       setState(() {
-        if (errorMsg.toLowerCase().contains('email')) {
+        if (!isSystemError && errorMsg.toLowerCase().contains('email')) {
           _emailError = errorMsg;
-        } else {
+          _passwordError = null;
+        } else if (!isSystemError &&
+            (errorMsg.toLowerCase().contains('sandi') ||
+                errorMsg.toLowerCase().contains('password'))) {
           _passwordError = errorMsg;
+          _emailError = null;
+        } else {
+          _emailError = null;
+          _passwordError = null;
         }
       });
       AppNotification.showError(
