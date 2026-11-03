@@ -37,8 +37,8 @@ class RencanaPerjalananController extends Controller
             'hariPerjalanan.itemPerjalanan',
             'detailItineraries',
         ])
-        ->where('id_pengguna', $userId)
-        ->orderBy('created_at', 'desc');
+            ->where('id_pengguna', $userId)
+            ->orderBy('created_at', 'desc');
 
         $plans = $query->get();
 
@@ -167,22 +167,18 @@ class RencanaPerjalananController extends Controller
             $isHalal = strtolower($typeFood) === 'halal' || $request->boolean('is_halal');
             $isSeafood = $request->boolean('is_seafood') || str_contains(strtolower($typeFood), 'seafood');
 
-            // Susun detail itinerary
-            if (!empty($validated['custom_destinations'])) {
-                $this->saveCustomItinerary($plan, $validated['custom_destinations']);
-            } else {
-                $this->generateRecommendationItinerary(
-                    $plan,
-                    $totalDays,
-                    $titikAwal,
-                    $validated['kecamatan_pilihan'] ?? [],
-                    $selectedThemes,
-                    $isHalal,
-                    $isSeafood,
-                    $startTime,
-                    $endTime
-                );
-            }
+
+            $this->generateRecommendationItinerary(
+                $plan,
+                $totalDays,
+                $titikAwal,
+                $validated['kecamatan_pilihan'] ?? [],
+                $selectedThemes,
+                $isHalal,
+                $isSeafood,
+                $startTime,
+                $endTime
+            );
 
             DB::commit();
 
@@ -233,28 +229,6 @@ class RencanaPerjalananController extends Controller
         ]);
     }
 
-    // Simpan destinasi kustom
-    private function saveCustomItinerary(RencanaPerjalanan $plan, array $customItems)
-    {
-        foreach ($customItems as $index => $item) {
-            DetailItinerary::create([
-                'id_rencana' => $plan->id_rencana,
-                'hari_ke' => $item['hari_ke'] ?? 1,
-                'urutan' => $index + 1,
-                'tipe_item' => $item['tipe_item'] ?? 'wisata',
-                'id_wisata' => $item['id_wisata'] ?? null,
-                'id_restoran' => $item['id_restoran'] ?? null,
-                'nama_tempat' => $item['nama_tempat'],
-                'kategori' => $item['kategori'] ?? 'Destinasi Pilihan Kustom',
-                'waktu_mulai' => $item['waktu_mulai'] ?? null,
-                'waktu_selesai' => $item['waktu_selesai'] ?? null,
-                'estimasi_biaya' => $item['estimasi_biaya'] ?? null,
-                'catatan' => $item['catatan'] ?? null,
-                'is_kustom' => true,
-            ]);
-        }
-    }
-
     private function generateRecommendationItinerary(
         RencanaPerjalanan $plan,
         int $totalDays,
@@ -292,8 +266,8 @@ class RencanaPerjalananController extends Controller
         if ($isSeafood) {
             $restoranQuery->where(function ($q) {
                 $q->where('nama_restoran', 'like', '%seafood%')
-                  ->orWhere('nama_restoran', 'like', '%kelong%')
-                  ->orWhere('type_food', 'like', '%seafood%');
+                    ->orWhere('nama_restoran', 'like', '%kelong%')
+                    ->orWhere('type_food', 'like', '%seafood%');
             });
         }
         $availableRestoran = $restoranQuery->take(10)->get();
@@ -318,24 +292,6 @@ class RencanaPerjalananController extends Controller
                 'lokasi_akhir' => 'Hotel / Penginapan',
                 'estimasi_biaya' => 0,
             ]);
-
-            // Titik awal hari 1
-            if ($day === 1) {
-                DetailItinerary::create([
-                    'id_rencana' => $plan->id_rencana,
-                    'hari_ke' => 1,
-                    'urutan' => $order++,
-                    'tipe_item' => 'titik_awal',
-                    'nama_tempat' => $startLocation,
-                    'kategori' => 'Titik Awal & Penjemputan',
-                    'waktu_mulai' => $defaultStartTime,
-                    'waktu_selesai' => '09:00',
-                    'estimasi_biaya' => 0,
-                    'catatan' => 'Titik kumpul awal kedatangan dan briefing rute perjalanan Batam.',
-                    'is_kustom' => false,
-                ]);
-            }
-
             // Wisata pagi
             $pagiWisata = $availableWisata->get($wisataIdx % max(1, $availableWisata->count()));
             $wisataIdx++;
@@ -349,27 +305,6 @@ class RencanaPerjalananController extends Controller
                     'arrival_time' => '11:30',
                 ]);
             }
-
-            $pagiKat = $pagiWisata?->kategoris?->first()?->nama_kategori
-                ?? ($pagiWisata?->kecamatan ? 'Wisata ' . $pagiWisata->kecamatan->nama_kecamatan : 'Wisata Unggulan');
-            $pagiDesc = !empty($pagiWisata?->deskripsi)
-                ? Str::limit(trim(preg_replace('/\s+/', ' ', $pagiWisata->deskripsi)), 130, '...')
-                : 'Objek wisata populer di ' . ($pagiWisata?->kecamatan?->nama_kecamatan ?? 'Kota Batam');
-
-            DetailItinerary::create([
-                'id_rencana' => $plan->id_rencana,
-                'hari_ke' => $day,
-                'urutan' => $order++,
-                'tipe_item' => 'wisata',
-                'id_wisata' => $pagiWisata?->id_wisata,
-                'nama_tempat' => $pagiWisata?->nama_wisata ?? 'Museum Raja Ali Haji & Ikon Welcome to Batam',
-                'kategori' => $pagiKat,
-                'waktu_mulai' => '09:15',
-                'waktu_selesai' => '11:30',
-                'estimasi_biaya' => $pagiWisata?->harga_tiket_masuk ?? 15000,
-                'catatan' => $pagiDesc,
-                'is_kustom' => false,
-            ]);
 
             // Kuliner siang
             $siangResto = $availableRestoran->get($restoranIdx % max(1, $availableRestoran->count()));
@@ -385,34 +320,6 @@ class RencanaPerjalananController extends Controller
                 ]);
             }
 
-            $siangKat = $siangResto?->kategoris?->first()?->nama_kategori;
-            if (!$siangKat) {
-                if (!empty($siangResto?->type_food)) {
-                    $siangKat = str_contains(strtolower($siangResto->type_food), 'seafood')
-                        ? 'Restoran Seafood'
-                        : 'Kuliner ' . $siangResto->type_food;
-                } else {
-                    $siangKat = 'Kuliner Khas Batam';
-                }
-            }
-            $siangDesc = !empty($siangResto?->deskripsi)
-                ? Str::limit(trim(preg_replace('/\s+/', ' ', $siangResto->deskripsi)), 130, '...')
-                : 'Santap siang kuliner nikmat di ' . ($siangResto?->kecamatan?->nama_kecamatan ?? 'Kota Batam');
-
-            DetailItinerary::create([
-                'id_rencana' => $plan->id_rencana,
-                'hari_ke' => $day,
-                'urutan' => $order++,
-                'tipe_item' => 'restoran',
-                'id_restoran' => $siangResto?->id_restoran,
-                'nama_tempat' => $siangResto?->nama_restoran ?? 'Kuliner Mie Tarempa Khas Kepri',
-                'kategori' => $siangKat,
-                'waktu_mulai' => '12:00',
-                'waktu_selesai' => '13:30',
-                'estimasi_biaya' => $siangResto?->harga_makan_per_orang ?? 45000,
-                'catatan' => $siangDesc,
-                'is_kustom' => false,
-            ]);
 
             // Wisata sore
             $soreWisata = $availableWisata->get($wisataIdx % max(1, $availableWisata->count()));
@@ -428,27 +335,6 @@ class RencanaPerjalananController extends Controller
                 ]);
             }
 
-            $soreKat = $soreWisata?->kategoris?->first()?->nama_kategori
-                ?? ($soreWisata?->kecamatan ? 'Wisata ' . $soreWisata->kecamatan->nama_kecamatan : 'Wisata Unggulan');
-            $soreDesc = !empty($soreWisata?->deskripsi)
-                ? Str::limit(trim(preg_replace('/\s+/', ' ', $soreWisata->deskripsi)), 130, '...')
-                : 'Jelajah destinasi wisata di ' . ($soreWisata?->kecamatan?->nama_kecamatan ?? 'Kota Batam');
-
-            DetailItinerary::create([
-                'id_rencana' => $plan->id_rencana,
-                'hari_ke' => $day,
-                'urutan' => $order++,
-                'tipe_item' => 'wisata',
-                'id_wisata' => $soreWisata?->id_wisata,
-                'nama_tempat' => $soreWisata?->nama_wisata ?? 'Grand Batam Mall & Nagoya',
-                'kategori' => $soreKat,
-                'waktu_mulai' => '14:30',
-                'waktu_selesai' => '17:30',
-                'estimasi_biaya' => $soreWisata?->harga_tiket_masuk ?? 10000,
-                'catatan' => $soreDesc,
-                'is_kustom' => false,
-            ]);
-
             // Kuliner malam
             $malamResto = $availableRestoran->get($restoranIdx % max(1, $availableRestoran->count()));
             $restoranIdx++;
@@ -462,35 +348,6 @@ class RencanaPerjalananController extends Controller
                     'arrival_time' => '20:30',
                 ]);
             }
-
-            $malamKat = $malamResto?->kategoris?->first()?->nama_kategori;
-            if (!$malamKat) {
-                if (!empty($malamResto?->type_food)) {
-                    $malamKat = str_contains(strtolower($malamResto->type_food), 'seafood')
-                        ? 'Restoran Seafood'
-                        : 'Kuliner ' . $malamResto->type_food;
-                } else {
-                    $malamKat = 'Santap Malam Khas Batam';
-                }
-            }
-            $malamDesc = !empty($malamResto?->deskripsi)
-                ? Str::limit(trim(preg_replace('/\s+/', ' ', $malamResto->deskripsi)), 130, '...')
-                : 'Makan malam nikmat dan santai di ' . ($malamResto?->kecamatan?->nama_kecamatan ?? 'Kota Batam');
-
-            DetailItinerary::create([
-                'id_rencana' => $plan->id_rencana,
-                'hari_ke' => $day,
-                'urutan' => $order++,
-                'tipe_item' => 'restoran',
-                'id_restoran' => $malamResto?->id_restoran,
-                'nama_tempat' => $malamResto?->nama_restoran ?? 'Seafood Kelong Tepi Laut Batam',
-                'kategori' => $malamKat,
-                'waktu_mulai' => '18:30',
-                'waktu_selesai' => '20:30',
-                'estimasi_biaya' => $malamResto?->harga_makan_per_orang ?? 85000,
-                'catatan' => $malamDesc,
-                'is_kustom' => false,
-            ]);
         }
     }
 
