@@ -35,11 +35,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
   };
 
   List<TripAreaModel> _availableAreas = kBatamKecamatanList;
-  final Set<String> _selectedAreas = {
-    'Batam Kota',
-    'Lubuk Baja',
-    'Sagulung',
-  };
+  final Set<String> _selectedAreas = {'Batam Kota', 'Lubuk Baja', 'Sagulung'};
 
   TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 30);
   TimeOfDay _endTime = const TimeOfDay(hour: 21, minute: 0);
@@ -161,10 +157,11 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
           builder: (context, setModalState) {
             // Filter lokasi berdasarkan kategori dan kata kunci pencarian
             List<TripLocationModel> filtered = kBatamLocations.where((loc) {
-              final matchesCategory = selectedCategory == 'all' ||
-                  loc.category == selectedCategory;
+              final matchesCategory =
+                  selectedCategory == 'all' || loc.category == selectedCategory;
               final query = searchQuery.trim().toLowerCase();
-              final matchesQuery = query.isEmpty ||
+              final matchesQuery =
+                  query.isEmpty ||
                   loc.name.toLowerCase().contains(query) ||
                   loc.type.toLowerCase().contains(query) ||
                   loc.quickLabel.toLowerCase().contains(query);
@@ -211,8 +208,11 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.location_on_outlined,
-                              color: AppColors.primary, size: 20),
+                          child: const Icon(
+                            Icons.location_on_outlined,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
@@ -260,11 +260,17 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                       },
 
                       decoration: InputDecoration(
-                        hintText: 'Cari hotel, pelabuhan, bandara (mis: Aston)...',
-                        hintStyle:
-                            TextStyle(fontSize: 12.5, color: Colors.grey.shade400),
-                        prefixIcon: const Icon(Icons.search,
-                            size: 20, color: AppColors.primary),
+                        hintText:
+                            'Cari hotel, pelabuhan, bandara (mis: Aston)...',
+                        hintStyle: TextStyle(
+                          fontSize: 12.5,
+                          color: Colors.grey.shade400,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          size: 20,
+                          color: AppColors.primary,
+                        ),
                         suffixIcon: searchQuery.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.clear, size: 18),
@@ -278,22 +284,27 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                             : null,
                         filled: true,
                         fillColor: const Color(0xFFF8FAFC),
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(
-                              color: AppColors.primary, width: 1.5),
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                     ),
@@ -326,14 +337,16 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                             label: '🚢 Pelabuhan Ferry',
                             isSelected: selectedCategory == 'pelabuhan',
                             onTap: () => setModalState(
-                                () => selectedCategory = 'pelabuhan'),
+                              () => selectedCategory = 'pelabuhan',
+                            ),
                           ),
                           const SizedBox(width: 6),
                           _buildFilterCategoryPill(
                             label: '✈️ Bandara',
                             isSelected: selectedCategory == 'bandara',
                             onTap: () => setModalState(
-                                () => selectedCategory = 'bandara'),
+                              () => selectedCategory = 'bandara',
+                            ),
                           ),
                         ],
                       ),
@@ -351,8 +364,11 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.search_off,
-                                      size: 40, color: Colors.grey.shade400),
+                                  Icon(
+                                    Icons.search_off,
+                                    size: 40,
+                                    color: Colors.grey.shade400,
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Tidak ditemukan lokasi "$searchQuery"',
@@ -377,7 +393,9 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                           )
                         : ListView.separated(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                             itemCount: filtered.length,
                             separatorBuilder: (context, i) =>
                                 const SizedBox(height: 8),
@@ -393,11 +411,14 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                                 borderRadius: BorderRadius.circular(14),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 12),
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? AppColors.primary
-                                            .withValues(alpha: 0.07)
+                                        ? AppColors.primary.withValues(
+                                            alpha: 0.07,
+                                          )
                                         : const Color(0xFFF8FAFC),
                                     borderRadius: BorderRadius.circular(14),
                                     border: Border.all(
@@ -415,8 +436,9 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                                           color: isSelected
                                               ? AppColors.primary
                                               : Colors.grey.shade200,
-                                          borderRadius:
-                                              BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         child: Icon(
                                           loc.icon,
@@ -435,11 +457,13 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                                             if (isSelected)
                                               Container(
                                                 margin: const EdgeInsets.only(
-                                                    bottom: 3),
+                                                  bottom: 3,
+                                                ),
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                        horizontal: 6,
-                                                        vertical: 2),
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
                                                 decoration: BoxDecoration(
                                                   color: AppColors.primary,
                                                   borderRadius:
@@ -479,12 +503,17 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                                         ),
                                       ),
                                       if (isSelected)
-                                        const Icon(Icons.check_circle,
-                                            color: AppColors.primary, size: 22)
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: AppColors.primary,
+                                          size: 22,
+                                        )
                                       else
-                                        Icon(Icons.chevron_right,
-                                            color: Colors.grey.shade400,
-                                            size: 20),
+                                        Icon(
+                                          Icons.chevron_right,
+                                          color: Colors.grey.shade400,
+                                          size: 20,
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -547,7 +576,9 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       return false;
     }
     if (_selectedAreas.isEmpty) {
-      _showWarningSnackBar('Pilih minimal 1 kecamatan destinasi di Kota Batam.');
+      _showWarningSnackBar(
+        'Pilih minimal 1 kecamatan destinasi di Kota Batam.',
+      );
       return false;
     }
     return true;
@@ -660,7 +691,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     if (!_validateStep2()) return;
 
     final plan = SavedTripPlan(
-      id: 'plan_${DateTime.now().millisecondsSinceEpoch}',
+      id: '',
       tripName: _tripNameController.text.trim().isNotEmpty
           ? _tripNameController.text.trim()
           : 'Liburan Akhir Pekan di Batam',
@@ -774,9 +805,10 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                       if (_selectedAreas.length > 1) {
                         _selectedAreas.remove(area);
                       } else {
-                        _showWarningSnackBar('Pilih minimal 1 kecamatan destinasi.');
+                        _showWarningSnackBar(
+                          'Pilih minimal 1 kecamatan destinasi.',
+                        );
                       }
-
                     } else {
                       _selectedAreas.add(area);
                     }
@@ -862,7 +894,11 @@ class TripPlanHeader extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.help_outline, color: AppColors.textSecondary, size: 20),
+          icon: const Icon(
+            Icons.help_outline,
+            color: AppColors.textSecondary,
+            size: 20,
+          ),
           onPressed: () {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -972,10 +1008,7 @@ class TripBottomActionBar extends StatelessWidget {
               children: [
                 ManropeFont(
                   'Lanjutkan ke Preferensi',
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(width: 6),
                 Icon(Icons.arrow_forward, size: 16),
@@ -1076,4 +1109,4 @@ class TripBottomActionBar extends StatelessWidget {
       ],
     );
   }
-}
+}

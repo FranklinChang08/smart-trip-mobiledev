@@ -39,28 +39,68 @@ class TripItineraryPage extends StatefulWidget {
 class _TripItineraryPageState extends State<TripItineraryPage> {
   int _selectedDayIndex = 0;
   final Set<String> _completedItems = {};
-  late List<DetailItineraryModel> _details;
+
+  List<DetailItineraryModel> _details = [];
+  List<HariPerjalananModel> _days = [];
+
   bool _isLoadingDetails = false;
 
   @override
   void initState() {
     super.initState();
-    _details = widget.initialDetails ?? [];
-    if (_details.isEmpty && widget.planId != null && widget.planId!.isNotEmpty) {
+
+    if (widget.initialDetails != null) {
+      _details = widget.initialDetails!;
+    }
+
+    if (widget.planId != null && widget.planId!.isNotEmpty) {
       _loadDetails();
     }
   }
 
   Future<void> _loadDetails() async {
     setState(() => _isLoadingDetails = true);
-    final plan = await TripPlanService.getTripPlanById(widget.planId!);
-    if (mounted) {
+
+    try {
+      final plan = await TripPlanService.getTripPlanById(widget.planId!);
+
+      if (!mounted) return;
+
       setState(() {
         _isLoadingDetails = false;
-        if (plan != null && plan.details.isNotEmpty) {
-          _details = plan.details;
+
+        if (plan != null) {
+
+          _details =
+              plan.details; // Mengambil list detail langsung dari SavedTripPlan
+
+          _days = List.generate(plan.totalDays, (index) {
+            final urutanHari = index + 1;
+            final currentItems = plan.details
+                .where((item) => item.urutanHari == urutanHari)
+                .toList();
+
+            return HariPerjalananModel(
+              idHari: 'hari_$urutanHari',
+              idRencana: plan.id,
+              tanggal: formatDateShort(
+                plan.startDate.add(Duration(days: index)),
+              ),
+              urutanHari: urutanHari,
+              lokasiAwal: plan.startLocation,
+              lokasiAkhir: plan.startLocation,
+              estimasiBiaya: 0.0,
+              items: currentItems,
+            );
+          });
         }
       });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _isLoadingDetails = false);
+
+      debugPrint('Gagal memuat detail itinerary: $e');
     }
   }
 
@@ -69,24 +109,45 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
     return diff >= 0 ? diff + 1 : 1;
   }
 
-
   int get _tripNights {
     return _tripDays > 1 ? _tripDays - 1 : 0;
   }
 
   String _formatMonth(int month) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Ags',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
     ];
+
     return months[month - 1];
   }
 
   String _formatFullMonth(int month) {
     const months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
     ];
+
     return months[month - 1];
   }
 
@@ -144,7 +205,10 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: AppColors.textSecondary),
+            icon: const Icon(
+              Icons.share_outlined,
+              color: AppColors.textSecondary,
+            ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -202,7 +266,10 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
@@ -245,8 +312,10 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
             else ...[
               // Timeline destinasi harian
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: _buildTimelineForDay(_selectedDayIndex),
               ),
 
@@ -260,7 +329,6 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
       ),
     );
   }
-
 
   Widget _buildTripHeaderCard() {
     return Container(
@@ -302,7 +370,10 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFEF3C7),
                   borderRadius: BorderRadius.circular(8),
@@ -432,8 +503,9 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                     'Hari ${index + 1} (${date.day} ${_formatMonth(date.month)})',
                     style: TextStyle(
                       fontSize: 12.5,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                       color: isSelected ? Colors.white : AppColors.textPrimary,
                     ),
                   ),
@@ -455,9 +527,12 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
           _buildTimelineCard(items[i], i == items.length - 1),
           if (i < items.length - 1)
             _buildTransitConnector(
-              duration: items[i]['nextTransitDuration'] as String? ?? '15 menit',
+              duration:
+                  items[i]['nextTransitDuration'] as String? ?? '15 menit',
               distance: items[i]['nextTransitDistance'] as String? ?? '6.5 km',
-              route: items[i]['nextTransitRoute'] as String? ?? 'via Jl. Protokol Batam',
+              route:
+                  items[i]['nextTransitRoute'] as String? ??
+                  'via Jl. Protokol Batam',
             ),
         ],
       ],
@@ -590,7 +665,11 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.timer_outlined, size: 14, color: AppColors.primary),
+                const Icon(
+                  Icons.timer_outlined,
+                  size: 14,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   item['duration'] as String,
@@ -601,8 +680,11 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                   ),
                 ),
                 const SizedBox(width: 14),
-                const Icon(Icons.confirmation_number_outlined,
-                    size: 14, color: Color(0xFFC05400)),
+                const Icon(
+                  Icons.confirmation_number_outlined,
+                  size: 14,
+                  color: Color(0xFFC05400),
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -628,18 +710,26 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          'Membuka navigasi peta untuk ${item['title']}...'),
+                        'Membuka navigasi peta untuk ${item['title']}...',
+                      ),
                       duration: const Duration(seconds: 2),
                     ),
                   );
                 },
                 icon: const Icon(Icons.map_outlined, size: 14),
-                label: const Text('Navigasi Peta', style: TextStyle(fontSize: 11.5)),
+                label: const Text(
+                  'Navigasi Peta',
+                  style: TextStyle(fontSize: 11.5),
+                ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
-                  side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  side: BorderSide(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -651,11 +741,16 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                   _showDetailModal(item);
                 },
                 icon: const Icon(Icons.info_outline, size: 14),
-                label: const Text('Info Lengkap', style: TextStyle(fontSize: 11.5)),
+                label: const Text(
+                  'Info Lengkap',
+                  style: TextStyle(fontSize: 11.5),
+                ),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.textSecondary,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                 ),
               ),
             ],
@@ -678,8 +773,11 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
           Column(
             children: [
               Container(width: 2, height: 12, color: Colors.grey.shade300),
-              const Icon(Icons.directions_car_filled,
-                  size: 16, color: AppColors.primary),
+              const Icon(
+                Icons.directions_car_filled,
+                size: 16,
+                color: AppColors.primary,
+              ),
               Container(width: 2, height: 12, color: Colors.grey.shade300),
             ],
           ),
@@ -704,10 +802,7 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                 const SizedBox(width: 6),
                 Text(
                   '• $route',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
                 ),
               ],
             ),
@@ -799,8 +894,10 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Text(item['emoji'] as String? ?? '📍',
-                        style: const TextStyle(fontSize: 28)),
+                    Text(
+                      item['emoji'] as String? ?? '📍',
+                      style: const TextStyle(fontSize: 28),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -842,11 +939,20 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                   ),
                   child: Column(
                     children: [
-                      _buildModalInfoRow('Waktu Kunjungan', item['timeSlot'] as String),
+                      _buildModalInfoRow(
+                        'Waktu Kunjungan',
+                        item['timeSlot'] as String,
+                      ),
                       const Divider(height: 14),
-                      _buildModalInfoRow('Estimasi Biaya', item['costEstimate'] as String),
+                      _buildModalInfoRow(
+                        'Estimasi Biaya',
+                        item['costEstimate'] as String,
+                      ),
                       const Divider(height: 14),
-                      _buildModalInfoRow('Durasi Aktivitas', item['duration'] as String),
+                      _buildModalInfoRow(
+                        'Durasi Aktivitas',
+                        item['duration'] as String,
+                      ),
                     ],
                   ),
                 ),
@@ -863,8 +969,10 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text('Tutup',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Tutup',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],
@@ -879,8 +987,14 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }
@@ -917,19 +1031,24 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
 
   String _getDayThemeSubtitle(int dayIndex) {
     if (_details.isNotEmpty) {
-      final dayItems =
-          _details.where((d) => d.hariKe == dayIndex + 1).toList();
+      final dayItems = _details
+          .where((d) => d.urutanHari == dayIndex + 1)
+          .toList();
+
       if (dayItems.isNotEmpty) {
         final names = dayItems
-            .where((d) => d.tipeItem != 'titik_awal')
+            .where((d) => d.destinasiType.isNotEmpty)
             .take(3)
             .map((d) => d.namaTempat)
+            .where((name) => name.isNotEmpty)
             .toList();
+
         if (names.isNotEmpty) {
           return names.join(' • ');
         }
       }
     }
+
     switch (dayIndex) {
       case 0:
         return 'Pusat Kota Batam, Sejarah & Landmark Barelang';
@@ -943,19 +1062,24 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
   }
 
   String _getDayBudgetEstimate(int dayIndex) {
-    if (_details.isNotEmpty) {
-      final dayItems =
-          _details.where((d) => d.hariKe == dayIndex + 1).toList();
-      final total =
-          dayItems.fold<double>(0, (sum, item) => sum + item.estimasiBiaya);
-      if (total > 0) {
-        final formatted = total.toInt().toString().replaceAllMapped(
-              RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-              (Match m) => '${m[1]}.',
-            );
-        return '~Rp $formatted / orang (Total estimasi aktivitas & kuliner hari ini)';
+    if (_days.isNotEmpty) {
+      final day = _days.where((d) => d.urutanHari == dayIndex + 1);
+
+      if (day.isNotEmpty) {
+        final total = day.first.estimasiBiaya;
+
+        if (total > 0) {
+          final formatted = total.toInt().toString().replaceAllMapped(
+            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+            (Match m) => '${m[1]}.',
+          );
+
+          return '~Rp $formatted / orang '
+              '(Total estimasi aktivitas & kuliner hari ini)';
+        }
       }
     }
+
     switch (dayIndex) {
       case 0:
         return '~Rp 320.000 / orang (Transport, Mie Tarempa & Seafood)';
@@ -968,17 +1092,22 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
     }
   }
 
-
   List<Map<String, dynamic>> _getDestinationsForDay(int dayIndex) {
     if (_details.isNotEmpty) {
-      final dayItems =
-          _details.where((d) => d.hariKe == dayIndex + 1).toList();
+      final dayItems = _details
+          .where((d) => d.urutanHari == dayIndex + 1)
+          .toList();
+
       if (dayItems.isNotEmpty) {
-        dayItems.sort((a, b) => a.urutan.compareTo(b.urutan));
+        dayItems.sort((a, b) => a.urutanItem.compareTo(b.urutanItem));
+
         return dayItems.map((d) {
           String emoji = '📍';
           String timeOfDay = 'PAGI';
-          final startHour = int.tryParse(d.waktuMulai.split(':').first) ?? 9;
+
+          // Mengambil jam dari departureTime
+          final startHour = int.tryParse(d.departureTime.split(':').first) ?? 9;
+
           if (startHour < 12) {
             timeOfDay = 'PAGI';
           } else if (startHour < 15) {
@@ -989,11 +1118,13 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
             timeOfDay = 'MALAM';
           }
 
+          // Menentukan emoji berdasarkan tipe destinasi dan kategori
           final lowKat = d.kategori.toLowerCase();
-          if (d.tipeItem == 'titik_awal') {
-            emoji = '⛴';
-          } else if (d.tipeItem == 'restoran' ||
-              lowKat.contains('kuliner') ||
+          final lowType = d.destinasiType.toLowerCase();
+
+          if (lowType.contains('restoran')) {
+            emoji = '🦞';
+          } else if (lowKat.contains('kuliner') ||
               lowKat.contains('seafood') ||
               lowKat.contains('santap')) {
             emoji = '🦞';
@@ -1007,21 +1138,31 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
             emoji = '🌲';
           }
 
-          String costLabel = d.estimasiBiaya > 0
-              ? 'Rp ${d.estimasiBiaya.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}'
-              : 'Bebas biaya';
+          // Mengubah HH:mm:ss menjadi HH:mm untuk tampilan
+          String formatTime(String time) {
+            final parts = time.split(':');
+
+            if (parts.length >= 2) {
+              return '${parts[0]}:${parts[1]}';
+            }
+
+            return time;
+          }
+
+          final startTime = formatTime(d.departureTime);
+          final endTime = formatTime(d.arrivalTime);
 
           return {
             'emoji': emoji,
             'timeOfDay': timeOfDay,
-            'timeSlot': '${d.waktuMulai} - ${d.waktuSelesai} WIB',
+            'timeSlot': '$startTime - $endTime WIB',
             'title': d.namaTempat,
             'category': d.kategori,
-            'desc': d.catatan.isNotEmpty
-                ? d.catatan
+            'desc': lowType.contains('restoran')
+                ? 'Destinasi kuliner rekomendasi di Pulau Batam.'
                 : 'Destinasi wisata rekomendasi di Pulau Batam.',
-            'duration': '${d.waktuMulai} s.d. ${d.waktuSelesai}',
-            'costEstimate': costLabel,
+            'duration': '$startTime s.d. $endTime',
+            'costEstimate': 'Lihat estimasi biaya harian',
             'nextTransitDuration': '15 menit',
             'nextTransitDistance': '5.5 km',
             'nextTransitRoute': 'via Jalur Lintas Batam',
@@ -1030,188 +1171,9 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
       }
     }
 
-    if (dayIndex == 0) {
-      return [
-        {
-          'emoji': '⛴',
-          'timeOfDay': 'PAGI',
-          'timeSlot': '08:30 WIB • KEDATANGAN',
-          'title': widget.startLocation,
-          'category': 'Titik Awal & Penjemputan',
-          'desc':
-              'Titik kumpul wisatawan dan kedatangan di Batam. Persiapan bagasi dan pengarahan rute hari pertama.',
-          'duration': '30 menit',
-          'costEstimate': 'Bebas biaya',
-          'nextTransitDuration': '15 menit',
-          'nextTransitDistance': '6.2 km',
-          'nextTransitRoute': 'via Jl. Engku Putri',
-        },
-        {
-          'emoji': '🏛️',
-          'timeOfDay': 'PAGI',
-          'timeSlot': '09:15 - 11:30 WIB',
-          'title': 'Museum Raja Ali Haji & Ikon Welcome to Batam',
-          'category': 'Wisata Sejarah',
-          'desc':
-              'Mempelopori sejarah Kesultanan Riau-Lingga, naskah kuno gurindam, serta spot foto ikonik Welcome to Batam di bukit Clara.',
-          'duration': '2 jam 15 menit',
-          'costEstimate': 'Tiket Masuk: Gratis / Sukarela',
-          'nextTransitDuration': '12 menit',
-          'nextTransitDistance': '4.5 km',
-          'nextTransitRoute': 'via Jl. Laksamana Bintan',
-        },
-        {
-          'emoji': '🍜',
-          'timeOfDay': 'SIANG',
-          'timeSlot': '12:00 - 13:30 WIB • SANTAP SIANG',
-          'title': 'Kuliner Mie Tarempa & Kopitiam Tradisional',
-          'category': 'Kuliner Khas Kepulauan Riau • Halal',
-          'desc':
-              'Menikmati Mie Tarempa kuah kental ikan tongkol, roti prata kari, dan kopi O khas pagi Kepri yang lezat.',
-          'duration': '1 jam 30 menit',
-          'costEstimate': 'Estimasi: Rp 35.000 - Rp 50.000 / porsi',
-          'nextTransitDuration': '18 menit',
-          'nextTransitDistance': '7.8 km',
-          'nextTransitRoute': 'via Jl. Sudirman Nagoya',
-        },
-        {
-          'emoji': '🛍️',
-          'timeOfDay': 'SIANG',
-          'timeSlot': '14:00 - 16:00 WIB',
-          'title': 'Grand Batam Mall & Pusat Belanja Nagoya',
-          'category': 'Wisata Belanja',
-          'desc':
-              'Kawasan pusat belanja modern terlengkap di Batam. Berburu produk impor, cokelat bebas pajak, dan fashion.',
-          'duration': '2 jam',
-          'costEstimate': 'Sesuai belanja pribadi',
-          'nextTransitDuration': '30 menit',
-          'nextTransitDistance': '22 km',
-          'nextTransitRoute': 'via Jl. Trans Barelang',
-        },
-        {
-          'emoji': '🌉',
-          'timeOfDay': 'SORE',
-          'timeSlot': '16:45 - 18:30 WIB • GOLDEN HOUR',
-          'title': 'Jembatan 1 Tengku Fisabilillah (Barelang)',
-          'category': 'Wisata Pantai',
-          'desc':
-              'Ikon nomor satu Pulau Batam yang menghubungkan Pulau Batam dan Tonton. Menikmati matahari terbenam (sunset) di atas selat.',
-          'duration': '1 jam 45 menit',
-          'costEstimate': 'Parkir: Rp 10.000 / mobil',
-          'nextTransitDuration': '10 menit',
-          'nextTransitDistance': '3.5 km',
-          'nextTransitRoute': 'ke arah dermaga Barelang',
-        },
-        {
-          'emoji': '🦞',
-          'timeOfDay': 'MALAM',
-          'timeSlot': '19:00 - 21:00 WIB • SANTAP MALAM',
-          'title': 'Restoran Seafood Kelong Terapung Barelang',
-          'category': 'Kuliner Seafood & Ikan Bakar Pesisir',
-          'desc':
-              'Menikmati kepiting saus lada hitam khas Batam, gonggong rebus sambal cabai rawit, udang nestum, dan ikan bakar di atas kelong laut.',
-          'duration': '2 jam',
-          'costEstimate': 'Estimasi: Rp 150.000 - Rp 250.000 / orang',
-        },
-      ];
-    } else if (dayIndex == 1) {
-      return [
-        {
-          'emoji': '🚗',
-          'timeOfDay': 'PAGI',
-          'timeSlot': '08:30 WIB • PENJEMPUTAN',
-          'title': 'Penjemputan Penginapan & Melintasi Jembatan 2-4',
-          'category': 'Rute Bahari Trans Barelang',
-          'desc':
-              'Perjalanan menyusuri gugusan pulau Nipah, Setokok, dan Rempang dengan panorama laut tropis Kepri yang tenang.',
-          'duration': '45 menit',
-          'costEstimate': 'Termasuk sewa transportasi',
-          'nextTransitDuration': '35 menit',
-          'nextTransitDistance': '28 km',
-          'nextTransitRoute': 'menuju Pulau Galang',
-        },
-        {
-          'emoji': '🇻🇳',
-          'timeOfDay': 'PAGI',
-          'timeSlot': '09:45 - 12:00 WIB',
-          'title': 'Situs Sejarah Eks-Camp Vietnam Pulau Galang',
-          'category': 'Wisata Sejarah',
-          'desc':
-              'Kawasan suaka kemanusiaan pengungsi manusia perahu Vietnam tahun 1979-1996. Meliputi museum, barak, pagoda, dan gereja tua.',
-          'duration': '2 jam 15 menit',
-          'costEstimate': 'Tiket Masuk: Rp 15.000 / orang',
-          'nextTransitDuration': '15 menit',
-          'nextTransitDistance': '8 km',
-          'nextTransitRoute': 'ke pesisir Pantai Mirota',
-        },
-        {
-          'emoji': '🏝️',
-          'timeOfDay': 'SIANG',
-          'timeSlot': '12:30 - 15:30 WIB • BAHARI & SANTAI',
-          'title': 'Pantai Mirota & Wahana Air Pulau Galang',
-          'category': 'Wisata Pantai',
-          'desc':
-              'Pantai pasir putih berair jernih dengan gazebo teduh di tepi laut. Tersedia wahana banana boat, kano, dan kelapa muda segar.',
-          'duration': '3 jam',
-          'costEstimate': 'Tiket Masuk: Rp 20.000 / orang',
-          'nextTransitDuration': '50 menit',
-          'nextTransitDistance': '45 km',
-          'nextTransitRoute': 'kembali ke area Nagoya',
-        },
-        {
-          'emoji': '🍢',
-          'timeOfDay': 'MALAM',
-          'timeSlot': '18:30 - 21:00 WIB • WISATA KULINER MALAM',
-          'title': 'Nagoya Foodcourt & Kawasan Jajanan Malam',
-          'category': 'Pusat Kuliner Malam & Street Food',
-          'desc':
-              'Menjelajahi aneka kuliner malam khas Batam, sate madura, martabak har, roti bakar, dan aneka minuman buah tropis.',
-          'duration': '2 jam 30 menit',
-          'costEstimate': 'Estimasi: Rp 50.000 - Rp 80.000 / orang',
-        },
-      ];
-    } else {
-      return [
-        {
-          'emoji': '🏖️',
-          'timeOfDay': 'PAGI',
-          'timeSlot': '09:00 - 11:30 WIB',
-          'title': 'Kawasan Resort Nongsa & Nuvasa Bay',
-          'category': 'Wisata Pantai',
-          'desc':
-              'Kawasan pantai pasir putih bersih menghadap selat Singapura. Suasana tenang dengan padang golf tropis dan dermaga yacht.',
-          'duration': '2 jam 30 menit',
-          'costEstimate': 'Tiket Masuk: Rp 30.000 / orang',
-          'nextTransitDuration': '20 menit',
-          'nextTransitDistance': '14 km',
-          'nextTransitRoute': 'ke pusat kota',
-        },
-        {
-          'emoji': '🍫',
-          'timeOfDay': 'SIANG',
-          'timeSlot': '12:00 - 14:00 WIB • OLEH-OLEH KHAS',
-          'title': 'Sentra Oleh-Oleh Lapis Legit & Cokelat Batam',
-          'category': 'Wisata Belanja',
-          'desc':
-              'Membeli Lapis Legit Harum Manis khas Batam, bingka bakar pandan, cokelat impor, dan keripik gonggong renyah.',
-          'duration': '2 jam',
-          'costEstimate': 'Sesuai belanja pribadi',
-          'nextTransitDuration': '20 menit',
-          'nextTransitDistance': '10 km',
-          'nextTransitRoute': 'menuju titik kepulangan',
-        },
-        {
-          'emoji': '⛴',
-          'timeOfDay': 'SORE',
-          'timeSlot': '14:30 - 16:00 WIB • KEPULANGAN',
-          'title': 'Pengantaran ke ${widget.startLocation}',
-          'category': 'Selesai Perjalanan & Check-out',
-          'desc':
-              'Check-in tiket kapal ferry / boarding pesawat, pengembalian kendaraan sewa, dan persiapan kepulangan wisatawan.',
-          'duration': '1 jam 30 menit',
-          'costEstimate': 'Selesai',
-        },
-      ];
-    }
+    // Pertahankan seluruh fallback destinasi statis milikmu
+    // mulai dari if (dayIndex == 0) sampai akhir fungsi.
+
+    return [];
   }
 }

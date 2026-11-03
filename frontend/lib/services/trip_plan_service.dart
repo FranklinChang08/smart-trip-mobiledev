@@ -1,11 +1,11 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 
 /// Layanan manajemen data rencana perjalanan
 class TripPlanService {
@@ -90,8 +90,7 @@ class TripPlanService {
           }
         }
       }
-    } catch (_) {
-    }
+    } catch (_) {}
     return kTripThemes;
   }
 
@@ -159,7 +158,7 @@ class TripPlanService {
     }
   }
 
-  /// Mengambil daftar 
+  /// Mengambil daftar
   static Future<List<TripAreaModel>> fetchKecamatan() async {
     try {
       final response = await http
@@ -200,7 +199,7 @@ class TripPlanService {
     return 'saved_batam_trip_plans_guest';
   }
 
-  /// Menyimpan rencana perjalanan 
+  /// Menyimpan rencana perjalanan
   static Future<SavedTripPlan?> saveTripPlan(SavedTripPlan plan) async {
     SavedTripPlan? savedResult;
     try {
@@ -226,7 +225,9 @@ class TripPlanService {
         'titik_awal': plan.startLocation,
         'budget_trip': numericBudget,
         'total_anggaran': numericBudget,
-        'type_food': plan.isHalal ? 'Halal' : (plan.isSeafood ? 'Seafood' : 'Semua'),
+        'type_food': plan.isHalal
+            ? 'Halal'
+            : (plan.isSeafood ? 'Seafood' : 'Semua'),
         'kategori_minat': plan.selectedThemes,
         'kecamatan_pilihan': plan.selectedAreas,
         'is_halal': plan.isHalal,
@@ -239,15 +240,30 @@ class TripPlanService {
             headers: headers,
             body: body,
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 90));
+
+      // Tampilkan informasi request dan response
+      debugPrint('========== REQUEST FLUTTER ==========');
+      debugPrint(body);
+
+      debugPrint('========== RESPONSE LARAVEL ==========');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final json = jsonDecode(response.body);
-        if (json['success'] == true && json['data'] is Map) {
+
+        if (json is Map && json['success'] == true && json['data'] is Map) {
           savedResult = SavedTripPlan.fromJson(
-            json['data'] as Map<String, dynamic>,
+            Map<String, dynamic>.from(json['data']),
           );
+
+          debugPrint('BERHASIL MENERIMA DATA DARI LARAVEL');
+        } else {
+          debugPrint('Response berhasil, tetapi format data tidak sesuai.');
         }
+      } else {
+        debugPrint('GAGAL MENYIMPAN KE BACKEND');
       }
     } catch (e) {
       debugPrint('Sinkronisasi backend rencana perjalanan: $e');
@@ -293,18 +309,13 @@ class TripPlanService {
 
     try {
       final token = await AuthService.getToken();
-      final headers = <String, String>{
-        'Accept': 'application/json',
-      };
+      final headers = <String, String>{'Accept': 'application/json'};
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
 
       final response = await http
-          .get(
-            Uri.parse('$_baseUrl/rencana-perjalanan'),
-            headers: headers,
-          )
+          .get(Uri.parse('$_baseUrl/rencana-perjalanan'), headers: headers)
           .timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
@@ -344,28 +355,20 @@ class TripPlanService {
     if (plans.isEmpty) {
       return SavedTripPlan.defaultPlan();
     }
-    return plans.firstWhere(
-      (p) => p.isActive,
-      orElse: () => plans.first,
-    );
+    return plans.firstWhere((p) => p.isActive, orElse: () => plans.first);
   }
 
   /// Mengambil satu rencana perjalanan beserta detail itinerarinya
   static Future<SavedTripPlan?> getTripPlanById(String id) async {
     try {
       final token = await AuthService.getToken();
-      final headers = <String, String>{
-        'Accept': 'application/json',
-      };
+      final headers = <String, String>{'Accept': 'application/json'};
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
 
       final response = await http
-          .get(
-            Uri.parse('$_baseUrl/rencana-perjalanan/$id'),
-            headers: headers,
-          )
+          .get(Uri.parse('$_baseUrl/rencana-perjalanan/$id'), headers: headers)
           .timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
@@ -384,9 +387,7 @@ class TripPlanService {
   static Future<void> setActivePlan(String planId) async {
     try {
       final token = await AuthService.getToken();
-      final headers = <String, String>{
-        'Accept': 'application/json',
-      };
+      final headers = <String, String>{'Accept': 'application/json'};
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
@@ -435,9 +436,7 @@ class TripPlanService {
     bool isSuccess = false;
     try {
       final token = await AuthService.getToken();
-      final headers = <String, String>{
-        'Accept': 'application/json',
-      };
+      final headers = <String, String>{'Accept': 'application/json'};
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
@@ -469,5 +468,3 @@ class TripPlanService {
     return isSuccess;
   }
 }
-
-
