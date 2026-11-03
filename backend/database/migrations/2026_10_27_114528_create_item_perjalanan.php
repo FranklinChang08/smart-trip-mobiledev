@@ -14,8 +14,8 @@ return new class extends Migration {
             $table->uuid('id_item')->primary();
             $table->uuid('id_hari');
             $table->uuidMorphs('destinasi');
-            $table->integer('urutan_item')->default(2);
-            $table->time('depature_time');
+            $table->integer('urutan_item')->default(1); // Diubah dari 2 ke 1
+            $table->time('departure_time'); // Diperbaiki dari 'depature_time'
             $table->time('arrival_time');
             $table->timestamps();
 

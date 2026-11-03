@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->uuid('id_hari')->primary();
             $table->uuid('id_rencana');
             $table->date('tanggal');
-            $table->integer('urutan_hari')->default(2);
+            $table->integer('urutan_hari')->default(1); // Diubah dari 2 ke 1
             $table->string('lokasi_awal');
             $table->string('lokasi_akhir');
             $table->decimal('estimasi_biaya', 12, 2)->nullable();

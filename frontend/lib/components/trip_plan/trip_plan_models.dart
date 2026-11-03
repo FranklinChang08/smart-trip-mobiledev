@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+// ============================================================================
+// 1. MODEL DATA PENDUKUNG FORM & PREFERENSI TRIP
+// ============================================================================
+
 /// Model kategori minat tema wisata (Alam, Pantai, Budaya, Kuliner, dll.)
 class TripThemeModel {
   final String title;
@@ -52,97 +56,192 @@ class TripVisitTimeModel {
   final String label;
   final String desc;
 
-  const TripVisitTimeModel({
-    required this.label,
-    required this.desc,
-  });
+  const TripVisitTimeModel({required this.label, required this.desc});
 }
 
+// ============================================================================
+// 2. MODEL DETAIL ITINERARY & HARI PERJALANAN
+// ============================================================================
 
 /// Model untuk detail setiap item destinasi/kunjungan pada itinerary
 class DetailItineraryModel {
-  final String id;
-  final int hariKe;
-  final int urutan;
-  final String tipeItem;
+  final String idItem;
+  final String idHari;
+  final int urutanHari;
+  final int urutanItem;
+
+  // Data dari relasi destinasi
+  final String destinasiId;
+  final String destinasiType;
   final String namaTempat;
   final String kategori;
-  final String waktuMulai;
-  final String waktuSelesai;
-  final double estimasiBiaya;
-  final String catatan;
-  final bool isKustom;
+
+  final String departureTime;
+  final String arrivalTime;
 
   const DetailItineraryModel({
-    required this.id,
-    required this.hariKe,
-    required this.urutan,
-    required this.tipeItem,
+    required this.idItem,
+    required this.idHari,
+    required this.urutanHari,
+    required this.urutanItem,
+    required this.destinasiId,
+    required this.destinasiType,
     required this.namaTempat,
     required this.kategori,
-    required this.waktuMulai,
-    required this.waktuSelesai,
-    required this.estimasiBiaya,
-    this.catatan = '',
-    this.isKustom = false,
+    required this.departureTime,
+    required this.arrivalTime,
   });
 
   Map<String, dynamic> toJson() => {
-    'id_detail': id,
-    'hari_ke': hariKe,
-    'urutan': urutan,
-    'tipe_item': tipeItem,
+    'id_item': idItem,
+    'id_hari': idHari,
+    'urutan_hari': urutanHari,
+    'urutan_item': urutanItem,
+    'destinasi_id': destinasiId,
+    'destinasi_type': destinasiType,
     'nama_tempat': namaTempat,
     'kategori': kategori,
-    'waktu_mulai': waktuMulai,
-    'waktu_selesai': waktuSelesai,
-    'estimasi_biaya': estimasiBiaya,
-    'catatan': catatan,
-    'is_kustom': isKustom,
+    'departure_time': departureTime,
+    'arrival_time': arrivalTime,
   };
 
   factory DetailItineraryModel.fromJson(Map<String, dynamic> json) {
+    // Mengambil data destinasi dari relasi Laravel
+    final destinasi = json['destinasi'] is Map
+        ? json['destinasi'] as Map<String, dynamic>
+        : <String, dynamic>{};
+
+    // Mengambil data hari dari relasi Laravel
+    final hari = json['hari_perjalanan'] is Map
+        ? json['hari_perjalanan'] as Map<String, dynamic>
+        : <String, dynamic>{};
+
     return DetailItineraryModel(
-      id: json['id_detail']?.toString() ?? json['id']?.toString() ?? '',
-      hariKe: int.tryParse(json['hari_ke']?.toString() ?? '1') ?? 1,
-      urutan: int.tryParse(json['urutan']?.toString() ?? '1') ?? 1,
-      tipeItem: json['tipe_item']?.toString() ?? 'wisata',
-      namaTempat: json['nama_tempat']?.toString() ?? '',
-      kategori: json['kategori']?.toString() ?? 'Wisata',
-      waktuMulai: json['waktu_mulai']?.toString() ?? '09:00',
-      waktuSelesai: json['waktu_selesai']?.toString() ?? '11:00',
-      estimasiBiaya:
-          double.tryParse(json['estimasi_biaya']?.toString() ?? '0') ?? 0.0,
-      catatan: json['catatan']?.toString() ?? '',
-      isKustom: json['is_kustom'] == true || json['is_kustom'] == 1,
+      idItem: json['id_item']?.toString() ?? '',
+      idHari: json['id_hari']?.toString() ?? '',
+      urutanHari:
+          int.tryParse(
+            (hari['urutan_hari'] ?? json['urutan_hari'])?.toString() ?? '1',
+          ) ??
+          1,
+      urutanItem: int.tryParse(json['urutan_item']?.toString() ?? '1') ?? 1,
+      destinasiId: json['destinasi_id']?.toString() ?? '',
+      destinasiType: json['destinasi_type']?.toString() ?? '',
+      namaTempat:
+          destinasi['nama']?.toString() ??
+          json['nama_tempat']?.toString() ??
+          '',
+      kategori:
+          destinasi['kategori']?.toString() ??
+          json['kategori']?.toString() ??
+          '',
+      // Menangani typo pada key backend ('depature_time' / 'departure_time')
+      departureTime:
+          json['departure_time']?.toString() ??
+          json['depature_time']?.toString() ??
+          '09:00:00',
+      arrivalTime: json['arrival_time']?.toString() ?? '11:00:00',
     );
   }
 
   DetailItineraryModel copyWith({
-    String? id,
-    int? hariKe,
-    int? urutan,
-    String? tipeItem,
+    String? idItem,
+    String? idHari,
+    int? urutanHari,
+    int? urutanItem,
+    String? destinasiId,
+    String? destinasiType,
     String? namaTempat,
     String? kategori,
-    String? waktuMulai,
-    String? waktuSelesai,
-    double? estimasiBiaya,
-    String? catatan,
-    bool? isKustom,
+    String? departureTime,
+    String? arrivalTime,
   }) {
     return DetailItineraryModel(
-      id: id ?? this.id,
-      hariKe: hariKe ?? this.hariKe,
-      urutan: urutan ?? this.urutan,
-      tipeItem: tipeItem ?? this.tipeItem,
+      idItem: idItem ?? this.idItem,
+      idHari: idHari ?? this.idHari,
+      urutanHari: urutanHari ?? this.urutanHari,
+      urutanItem: urutanItem ?? this.urutanItem,
+      destinasiId: destinasiId ?? this.destinasiId,
+      destinasiType: destinasiType ?? this.destinasiType,
       namaTempat: namaTempat ?? this.namaTempat,
       kategori: kategori ?? this.kategori,
-      waktuMulai: waktuMulai ?? this.waktuMulai,
-      waktuSelesai: waktuSelesai ?? this.waktuSelesai,
+      departureTime: departureTime ?? this.departureTime,
+      arrivalTime: arrivalTime ?? this.arrivalTime,
+    );
+  }
+}
+
+/// Model pengelompokan hari perjalanan
+class HariPerjalananModel {
+  final String idHari;
+  final String idRencana;
+  final String tanggal;
+  final int urutanHari;
+  final String lokasiAwal;
+  final String lokasiAkhir;
+  final double estimasiBiaya;
+  final List<DetailItineraryModel> items;
+
+  const HariPerjalananModel({
+    required this.idHari,
+    required this.idRencana,
+    required this.tanggal,
+    required this.urutanHari,
+    required this.lokasiAwal,
+    required this.lokasiAkhir,
+    required this.estimasiBiaya,
+    this.items = const [],
+  });
+
+  factory HariPerjalananModel.fromJson(Map<String, dynamic> json) {
+    return HariPerjalananModel(
+      idHari: json['id_hari']?.toString() ?? '',
+      idRencana: json['id_rencana']?.toString() ?? '',
+      tanggal: json['tanggal']?.toString() ?? '',
+      urutanHari: int.tryParse(json['urutan_hari']?.toString() ?? '1') ?? 1,
+      lokasiAwal: json['lokasi_awal']?.toString() ?? '',
+      lokasiAkhir: json['lokasi_akhir']?.toString() ?? '',
+      estimasiBiaya:
+          double.tryParse(json['estimasi_biaya']?.toString() ?? '0') ?? 0.0,
+      items: (json['item_perjalanan'] as List? ?? json['items'] as List? ?? [])
+          .map(
+            (item) =>
+                DetailItineraryModel.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id_hari': idHari,
+    'id_rencana': idRencana,
+    'tanggal': tanggal,
+    'urutan_hari': urutanHari,
+    'lokasi_awal': lokasiAwal,
+    'lokasi_akhir': lokasiAkhir,
+    'estimasi_biaya': estimasiBiaya,
+    'item_perjalanan': items.map((item) => item.toJson()).toList(),
+  };
+
+  HariPerjalananModel copyWith({
+    String? idHari,
+    String? idRencana,
+    String? tanggal,
+    int? urutanHari,
+    String? lokasiAwal,
+    String? lokasiAkhir,
+    double? estimasiBiaya,
+    List<DetailItineraryModel>? items,
+  }) {
+    return HariPerjalananModel(
+      idHari: idHari ?? this.idHari,
+      idRencana: idRencana ?? this.idRencana,
+      tanggal: tanggal ?? this.tanggal,
+      urutanHari: urutanHari ?? this.urutanHari,
+      lokasiAwal: lokasiAwal ?? this.lokasiAwal,
+      lokasiAkhir: lokasiAkhir ?? this.lokasiAkhir,
       estimasiBiaya: estimasiBiaya ?? this.estimasiBiaya,
-      catatan: catatan ?? this.catatan,
-      isKustom: isKustom ?? this.isKustom,
+      items: items ?? this.items,
     );
   }
 }
@@ -192,6 +291,9 @@ class SavedTripPlan {
     return diff >= 0 ? diff + 1 : 1;
   }
 
+  // Getter alias agar .days bisa digunakan di UI
+  int get days => totalDays;
+
   int get totalNights => totalDays > 1 ? totalDays - 1 : 0;
   String get durationLabel => '$totalDays Hari $totalNights Malam';
 
@@ -231,7 +333,8 @@ class SavedTripPlan {
       fallback: start.add(const Duration(days: 2)),
     );
 
-    final rawBudget = json['budget_trip'] ??
+    final rawBudget =
+        json['budget_trip'] ??
         json['total_anggaran'] ??
         json['maks_budget_trip'] ??
         json['budget'] ??
@@ -239,12 +342,14 @@ class SavedTripPlan {
 
     return SavedTripPlan(
       id: json['id_rencana']?.toString() ?? json['id']?.toString() ?? '',
-      tripName: json['nama_rencana']?.toString() ??
+      tripName:
+          json['nama_rencana']?.toString() ??
           json['tripName']?.toString() ??
           'Liburan Akhir Pekan di Batam',
       startDate: start,
       endDate: end,
-      startLocation: json['titik_awal']?.toString() ??
+      startLocation:
+          json['titik_awal']?.toString() ??
           json['startLocation']?.toString() ??
           'Pelabuhan Ferry Batam Center',
       budget: _formatBudgetString(rawBudget.toString()),
@@ -262,7 +367,7 @@ class SavedTripPlan {
     );
   }
 
-  // --- Helper Parser (Menjaga kode bersih & modular) ---
+  // --- Helper Parser ---
   static DateTime _parseDate(dynamic value, {required DateTime fallback}) {
     if (value == null) return fallback;
     return DateTime.tryParse(value.toString()) ?? fallback;
@@ -272,9 +377,9 @@ class SavedTripPlan {
     if (double.tryParse(raw) != null) {
       final number = double.parse(raw).toInt();
       return number.toString().replaceAllMapped(
-            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-            (Match m) => '${m[1]}.',
-          );
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (Match m) => '${m[1]}.',
+      );
     }
     return raw;
   }
@@ -289,7 +394,8 @@ class SavedTripPlan {
         .where((s) => s.isNotEmpty)
         .toList();
 
-    final themesList = (json['selectedThemes'] as List?) ??
+    final themesList =
+        (json['selectedThemes'] as List?) ??
         themesFromPivot ??
         (preferensi?['kategori_minat'] as List?) ??
         ['Pantai & Bahari', 'Kuliner & Seafood Khas'];
@@ -301,7 +407,8 @@ class SavedTripPlan {
     Map<String, dynamic> json,
     Map<String, dynamic>? preferensi,
   ) {
-    final areasList = (json['selectedAreas'] as List?) ??
+    final areasList =
+        (json['selectedAreas'] as List?) ??
         (preferensi?['kecamatan_pilihan'] as List?) ??
         ['Batam Kota', 'Nongsa'];
 
@@ -348,12 +455,13 @@ class SavedTripPlan {
   }
 
   static List<DetailItineraryModel> _extractDetails(Map<String, dynamic> json) {
-    final list = (json['detail_itineraries'] as List?) ??
-        (json['details'] as List?) ??
-        [];
-    return list
-        .map((e) => DetailItineraryModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final rawList = json['detail_itineraries'] ?? json['details'];
+    if (rawList is List) {
+      return rawList
+          .map((e) => DetailItineraryModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
   }
 
   // --- CopyWith & Template Default ---
@@ -413,7 +521,10 @@ class SavedTripPlan {
   }
 }
 
-/// Saran judul rencana perjalanan default
+// ============================================================================
+// 4. DATA KONSTANTA & PRESET (LOKASI, TEMA, KECAMATAN)
+// ============================================================================
+
 const List<String> kDefaultTripSuggestions = [
   'Liburan Akhir Pekan di Batam',
   'Wisata Keluarga & Santap Seafood',
@@ -421,7 +532,6 @@ const List<String> kDefaultTripSuggestions = [
   'Eksplorasi Belanja & Kuliner Nagoya',
 ];
 
-/// Preset pilihan anggaran (Rp)
 const List<String> kBudgetPresets = [
   '1.500.000',
   '3.000.000',
@@ -429,7 +539,6 @@ const List<String> kBudgetPresets = [
   '8.000.000',
 ];
 
-/// Titik awal keberangkatan/penjemputan di Batam (Pelabuhan, Bandara, Hotel)
 const List<TripLocationModel> kBatamLocations = [
   TripLocationModel(
     name: 'Pelabuhan Ferry Batam Center',
@@ -585,7 +694,6 @@ const List<TripLocationModel> kBatamLocations = [
   ),
 ];
 
-/// Kategori tema minat wisata Batam
 const List<TripThemeModel> kTripThemes = [
   TripThemeModel(
     title: 'Wisata Alam',
@@ -629,7 +737,6 @@ const List<TripThemeModel> kTripThemes = [
   ),
 ];
 
-/// Opsi slot waktu kunjungan wisata
 const List<TripVisitTimeModel> kVisitTimeOptions = [
   TripVisitTimeModel(
     label: '🌅 Pagi Hari (08:00 - 12:00)',
@@ -649,7 +756,6 @@ const List<TripVisitTimeModel> kVisitTimeOptions = [
   ),
 ];
 
-/// 12 Kecamatan Resmi Kota Batam Sesuai Database
 const List<TripAreaModel> kBatamKecamatanList = [
   TripAreaModel(
     id: 1,
@@ -696,7 +802,8 @@ const List<TripAreaModel> kBatamKecamatanList = [
   TripAreaModel(
     id: 4,
     name: 'Bengkong',
-    desc: 'Pusat seafood Golden Prawn, replika kapal Cheng Ho & wahana rekreasi',
+    desc:
+        'Pusat seafood Golden Prawn, replika kapal Cheng Ho & wahana rekreasi',
     icon: '🦐',
   ),
   TripAreaModel(
@@ -727,11 +834,24 @@ const List<TripAreaModel> kBatamKecamatanList = [
 
 const List<TripAreaModel> kBatamAreaOptions = kBatamKecamatanList;
 
-/// Helper format bulan Bahasa Indonesia
+// ============================================================================
+// 5. HELPER FUNCTIONS FOR DATE & TIME FORMATTING
+// ============================================================================
+
 String formatMonth(int month) {
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-    'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Ags',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
   if (month < 1 || month > 12) return '';
   return months[month - 1];
@@ -739,9 +859,30 @@ String formatMonth(int month) {
 
 String formatFullMonth(int month) {
   const months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
   ];
   if (month < 1 || month > 12) return '';
   return months[month - 1];
+}
+
+String formatDateShort(DateTime date) {
+  return '${date.day} ${formatMonth(date.month)} ${date.year}';
+}
+
+String formatDateRange(DateTime start, DateTime end) {
+  if (start.year == end.year && start.month == end.month) {
+    return '${start.day} - ${end.day} ${formatMonth(start.month)} ${start.year}';
+  }
+  return '${start.day} ${formatMonth(start.month)} - ${end.day} ${formatMonth(end.month)} ${end.year}';
 }
