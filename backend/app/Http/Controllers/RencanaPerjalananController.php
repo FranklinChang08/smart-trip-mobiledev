@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DetailItinerary;
 use App\Models\HariPerjalanan;
 use App\Models\ItemPerjalanan;
 use App\Models\Kategori;
@@ -12,6 +11,8 @@ use App\Models\RencanaPerjalanan;
 use App\Models\Restoran;
 use App\Models\Wisata;
 use App\Services\GeminiService;
+use App\Services\GroqService;
+use App\Services\OpenRouterService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -39,7 +40,6 @@ class RencanaPerjalananController extends Controller
         $query = RencanaPerjalanan::with([
             'preferensi.kategoris',
             'hariPerjalanan.itemPerjalanan',
-            'detailItineraries',
         ])
             ->where('id_pengguna', $userId)
             ->orderBy('created_at', 'desc');
@@ -59,8 +59,6 @@ class RencanaPerjalananController extends Controller
         $plan = RencanaPerjalanan::with([
             'preferensi.kategoris',
             'hariPerjalanan.itemPerjalanan.destinasi',
-            'detailItineraries.wisata.fotoDestinasis',
-            'detailItineraries.restoran',
         ])->find($id);
 
         if (!$plan) {
@@ -79,7 +77,7 @@ class RencanaPerjalananController extends Controller
 
     // Buat rencana perjalanan baru
 
-    public function store(Request $request, GeminiService $geminiService)
+    public function store(Request $request, GeminiService $geminiService, OpenRouterService $openRouterService, GroqService $groqService)
     {
         // 1. Validasi request
         $validated = $request->validate([
@@ -228,7 +226,7 @@ class RencanaPerjalananController extends Controller
                 'id_rencana' => $plan->id_rencana,
             ]);
 
-            // 11. Generate itinerary menggunakan Gemini
+            // // 11. Generate itinerary menggunakan Gemini
             $this->generateRecommendationItinerary(
                 $plan,
                 $totalDays,
@@ -236,6 +234,8 @@ class RencanaPerjalananController extends Controller
                 $selectedAreas,
                 $selectedThemes,
                 $geminiService,
+                $openRouterService,
+                $groqService,
                 $isHalal,
                 $isSeafood,
                 $startTime,
@@ -246,7 +246,6 @@ class RencanaPerjalananController extends Controller
             $fullPlan = RencanaPerjalanan::with([
                 'preferensi.kategoris',
                 'hariPerjalanan.itemPerjalanan',
-                'detailItineraries',
             ])->findOrFail($plan->id_rencana);
 
             // 13. Commit seluruh penyimpanan
@@ -291,6 +290,8 @@ class RencanaPerjalananController extends Controller
         array $selectedAreas,
         array $selectedThemes,
         GeminiService $geminiService,
+        OpenRouterService $openRouterService,
+        GroqService $groqService,
         bool $isHalal = false,
         bool $isSeafood = false,
         string $defaultStartTime = '08:30',
@@ -330,8 +331,8 @@ class RencanaPerjalananController extends Controller
         // Filter seafood
         if ($isSeafood) {
             $restoranQuery->where(function ($query) {
-                $query->where('nama', 'like', '%seafood%')
-                    ->orWhere('nama', 'like', '%kelong%');
+                $query->where('nama_restoran', 'like', '%seafood%')
+                    ->orWhere('nama_restoran', 'like', '%kelong%');
             });
         }
 
@@ -404,7 +405,12 @@ class RencanaPerjalananController extends Controller
             'total_days' => $totalDays,
         ]);
 
-        $result = $geminiService->generateItinerary($data);
+        $result = $this->generateAiItinerary(
+            $data,
+            $geminiService,
+            $openRouterService,
+            $groqService,
+        );
 
         Log::info('Hasil rekomendasi Gemini', [
             'result' => $result,
@@ -534,7 +540,10 @@ class RencanaPerjalananController extends Controller
                         'Gemini memberikan destinasi yang tidak tersedia.'
                     );
                 }
-
+                Log::info('Data item perjalanan sebelum disimpan', [
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                ]);
                 // Simpan item itinerary
                 $itemPerjalanan = ItemPerjalanan::create([
                     'id_hari' => $hari->id_hari,
@@ -543,7 +552,7 @@ class RencanaPerjalananController extends Controller
                     'urutan_item' => $index + 1,
 
                     // Sesuaikan dengan nama kolom migration
-                    'depature_time' => $startTime,
+                    'departure_time' => $startTime,
                     'arrival_time' => $endTime,
                 ]);
 
@@ -593,5 +602,41 @@ class RencanaPerjalananController extends Controller
             'message' => 'Rencana perjalanan berhasil diaktifkan',
             'data' => $plan,
         ]);
+    }
+
+    public function generateAiItinerary(
+        array $data,
+        GeminiService $geminiService,
+        OpenRouterService $openRouterService,
+        GroqService $groqService
+    ): array {
+        try {
+            return $geminiService->generateItinerary($data);
+
+        } catch (Exception $e) {
+            Log::warning('Gemini gagal, mencoba OpenRouter', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            return $groqService->generateItinerary($data);
+
+        } catch (Exception $e) {
+            Log::error('Semua AI provider gagal', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            return $openRouterService->generateItinerary($data);
+
+        } catch (Exception $e) {
+            Log::warning('OpenRouter gagal, mencoba Groq', [
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new Exception('Semua layanan AI gagal menghasilkan itinerary.');
+        }
     }
 }

@@ -16,7 +16,9 @@ class TripItineraryPage extends StatefulWidget {
   final List<String> selectedThemes;
   final List<String> selectedAreas;
   final String notes;
-  final List<DetailItineraryModel>? initialDetails;
+
+  // Menggunakan model hari perjalanan
+  final List<HariPerjalananModel>? initialHariPerjalanan;
 
   const TripItineraryPage({
     super.key,
@@ -29,7 +31,7 @@ class TripItineraryPage extends StatefulWidget {
     required this.selectedThemes,
     required this.selectedAreas,
     this.notes = '',
-    this.initialDetails,
+    this.initialHariPerjalanan,
   });
 
   @override
@@ -38,9 +40,10 @@ class TripItineraryPage extends StatefulWidget {
 
 class _TripItineraryPageState extends State<TripItineraryPage> {
   int _selectedDayIndex = 0;
+
   final Set<String> _completedItems = {};
 
-  List<DetailItineraryModel> _details = [];
+  // Data hari perjalanan dari database
   List<HariPerjalananModel> _days = [];
 
   bool _isLoadingDetails = false;
@@ -49,8 +52,9 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
   void initState() {
     super.initState();
 
-    if (widget.initialDetails != null) {
-      _details = widget.initialDetails!;
+    // Gunakan data awal jika tersedia
+    if (widget.initialHariPerjalanan != null) {
+      _days = widget.initialHariPerjalanan!;
     }
 
     if (widget.planId != null && widget.planId!.isNotEmpty) {
@@ -66,33 +70,35 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
 
       if (!mounted) return;
 
+      if (plan != null) {
+        debugPrint('Plan ditemukan: ${plan.tripName}');
+        debugPrint('Total hari: ${plan.hariPerjalanan.length}');
+
+        for (final hari in plan.hariPerjalanan) {
+          debugPrint('Hari ke-${hari.urutanHari}');
+          debugPrint('Total item: ${hari.itemPerjalanan.length}');
+
+          for (final item in hari.itemPerjalanan) {
+            debugPrint('Destinasi: ${item.destinationName}');
+          }
+        }
+      } else {
+        debugPrint('Plan tidak ditemukan');
+      }
+
       setState(() {
         _isLoadingDetails = false;
 
         if (plan != null) {
+          // Langsung menggunakan relasi hari_perjalanan
+          _days = plan.hariPerjalanan;
 
-          _details =
-              plan.details; // Mengambil list detail langsung dari SavedTripPlan
-
-          _days = List.generate(plan.totalDays, (index) {
-            final urutanHari = index + 1;
-            final currentItems = plan.details
-                .where((item) => item.urutanHari == urutanHari)
-                .toList();
-
-            return HariPerjalananModel(
-              idHari: 'hari_$urutanHari',
-              idRencana: plan.id,
-              tanggal: formatDateShort(
-                plan.startDate.add(Duration(days: index)),
-              ),
-              urutanHari: urutanHari,
-              lokasiAwal: plan.startLocation,
-              lokasiAkhir: plan.startLocation,
-              estimasiBiaya: 0.0,
-              items: currentItems,
-            );
-          });
+          // Pastikan index hari yang dipilih masih valid
+          if (_days.isEmpty) {
+            _selectedDayIndex = 0;
+          } else if (_selectedDayIndex >= _days.length) {
+            _selectedDayIndex = 0;
+          }
         }
       });
     } catch (e) {
@@ -1030,16 +1036,16 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
   }
 
   String _getDayThemeSubtitle(int dayIndex) {
-    if (_details.isNotEmpty) {
-      final dayItems = _details
-          .where((d) => d.urutanHari == dayIndex + 1)
-          .toList();
+    if (_days.isNotEmpty && dayIndex < _days.length) {
+      final day = _days.firstWhere(
+        (d) => d.urutanHari == dayIndex + 1,
+        orElse: () => _days[dayIndex],
+      );
 
-      if (dayItems.isNotEmpty) {
-        final names = dayItems
-            .where((d) => d.destinasiType.isNotEmpty)
+      if (day.itemPerjalanan.isNotEmpty) {
+        final names = day.itemPerjalanan
             .take(3)
-            .map((d) => d.namaTempat)
+            .map((item) => item.destinationName)
             .where((name) => name.isNotEmpty)
             .toList();
 
@@ -1093,81 +1099,92 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
   }
 
   List<Map<String, dynamic>> _getDestinationsForDay(int dayIndex) {
-    if (_details.isNotEmpty) {
-      final dayItems = _details
-          .where((d) => d.urutanHari == dayIndex + 1)
-          .toList();
+    if (_days.isNotEmpty) {
+      final matchingDays = _days.where((d) => d.urutanHari == dayIndex + 1);
 
-      if (dayItems.isNotEmpty) {
-        dayItems.sort((a, b) => a.urutanItem.compareTo(b.urutanItem));
+      if (matchingDays.isNotEmpty) {
+        final dayItems = matchingDays.first.itemPerjalanan.toList();
 
-        return dayItems.map((d) {
-          String emoji = '📍';
-          String timeOfDay = 'PAGI';
+        if (dayItems.isNotEmpty) {
+          return dayItems.map((item) {
+            String emoji = '📍';
+            String timeOfDay = 'PAGI';
 
-          // Mengambil jam dari departureTime
-          final startHour = int.tryParse(d.departureTime.split(':').first) ?? 9;
+            // Mengambil jam dari departureTime
+            final startHour =
+                int.tryParse(item.departureTime.split(':').first) ?? 9;
 
-          if (startHour < 12) {
-            timeOfDay = 'PAGI';
-          } else if (startHour < 15) {
-            timeOfDay = 'SIANG';
-          } else if (startHour < 18) {
-            timeOfDay = 'SORE';
-          } else {
-            timeOfDay = 'MALAM';
-          }
-
-          // Menentukan emoji berdasarkan tipe destinasi dan kategori
-          final lowKat = d.kategori.toLowerCase();
-          final lowType = d.destinasiType.toLowerCase();
-
-          if (lowType.contains('restoran')) {
-            emoji = '🦞';
-          } else if (lowKat.contains('kuliner') ||
-              lowKat.contains('seafood') ||
-              lowKat.contains('santap')) {
-            emoji = '🦞';
-          } else if (lowKat.contains('pantai') || lowKat.contains('bahari')) {
-            emoji = '🏖️';
-          } else if (lowKat.contains('sejarah') || lowKat.contains('museum')) {
-            emoji = '🏛️';
-          } else if (lowKat.contains('belanja') || lowKat.contains('mall')) {
-            emoji = '🛍️';
-          } else if (lowKat.contains('alam') || lowKat.contains('taman')) {
-            emoji = '🌲';
-          }
-
-          // Mengubah HH:mm:ss menjadi HH:mm untuk tampilan
-          String formatTime(String time) {
-            final parts = time.split(':');
-
-            if (parts.length >= 2) {
-              return '${parts[0]}:${parts[1]}';
+            if (startHour < 12) {
+              timeOfDay = 'PAGI';
+            } else if (startHour < 15) {
+              timeOfDay = 'SIANG';
+            } else if (startHour < 18) {
+              timeOfDay = 'SORE';
+            } else {
+              timeOfDay = 'MALAM';
             }
 
-            return time;
-          }
+            // Mengambil informasi destinasi
+            final lowType = item.type.toLowerCase();
 
-          final startTime = formatTime(d.departureTime);
-          final endTime = formatTime(d.arrivalTime);
+            final kategori =
+                item.destinasi?['kategori']?.toString() ??
+                item.destinasi?['nama_kategori']?.toString() ??
+                '';
 
-          return {
-            'emoji': emoji,
-            'timeOfDay': timeOfDay,
-            'timeSlot': '$startTime - $endTime WIB',
-            'title': d.namaTempat,
-            'category': d.kategori,
-            'desc': lowType.contains('restoran')
-                ? 'Destinasi kuliner rekomendasi di Pulau Batam.'
-                : 'Destinasi wisata rekomendasi di Pulau Batam.',
-            'duration': '$startTime s.d. $endTime',
-            'costEstimate': 'Lihat estimasi biaya harian',
-            'nextTransitDuration': '15 menit',
-            'nextTransitDistance': '5.5 km',
-            'nextTransitRoute': 'via Jalur Lintas Batam',
-          };
-        }).toList();
+            final lowKat = kategori.toLowerCase();
+
+            // Menentukan emoji berdasarkan tipe dan kategori
+            if (lowType.contains('restoran')) {
+              emoji = '🦞';
+            } else if (lowKat.contains('kuliner') ||
+                lowKat.contains('seafood') ||
+                lowKat.contains('santap')) {
+              emoji = '🦞';
+            } else if (lowKat.contains('pantai') || lowKat.contains('bahari')) {
+              emoji = '🏖️';
+            } else if (lowKat.contains('sejarah') ||
+                lowKat.contains('museum')) {
+              emoji = '🏛️';
+            } else if (lowKat.contains('belanja') || lowKat.contains('mall')) {
+              emoji = '🛍️';
+            } else if (lowKat.contains('alam') || lowKat.contains('taman')) {
+              emoji = '🌲';
+            }
+
+            // Mengubah HH:mm:ss menjadi HH:mm
+            String formatTime(String time) {
+              final parts = time.split(':');
+
+              if (parts.length >= 2) {
+                return '${parts[0]}:${parts[1]}';
+              }
+
+              return time;
+            }
+
+            final startTime = formatTime(item.departureTime);
+            final endTime = formatTime(item.arrivalTime);
+
+            final isRestaurant = lowType.contains('restoran');
+
+            return {
+              'emoji': emoji,
+              'timeOfDay': timeOfDay,
+              'timeSlot': '$startTime - $endTime WIB',
+              'title': item.destinationName,
+              'category': kategori.isNotEmpty ? kategori : item.type,
+              'desc': isRestaurant
+                  ? 'Destinasi kuliner rekomendasi di Pulau Batam.'
+                  : 'Destinasi wisata rekomendasi di Pulau Batam.',
+              'duration': '$startTime s.d. $endTime',
+              'costEstimate': 'Lihat estimasi biaya harian',
+              'nextTransitDuration': '15 menit',
+              'nextTransitDistance': '5.5 km',
+              'nextTransitRoute': 'via Jalur Lintas Batam',
+            };
+          }).toList();
+        }
       }
     }
 

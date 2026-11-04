@@ -175,73 +175,138 @@ class DetailItineraryModel {
 class HariPerjalananModel {
   final String idHari;
   final String idRencana;
-  final String tanggal;
   final int urutanHari;
-  final String lokasiAwal;
-  final String lokasiAkhir;
-  final double estimasiBiaya;
-  final List<DetailItineraryModel> items;
+  final DateTime? tanggal;
+  final List<ItemPerjalananModel> itemPerjalanan;
 
-  const HariPerjalananModel({
+  HariPerjalananModel({
     required this.idHari,
     required this.idRencana,
-    required this.tanggal,
     required this.urutanHari,
-    required this.lokasiAwal,
-    required this.lokasiAkhir,
-    required this.estimasiBiaya,
-    this.items = const [],
+    this.tanggal,
+    this.itemPerjalanan = const [],
   });
-
-  factory HariPerjalananModel.fromJson(Map<String, dynamic> json) {
-    return HariPerjalananModel(
-      idHari: json['id_hari']?.toString() ?? '',
-      idRencana: json['id_rencana']?.toString() ?? '',
-      tanggal: json['tanggal']?.toString() ?? '',
-      urutanHari: int.tryParse(json['urutan_hari']?.toString() ?? '1') ?? 1,
-      lokasiAwal: json['lokasi_awal']?.toString() ?? '',
-      lokasiAkhir: json['lokasi_akhir']?.toString() ?? '',
-      estimasiBiaya:
-          double.tryParse(json['estimasi_biaya']?.toString() ?? '0') ?? 0.0,
-      items: (json['item_perjalanan'] as List? ?? json['items'] as List? ?? [])
-          .map(
-            (item) =>
-                DetailItineraryModel.fromJson(item as Map<String, dynamic>),
-          )
-          .toList(),
-    );
-  }
 
   Map<String, dynamic> toJson() => {
     'id_hari': idHari,
     'id_rencana': idRencana,
-    'tanggal': tanggal,
     'urutan_hari': urutanHari,
-    'lokasi_awal': lokasiAwal,
-    'lokasi_akhir': lokasiAkhir,
-    'estimasi_biaya': estimasiBiaya,
-    'item_perjalanan': items.map((item) => item.toJson()).toList(),
+    'tanggal': tanggal?.toIso8601String(),
+    'item_perjalanan': itemPerjalanan.map((item) => item.toJson()).toList(),
+  };
+  // Total estimasi biaya seluruh item dalam satu hari
+  double get estimasiBiaya {
+    return itemPerjalanan.fold(0, (total, item) => total + item.estimasiBiaya);
+  }
+
+  factory HariPerjalananModel.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['item_perjalanan'];
+
+    return HariPerjalananModel(
+      idHari:
+          (json['id_hari'] ?? json['id_hari_perjalanan'] ?? json['id'])
+              ?.toString() ??
+          '',
+      idRencana: json['id_rencana']?.toString() ?? '',
+      urutanHari:
+          int.tryParse(
+            (json['urutan_hari'] ?? json['hari_ke'] ?? 1).toString(),
+          ) ??
+          1,
+      tanggal: DateTime.tryParse(json['tanggal']?.toString() ?? ''),
+      itemPerjalanan: rawItems is List
+          ? rawItems
+                .whereType<Map>()
+                .map(
+                  (item) => ItemPerjalananModel.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList()
+          : [],
+    );
+  }
+}
+
+class ItemPerjalananModel {
+  final String idItem;
+  final String idHari;
+  final String type;
+  final String departureTime;
+  final String arrivalTime;
+  final Map<String, dynamic>? destinasi;
+
+  ItemPerjalananModel({
+    required this.idItem,
+    required this.idHari,
+    required this.type,
+    required this.departureTime,
+    required this.arrivalTime,
+    this.destinasi,
+  });
+
+  // Nama destinasi berdasarkan tipe destinasi
+  String get destinationName {
+    if (destinasi == null) return 'Destinasi tidak tersedia';
+
+    return destinasi!['nama_wisata']?.toString() ??
+        destinasi!['nama_restoran']?.toString() ??
+        destinasi!['nama_penginapan']?.toString() ??
+        destinasi!['nama']?.toString() ??
+        'Destinasi tidak tersedia';
+  }
+
+  // Mengambil estimasi biaya berdasarkan jenis destinasi
+  double get estimasiBiaya {
+    if (destinasi == null) return 0;
+
+    final rawPrice = switch (type.toLowerCase()) {
+      'wisata' => destinasi!['harga_tiket_masuk'],
+      'restoran' => destinasi!['harga_makan_per_orang'],
+      _ => 0,
+    };
+
+    return _parsePrice(rawPrice);
+  }
+
+  // Mengubah harga menjadi angka
+  static double _parsePrice(dynamic value) {
+    if (value == null) return 0;
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    final cleaned = value.toString().replaceAll(RegExp(r'[^0-9]'), '');
+
+    return double.tryParse(cleaned) ?? 0;
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id_item': idItem,
+    'id_hari': idHari,
+    'type': type,
+    'departure_time': departureTime,
+    'arrival_time': arrivalTime,
+    'destinasi': destinasi,
   };
 
-  HariPerjalananModel copyWith({
-    String? idHari,
-    String? idRencana,
-    String? tanggal,
-    int? urutanHari,
-    String? lokasiAwal,
-    String? lokasiAkhir,
-    double? estimasiBiaya,
-    List<DetailItineraryModel>? items,
-  }) {
-    return HariPerjalananModel(
-      idHari: idHari ?? this.idHari,
-      idRencana: idRencana ?? this.idRencana,
-      tanggal: tanggal ?? this.tanggal,
-      urutanHari: urutanHari ?? this.urutanHari,
-      lokasiAwal: lokasiAwal ?? this.lokasiAwal,
-      lokasiAkhir: lokasiAkhir ?? this.lokasiAkhir,
-      estimasiBiaya: estimasiBiaya ?? this.estimasiBiaya,
-      items: items ?? this.items,
+  factory ItemPerjalananModel.fromJson(Map<String, dynamic> json) {
+    final rawDestination = json['destinasi'];
+
+    return ItemPerjalananModel(
+      idItem:
+          (json['id_item'] ?? json['id_item_perjalanan'] ?? json['id'])
+              ?.toString() ??
+          '',
+      idHari: (json['id_hari'] ?? json['id_hari_perjalanan'])?.toString() ?? '',
+      type:
+          json['type']?.toString() ?? json['tipe_destinasi']?.toString() ?? '',
+      departureTime: json['departure_time']?.toString() ?? '',
+      arrivalTime: json['arrival_time']?.toString() ?? '',
+      destinasi: rawDestination is Map
+          ? Map<String, dynamic>.from(rawDestination)
+          : null,
     );
   }
 }
@@ -266,7 +331,9 @@ class SavedTripPlan {
   final String notes;
   final bool isActive;
   final DateTime createdAt;
-  final List<DetailItineraryModel> details;
+
+  // Relasi ke hari perjalanan
+  final List<HariPerjalananModel> hariPerjalanan;
 
   SavedTripPlan({
     required this.id,
@@ -281,28 +348,35 @@ class SavedTripPlan {
     this.isSeafood = false,
     this.notes = '',
     this.isActive = true,
-    this.details = const [],
+    this.hariPerjalanan = const [],
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  // --- Getters Durasi & Rute ---
   int get totalDays {
     final diff = endDate.difference(startDate).inDays;
     return diff >= 0 ? diff + 1 : 1;
   }
 
-  // Getter alias agar .days bisa digunakan di UI
   int get days => totalDays;
 
   int get totalNights => totalDays > 1 ? totalDays - 1 : 0;
+
   String get durationLabel => '$totalDays Hari $totalNights Malam';
 
   String get routeLabel {
-    if (selectedAreas.isEmpty) return 'Batam Center → Nagoya → Nongsa';
+    if (selectedAreas.isEmpty) {
+      return 'Batam Center → Nagoya → Nongsa';
+    }
+
     return selectedAreas.join(' → ');
   }
 
-  // --- Serialization ---
+  // Total seluruh item perjalanan
+  int get totalItems => hariPerjalanan.fold(
+    0,
+    (total, hari) => total + hari.itemPerjalanan.length,
+  );
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'tripName': tripName,
@@ -317,11 +391,13 @@ class SavedTripPlan {
     'notes': notes,
     'isActive': isActive,
     'createdAt': createdAt.toIso8601String(),
-    'detail_itineraries': details.map((d) => d.toJson()).toList(),
+    'hari_perjalanan': hariPerjalanan.map((hari) => hari.toJson()).toList(),
   };
 
   factory SavedTripPlan.fromJson(Map<String, dynamic> json) {
-    final preferensi = json['preferensi'] as Map<String, dynamic>?;
+    final preferensi = json['preferensi'] is Map
+        ? Map<String, dynamic>.from(json['preferensi'])
+        : null;
 
     final start = _parseDate(
       json['hari_start'] ?? json['tanggal_mulai'] ?? json['startDate'],
@@ -359,7 +435,7 @@ class SavedTripPlan {
       isSeafood: _extractIsSeafood(json, preferensi),
       notes: json['catatan']?.toString() ?? json['notes']?.toString() ?? '',
       isActive: _extractIsActive(json),
-      details: _extractDetails(json),
+      hariPerjalanan: _extractHariPerjalanan(json),
       createdAt: _parseDate(
         json['created_at'] ?? json['createdAt'],
         fallback: DateTime.now(),
@@ -367,21 +443,21 @@ class SavedTripPlan {
     );
   }
 
-  // --- Helper Parser ---
   static DateTime _parseDate(dynamic value, {required DateTime fallback}) {
     if (value == null) return fallback;
+
     return DateTime.tryParse(value.toString()) ?? fallback;
   }
 
   static String _formatBudgetString(String raw) {
-    if (double.tryParse(raw) != null) {
-      final number = double.parse(raw).toInt();
-      return number.toString().replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-        (Match m) => '${m[1]}.',
-      );
-    }
-    return raw;
+    final number = double.tryParse(raw);
+
+    if (number == null) return raw;
+
+    return number.toInt().toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
   }
 
   static List<String> _extractThemes(
@@ -389,15 +465,17 @@ class SavedTripPlan {
     Map<String, dynamic>? preferensi,
   ) {
     final preferensiKategoris = preferensi?['kategoris'] as List?;
+
     final themesFromPivot = preferensiKategoris
-        ?.map((k) => k['nama_kategori']?.toString() ?? '')
+        ?.whereType<Map>()
+        .map((k) => k['nama_kategori']?.toString() ?? '')
         .where((s) => s.isNotEmpty)
         .toList();
 
     final themesList =
-        (json['selectedThemes'] as List?) ??
+        json['selectedThemes'] as List? ??
         themesFromPivot ??
-        (preferensi?['kategori_minat'] as List?) ??
+        preferensi?['kategori_minat'] as List? ??
         ['Pantai & Bahari', 'Kuliner & Seafood Khas'];
 
     return themesList.map((e) => e.toString()).toList();
@@ -408,8 +486,8 @@ class SavedTripPlan {
     Map<String, dynamic>? preferensi,
   ) {
     final areasList =
-        (json['selectedAreas'] as List?) ??
-        (preferensi?['kecamatan_pilihan'] as List?) ??
+        json['selectedAreas'] as List? ??
+        preferensi?['kecamatan_pilihan'] as List? ??
         ['Batam Kota', 'Nongsa'];
 
     return areasList.map((e) => e.toString()).toList();
@@ -424,9 +502,9 @@ class SavedTripPlan {
         .toLowerCase();
 
     return typeFood == 'halal' ||
-        (json['is_halal'] == true) ||
-        (preferensi?['is_halal'] == true) ||
-        (json['isHalal'] == true) ||
+        json['is_halal'] == true ||
+        preferensi?['is_halal'] == true ||
+        json['isHalal'] == true ||
         (preferensi?['preferensi_kuliner'] is Map &&
             preferensi!['preferensi_kuliner']['halal'] == true);
   }
@@ -440,9 +518,9 @@ class SavedTripPlan {
         .toLowerCase();
 
     return typeFood == 'seafood' ||
-        (json['is_seafood'] == true) ||
-        (preferensi?['is_seafood'] == true) ||
-        (json['isSeafood'] == true) ||
+        json['is_seafood'] == true ||
+        preferensi?['is_seafood'] == true ||
+        json['isSeafood'] == true ||
         (preferensi?['preferensi_kuliner'] is Map &&
             preferensi!['preferensi_kuliner']['seafood'] == true);
   }
@@ -451,20 +529,23 @@ class SavedTripPlan {
     if (json['status'] != null) {
       return json['status'] == 'aktif';
     }
+
     return json['isActive'] as bool? ?? false;
   }
 
-  static List<DetailItineraryModel> _extractDetails(Map<String, dynamic> json) {
-    final rawList = json['detail_itineraries'] ?? json['details'];
-    if (rawList is List) {
-      return rawList
-          .map((e) => DetailItineraryModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-    }
-    return [];
+  static List<HariPerjalananModel> _extractHariPerjalanan(
+    Map<String, dynamic> json,
+  ) {
+    final rawList = json['hari_perjalanan'];
+
+    if (rawList is! List) return [];
+
+    return rawList
+        .whereType<Map>()
+        .map((e) => HariPerjalananModel.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
-  // --- CopyWith & Template Default ---
   SavedTripPlan copyWith({
     String? id,
     String? tripName,
@@ -479,7 +560,7 @@ class SavedTripPlan {
     String? notes,
     bool? isActive,
     DateTime? createdAt,
-    List<DetailItineraryModel>? details,
+    List<HariPerjalananModel>? hariPerjalanan,
   }) {
     return SavedTripPlan(
       id: id ?? this.id,
@@ -495,7 +576,7 @@ class SavedTripPlan {
       notes: notes ?? this.notes,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
-      details: details ?? this.details,
+      hariPerjalanan: hariPerjalanan ?? this.hariPerjalanan,
     );
   }
 
@@ -520,7 +601,6 @@ class SavedTripPlan {
     );
   }
 }
-
 // ============================================================================
 // 4. DATA KONSTANTA & PRESET (LOKASI, TEMA, KECAMATAN)
 // ============================================================================
