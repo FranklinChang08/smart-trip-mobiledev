@@ -1,9 +1,10 @@
-<?php 
+<?php
 
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Client\ConnectionException;
 use Exception;
 
 class GeminiService
@@ -15,6 +16,10 @@ class GeminiService
 
         if (!$apiKey) {
             throw new Exception('Gemini API Key belum dikonfigurasi.');
+        }
+
+        if (!$model) {
+            throw new Exception('Gemini Model belum dikonfigurasi.');
         }
 
         $prompt = "
@@ -45,33 +50,87 @@ class GeminiService
             }
         ";
 
-        $response = Http::timeout(60)
-            ->withHeaders([
-                'x-goog-api-key' => $apiKey,
-            ])
-            ->post(
-                "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent",
-                [
-                    'contents' => [
-                        [
-                            'parts' => [
-                                ['text' => $prompt],
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
+
+        $maxAttempts = 3;
+        $response = null;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+
+            $startTime = microtime(true);
+
+            try {
+                $response = Http::connectTimeout(15)
+                    ->timeout(180)
+                    ->withHeaders([
+                        'x-goog-api-key' => $apiKey,
+                    ])
+                    ->post($url, [
+                        'contents' => [
+                            [
+                                'parts' => [
+                                    ['text' => $prompt],
+                                ],
                             ],
                         ],
-                    ],
-                    'generationConfig' => [
-                        'responseMimeType' => 'application/json',
-                    ],
-                ]
-            );
+                        'generationConfig' => [
+                            'responseMimeType' => 'application/json',
+                        ],
+                    ]);
 
-        if ($response->failed()) {
-            Log::error('Gemini API Error', [
-                'status' => $response->status(),
-                'response' => $response->json(),
+                $duration = round(microtime(true) - $startTime, 2);
+
+                Log::info('Gemini Request Duration', [
+                    'attempt' => $attempt,
+                    'duration' => $duration,
+                    'status' => $response->status(),
+                ]);
+
+                if ($response->successful()) {
+                    break;
+                }
+
+                $status = $response->status();
+
+                $retryable = in_array($status, [
+                    429, 500, 502, 503, 504
+                ]);
+
+                if (!$retryable) {
+                    break;
+                }
+
+                Log::warning('Gemini API Retry', [
+                    'attempt' => $attempt,
+                    'status' => $status,
+                    'message' => $response->json('error.message'),
+                ]);
+
+            } catch (ConnectionException $e) {
+
+                Log::warning('Gemini Connection Error', [
+                    'attempt' => $attempt,
+                    'message' => $e->getMessage(),
+                    'duration' => round(microtime(true) - $startTime, 2),
+                ]);
+            }
+
+            if ($attempt < $maxAttempts) {
+                sleep(2 ** $attempt);
+            }
+        }
+
+        if (!$response || $response->failed()) {
+
+            Log::error('Gemini API Failed', [
+                'status' => $response?->status(),
+                'response' => $response?->json(),
+                'attempts' => $maxAttempts,
             ]);
 
-            throw new Exception('Gagal mendapatkan rekomendasi dari Gemini.');
+            throw new Exception(
+                'Gagal mendapatkan rekomendasi dari Gemini.'
+            );
         }
 
         $text = $response->json(
@@ -79,13 +138,28 @@ class GeminiService
         );
 
         if (!$text) {
+            Log::error('Gemini Empty Response', [
+                'response' => $response->json(),
+            ]);
+
             throw new Exception('Respons Gemini kosong.');
         }
 
         $result = json_decode($text, true);
 
-        if (!is_array($result) || !isset($result['itinerary'])) {
-            throw new Exception('Format itinerary dari Gemini tidak valid.');
+        if (
+            !is_array($result) ||
+            !isset($result['itinerary']) ||
+            !is_array($result['itinerary'])
+        ) {
+            Log::error('Gemini Invalid JSON Response', [
+                'response_text' => $text,
+                'json_error' => json_last_error_msg(),
+            ]);
+
+            throw new Exception(
+                'Format itinerary dari Gemini tidak valid.'
+            );
         }
 
         return $result;

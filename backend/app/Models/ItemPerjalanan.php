@@ -19,7 +19,7 @@ class ItemPerjalanan extends Model
         'destinasi_type',
         'destinasi_id',
         'urutan_item',
-        'depature_time',
+        'departure_time',
         'arrival_time',
     ];
 

@@ -688,6 +688,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       setState(() => _currentStep = 0);
       return;
     }
+
     if (!_validateStep2()) return;
 
     final plan = SavedTripPlan(
@@ -708,9 +709,11 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
 
     // Simpan otomatis sebagai rencana aktif ke backend & local cache
     _planSaved = true;
+
     final saved = await TripPlanService.saveTripPlan(plan);
 
     if (!mounted) return;
+
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -724,12 +727,14 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
           selectedThemes: saved?.selectedThemes ?? plan.selectedThemes,
           selectedAreas: saved?.selectedAreas ?? plan.selectedAreas,
           notes: saved?.notes ?? plan.notes,
-          initialDetails: saved?.details,
+
+          // Menggunakan relasi hari perjalanan
+          initialHariPerjalanan: saved?.hariPerjalanan,
         ),
       ),
     );
 
-    // Ketika kembali dari melihat susunan itinerary, kembali ke halaman utama (HomePage) dengan sinyal update
+    // Kembali ke HomePage dengan sinyal update
     if (mounted) {
       Navigator.pop(context, true);
     }

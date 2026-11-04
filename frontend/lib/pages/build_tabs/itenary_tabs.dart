@@ -10,11 +10,7 @@ class TripItineraryTab extends StatefulWidget {
   final bool isGuest;
   final VoidCallback? onLoginPrompt;
 
-  const TripItineraryTab({
-    super.key,
-    this.isGuest = false,
-    this.onLoginPrompt,
-  });
+  const TripItineraryTab({super.key, this.isGuest = false, this.onLoginPrompt});
 
   @override
   State<TripItineraryTab> createState() => _TripItineraryTabState();
@@ -33,15 +29,16 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
 
   Future<void> _loadPlans() async {
     setState(() => _isLoading = true);
+
     try {
       final plans = await TripPlanService.getAllTripPlans();
+
       SavedTripPlan? active;
+
       if (plans.isNotEmpty) {
-        active = plans.firstWhere(
-          (p) => p.isActive,
-          orElse: () => plans.first,
-        );
+        active = plans.firstWhere((p) => p.isActive, orElse: () => plans.first);
       }
+
       if (mounted) {
         setState(() {
           _allPlans = plans;
@@ -88,7 +85,9 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
           selectedThemes: plan.selectedThemes,
           selectedAreas: plan.selectedAreas,
           notes: plan.notes,
-          initialDetails: plan.details,
+
+          // Menggunakan relasi hari_perjalanan
+          initialHariPerjalanan: plan.hariPerjalanan,
         ),
       ),
     ).then((_) => _loadPlans());
@@ -97,6 +96,7 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
   Future<void> _setActivePlan(String planId) async {
     await TripPlanService.setActivePlan(planId);
     await _loadPlans();
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -136,6 +136,7 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
     if (confirm == true) {
       await TripPlanService.deleteTripPlan(plan.id);
       await _loadPlans();
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -150,8 +151,8 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final SavedTripPlan? heroPlan = _activePlan ??
-        (_allPlans.isNotEmpty ? _allPlans.first : null);
+    final SavedTripPlan? heroPlan =
+        _activePlan ?? (_allPlans.isNotEmpty ? _allPlans.first : null);
     final otherPlans = heroPlan != null
         ? _allPlans.where((p) => p.id != heroPlan.id).toList()
         : <SavedTripPlan>[];
@@ -211,10 +212,7 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
           SizedBox(height: 14),
           ManropeFont(
             'Menghubungkan ke basis data...',
-            style: TextStyle(
-              fontSize: 12.5,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -529,8 +527,11 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
                             value: 'activate',
                             child: Row(
                               children: [
-                                Icon(Icons.check_circle_outline,
-                                    size: 16, color: AppColors.primary),
+                                Icon(
+                                  Icons.check_circle_outline,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                ),
                                 SizedBox(width: 8),
                                 Text('Jadikan Rencana Aktif'),
                               ],
@@ -540,11 +541,16 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline,
-                                    size: 16, color: Colors.red),
+                                Icon(
+                                  Icons.delete_outline,
+                                  size: 16,
+                                  color: Colors.red,
+                                ),
                                 SizedBox(width: 8),
-                                Text('Hapus Rencana',
-                                    style: TextStyle(color: Colors.red)),
+                                Text(
+                                  'Hapus Rencana',
+                                  style: TextStyle(color: Colors.red),
+                                ),
                               ],
                             ),
                           ),
@@ -608,11 +614,7 @@ class EmptyTripPlanView extends StatelessWidget {
   final VoidCallback? onCreatePlan;
   final bool isGuest;
 
-  const EmptyTripPlanView({
-    super.key,
-    this.onCreatePlan,
-    this.isGuest = false,
-  });
+  const EmptyTripPlanView({super.key, this.onCreatePlan, this.isGuest = false});
 
   @override
   Widget build(BuildContext context) {
@@ -622,10 +624,7 @@ class EmptyTripPlanView extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-          width: 1.2,
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF0F172A).withValues(alpha: 0.03),
@@ -669,17 +668,10 @@ class EmptyTripPlanView extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F766E),
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 2.2,
-                    ),
+                    border: Border.all(color: Colors.white, width: 2.2),
                   ),
                   child: const Center(
-                    child: Icon(
-                      Icons.add,
-                      color: Colors.white,
-                      size: 16,
-                    ),
+                    child: Icon(Icons.add, color: Colors.white, size: 16),
                   ),
                 ),
               ),
@@ -776,9 +768,7 @@ class _BenefitRow extends StatelessWidget {
             color: color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: Center(
-            child: Icon(icon, size: 13, color: color),
-          ),
+          child: Center(child: Icon(icon, size: 13, color: color)),
         ),
         const SizedBox(width: 10),
         Expanded(

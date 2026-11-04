@@ -361,8 +361,10 @@ class TripPlanService {
   /// Mengambil satu rencana perjalanan beserta detail itinerarinya
   static Future<SavedTripPlan?> getTripPlanById(String id) async {
     try {
+
       final token = await AuthService.getToken();
       final headers = <String, String>{'Accept': 'application/json'};
+
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
@@ -371,23 +373,42 @@ class TripPlanService {
           .get(Uri.parse('$_baseUrl/rencana-perjalanan/$id'), headers: headers)
           .timeout(const Duration(seconds: 12));
 
+      debugPrint('HTTP Status Code: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
+
         if (json['success'] == true && json['data'] is Map) {
-          return SavedTripPlan.fromJson(json['data'] as Map<String, dynamic>);
+          final plan = SavedTripPlan.fromJson(
+            json['data'] as Map<String, dynamic>,
+          );
+
+          debugPrint('Plan berhasil dikonversi!');
+          debugPrint('Nama rencana: ${plan.tripName}');
+
+          return plan;
         }
       }
-    } catch (e) {
-      debugPrint('Notice fetch trip plan detail: $e');
+
+      debugPrint('Plan gagal ditemukan atau response tidak valid.');
+    } catch (e, stackTrace) {
+      debugPrint('ERROR fetch trip plan detail: $e');
+      debugPrint('STACK TRACE: $stackTrace');
     }
+
+    debugPrint('Mengembalikan null karena data tidak ditemukan.');
+    debugPrint('==========================================');
+
     return null;
   }
 
-  /// Menjadikan rencana perjalanan tertentu sebagai rencana aktif
+  // Menjadikan rencana perjalanan tertentu sebagai rencana aktif
   static Future<void> setActivePlan(String planId) async {
     try {
       final token = await AuthService.getToken();
+
       final headers = <String, String>{'Accept': 'application/json'};
+
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
@@ -406,26 +427,13 @@ class TripPlanService {
       final storageKey = await _getStorageKey();
       final prefs = await SharedPreferences.getInstance();
       final plans = await getAllTripPlans();
+
       final updated = plans.map((p) {
-        return SavedTripPlan(
-          id: p.id,
-          tripName: p.tripName,
-          startDate: p.startDate,
-          endDate: p.endDate,
-          startLocation: p.startLocation,
-          budget: p.budget,
-          selectedThemes: p.selectedThemes,
-          selectedAreas: p.selectedAreas,
-          isHalal: p.isHalal,
-          isSeafood: p.isSeafood,
-          notes: p.notes,
-          isActive: p.id == planId,
-          details: p.details,
-          createdAt: p.createdAt,
-        );
+        return p.copyWith(isActive: p.id == planId);
       }).toList();
 
       final jsonList = updated.map((p) => p.toJson()).toList();
+
       await prefs.setString(storageKey, jsonEncode(jsonList));
     } catch (e) {
       debugPrint('Error setting active plan: $e');
