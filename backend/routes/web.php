@@ -83,9 +83,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('/{kategori}', [KategoriController::class, 'update'])->name('update');
             Route::delete('/{kategori}', [KategoriController::class, 'destroy'])->name('destroy');
         });
-
+        
         Route::prefix('fasilitas')->name('fasilitas.')->group(function () {
-            Route::post('/store', [FasilitasController::class, 'store'])->name('store');
+            Route::get('/', [FasilitasController::class, 'index'])->name('index');
+            Route::get('/form-fasilitas', [FasilitasController::class, 'create'])->name('create');
+            Route::post('/form-fasilitas/store', [FasilitasController::class, 'store'])->name('store');
+            Route::get('/{fasilitas}', [FasilitasController::class, 'show'])->name('show');
+            Route::put('/{fasilitas}', [FasilitasController::class, 'update'])->name('update');
+            Route::delete('/{fasilitas}', [FasilitasController::class, 'destroy'])->name('destroy');
         });
 
         // Alias kompatibilitas jika ada yang memanggil route('admin.restoran')
