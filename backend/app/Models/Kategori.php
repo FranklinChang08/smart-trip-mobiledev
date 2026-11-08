@@ -28,6 +28,10 @@ class Kategori extends Model
     {
         return $this->morphedByMany(Wisata::class, 'destinasi', 'kategori_destinasi', 'id_kategori', 'destinasi_id');
     }
+    public function penginapans()
+    {
+        return $this->morphedByMany(Penginapan::class, 'destinasi', 'kategori_destinasi', 'id_kategori', 'destinasi_id');
+    }
 
     public function preferensiPerjalanans()
     {

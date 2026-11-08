@@ -8,6 +8,32 @@ use Illuminate\Http\Request;
 
 class KategoriController extends Controller
 {
+    public function index()
+    {
+        $kategoris = Kategori::withCount([
+            'wisatas',
+            'restorans',
+            'penginapans',
+        ])->paginate(10);
+
+        $kategoris->transform(function ($kategori) {
+            $kategori->total_destinasi =
+                $kategori->wisatas_count +
+                $kategori->restorans_count +
+                $kategori->penginapans_count;
+
+            return $kategori;
+        });
+
+        return view('admin.kategori.kategori', compact('kategoris'));
+    }
+    // Menampilkan form tambah kategori
+    public function create()
+    {
+        return view('admin.kategori.form-kategori');
+    }
+
+    // Menyimpan kategori
     public function store(Request $request)
     {
         // Validasi input
@@ -16,32 +42,94 @@ class KategoriController extends Controller
             'jenis_kategori' => 'required|in:wisata,restoran,penginapan',
         ], [
             'nama_kategori.required' => 'Nama kategori wajib diisi.',
-            'jenis_kategori.required' => 'Jenis kategori tidak valid.',
+            'nama_kategori.string' => 'Nama kategori harus berupa teks.',
+            'nama_kategori.max' => 'Nama kategori maksimal 255 karakter.',
+            'jenis_kategori.required' => 'Jenis kategori wajib dipilih.',
+            'jenis_kategori.in' => 'Jenis kategori tidak valid.',
         ]);
 
         try {
             // Simpan ke database
-            $kategori = Kategori::create([
+            Kategori::create([
                 'nama_kategori' => $validated['nama_kategori'],
                 'jenis_kategori' => $validated['jenis_kategori'],
             ]);
 
-            // Kirim kembali response JSON agar dibaca oleh AJAX JavaScript
-            return response()->json([
-                'success' => true,
-                'message' => 'Kategori berhasil ditambahkan.',
-                'kategori' => [
-                    'id' => $kategori->id_kategori, // Sesuaikan dengan increments('id_kategori')
-                    'nama_kategori' => $kategori->nama_kategori,
-                    'jenis_kategori' => $kategori->jenis_kategori,
-                ]
-            ], 201);
+            return redirect()
+                ->route('admin.kategori.index')
+                ->with('success', 'Kategori berhasil ditambahkan.');
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menyimpan kategori: ' . $e->getMessage()
-            ], 500);
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal menyimpan kategori: ' . $e->getMessage());
+        }
+    }
+
+    // Menampilkan form edit kategori
+    public function show($id)
+    {
+        $kategoris = Kategori::findOrFail($id);
+
+        return view('admin.kategori.form-kategori', compact('kategoris'));
+    }
+
+    // Memperbarui data kategori
+    public function update(Request $request, $id)
+    {
+        // Cari kategori berdasarkan ID
+        $kategori = Kategori::findOrFail($id);
+
+        // Validasi input
+        $validated = $request->validate([
+            'nama_kategori' => 'required|string|max:255',
+            'jenis_kategori' => 'required|in:wisata,restoran,penginapan',
+        ], [
+            'nama_kategori.required' => 'Nama kategori wajib diisi.',
+            'nama_kategori.string' => 'Nama kategori harus berupa teks.',
+            'nama_kategori.max' => 'Nama kategori maksimal 255 karakter.',
+            'jenis_kategori.required' => 'Jenis kategori wajib dipilih.',
+            'jenis_kategori.in' => 'Jenis kategori tidak valid.',
+        ]);
+
+        try {
+            // Update data kategori
+            $kategori->update([
+                'nama_kategori' => $validated['nama_kategori'],
+                'jenis_kategori' => $validated['jenis_kategori'],
+            ]);
+
+            return redirect()
+                ->route('admin.kategori.index')
+                ->with('success', 'Kategori berhasil diperbarui.');
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal memperbarui kategori: ' . $e->getMessage());
+        }
+    }
+
+    // Menghapus kategori
+    public function destroy($id)
+    {
+        try {
+            // Cari kategori berdasarkan ID
+            $kategori = Kategori::findOrFail($id);
+
+            // Hapus kategori
+            $kategori->delete();
+
+            return redirect()
+                ->route('admin.kategori.index')
+                ->with('success', 'Kategori berhasil dihapus.');
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Gagal menghapus kategori: ' . $e->getMessage());
         }
     }
 }
