@@ -283,6 +283,67 @@ class RencanaPerjalananController extends Controller
 
     // Hapus rencana perjalanan
 
+    public function destroy($id)
+    {
+        try {
+            DB::transaction(function () use ($id) {
+
+                // 1. Cari rencana perjalanan milik pengguna
+                $plan = RencanaPerjalanan::where(
+                    'id_rencana',
+                    $id
+                )
+                    ->lockForUpdate()
+                    ->findOrFail($id);
+
+                // 2. Ambil preferensi perjalanan
+                $preferensi = $plan->preferensi;
+
+                // 3. Hapus rencana perjalanan
+                // Event deleting otomatis menghapus hari dan item
+                $plan->delete();
+
+                // 4. Hapus preferensi jika tidak digunakan lagi
+                if ($preferensi) {
+
+                    // Pastikan tidak ada rencana lain yang menggunakan preferensi
+                    if (!$preferensi->rencanaPerjalanan()->exists()) {
+
+                        $preferensi->kategoris()->detach();
+
+                        // Event deleting preferensi juga dijalankan
+                        $preferensi->delete();
+                    }
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Rencana perjalanan berhasil dihapus.',
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Rencana perjalanan tidak ditemukan.',
+            ], 404);
+
+        } catch (\Exception $e) {
+
+            Log::error('Gagal menghapus rencana perjalanan', [
+                'id_rencana' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus rencana perjalanan.',
+            ], 500);
+        }
+    }
+
+
     private function generateRecommendationItinerary(
         RencanaPerjalanan $plan,
         int $totalDays,
@@ -314,29 +375,28 @@ class RencanaPerjalananController extends Controller
             $wisataQuery->whereIn('id_kecamatan', $kecamatanIds);
         }
 
-        $availableWisata = $wisataQuery->take(15)->get();
+        if (!empty($selectedThemes)) {
+            $wisataQuery->whereHas('kategoris', function ($query) use ($selectedThemes) {
+                $query->whereIn('nama_kategori', $selectedThemes);
+            });
+        }
 
-        // 3. Ambil kandidat restoran
+        $availableWisata = $wisataQuery->get();
+
         $restoranQuery = Restoran::with('kecamatan');
 
         if (!empty($kecamatanIds)) {
             $restoranQuery->whereIn('id_kecamatan', $kecamatanIds);
         }
 
-        // Filter halal
-        if ($isHalal) {
+        if ($isHalal && !$isSeafood) {
             $restoranQuery->where('type_food', 'Halal');
+        } elseif ($isSeafood && !$isHalal) {
+            $restoranQuery->where('type_food', 'Seafood');
         }
 
-        // Filter seafood
-        if ($isSeafood) {
-            $restoranQuery->where(function ($query) {
-                $query->where('nama_restoran', 'like', '%seafood%')
-                    ->orWhere('nama_restoran', 'like', '%kelong%');
-            });
-        }
+        $availableRestoran = $restoranQuery->get();
 
-        $availableRestoran = $restoranQuery->take(10)->get();
 
         Log::info('Kandidat destinasi ditemukan', [
             'total_wisata' => $availableWisata->count(),
