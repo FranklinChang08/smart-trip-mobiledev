@@ -68,11 +68,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('kecamatan')->name('kecamatan.')->group(function () {
             Route::get('/', [KecamatanController::class, 'index'])->name('index');
-            Route::get('/form-kecamatan', [KecamatanController::class, 'create'])->name('create');
-            Route::post('/form-kecamatan/store', [KecamatanController::class, 'store'])->name('store');
-            Route::get('/{kecamatan}', [KecamatanController::class, 'show'])->name('show');
-            Route::put('/{kecamatan}', [KecamatanController::class, 'update'])->name('update');
-            Route::delete('/{kecamatan}', [KecamatanController::class, 'destroy'])->name('destroy');
         });
 
         Route::prefix('kategori')->name('kategori.')->group(function () {
@@ -83,7 +78,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('/{kategori}', [KategoriController::class, 'update'])->name('update');
             Route::delete('/{kategori}', [KategoriController::class, 'destroy'])->name('destroy');
         });
-        
+
         Route::prefix('fasilitas')->name('fasilitas.')->group(function () {
             Route::get('/', [FasilitasController::class, 'index'])->name('index');
             Route::get('/form-fasilitas', [FasilitasController::class, 'create'])->name('create');
