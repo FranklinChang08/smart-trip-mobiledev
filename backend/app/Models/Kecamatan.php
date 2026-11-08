@@ -17,8 +17,23 @@ class Kecamatan extends Model
         'nama_kecamatan',
     ];
 
-    public function destinasi()
+    public function wisatas()
     {
-        return $this->morphTo();
+        return $this->hasMany(Wisata::class, 'id_kecamatan', 'id_kecamatan');
+    }
+
+    public function restorans()
+    {
+        return $this->hasMany(Restoran::class, 'id_kecamatan', 'id_kecamatan');
+    }
+
+    public function penginapans()
+    {
+        return $this->hasMany(Penginapan::class, 'id_kecamatan', 'id_kecamatan');
+    }
+
+    public function lokasiTransportasis()
+    {
+        return $this->hasMany(LokasiTransportasi::class, 'id_kecamatan', 'id_kecamatan');
     }
 }
