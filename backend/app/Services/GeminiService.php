@@ -9,6 +9,7 @@ use Exception;
 
 class GeminiService
 {
+
     public function generateItinerary(array $data): array
     {
         $apiKey = config('services.gemini.key');
@@ -23,119 +24,80 @@ class GeminiService
         }
 
         $prompt = "
-            Kamu adalah AI travel planner untuk SmartTrip.
+        Kamu adalah AI travel planner untuk SmartTrip.
+        Buat itinerary perjalanan berdasarkan data berikut:
+        " . json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "
 
-            Buat itinerary perjalanan berdasarkan data berikut:
+        Pilih destinasi hanya dari data yang diberikan.
+        Jangan membuat ID destinasi sendiri.
 
-            " . json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "
-
-            Pilih destinasi hanya dari data yang diberikan.
-            Jangan membuat ID destinasi sendiri.
-
-            Kembalikan hasil dalam format JSON:
-            {
-                \"itinerary\": [
-                    {
-                        \"day\": 1,
-                        \"items\": [
-                            {
-                                \"destination_id\": \"ID_DESTINASI\",
-                                \"type\": \"wisata\",
-                                \"start_time\": \"09:00\",
-                                \"end_time\": \"11:00\"
-                            }
-                        ]
-                    }
-                ]
-            }
-        ";
+        Kembalikan hasil dalam format JSON:
+        {
+            \"itinerary\": [
+                {
+                    \"day\": 1,
+                    \"items\": [
+                        {
+                            \"destination_id\": \"ID_DESTINASI\",
+                            \"type\": \"wisata\",
+                            \"start_time\": \"09:00\",
+                            \"end_time\": \"11:00\"
+                        }
+                    ]
+                }
+            ]
+        }
+    ";
 
         $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
 
-        $maxAttempts = 3;
-        $response = null;
+        $startTime = microtime(true);
 
-        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-
-            $startTime = microtime(true);
-
-            try {
-                $response = Http::connectTimeout(15)
-                    ->timeout(180)
-                    ->withHeaders([
-                        'x-goog-api-key' => $apiKey,
-                    ])
-                    ->post($url, [
-                        'contents' => [
-                            [
-                                'parts' => [
-                                    ['text' => $prompt],
-                                ],
+        try {
+            $response = Http::connectTimeout(15)
+                ->timeout(180)
+                ->withHeaders([
+                    'x-goog-api-key' => $apiKey,
+                ])
+                ->post($url, [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => $prompt],
                             ],
                         ],
-                        'generationConfig' => [
-                            'responseMimeType' => 'application/json',
-                        ],
-                    ]);
-
-                $duration = round(microtime(true) - $startTime, 2);
-
-                Log::info('Gemini Request Duration', [
-                    'attempt' => $attempt,
-                    'duration' => $duration,
-                    'status' => $response->status(),
+                    ],
+                    'generationConfig' => [
+                        'responseMimeType' => 'application/json',
+                    ],
                 ]);
 
-                if ($response->successful()) {
-                    break;
-                }
+            $duration = round(microtime(true) - $startTime, 2);
 
-                $status = $response->status();
-
-                $retryable = in_array($status, [
-                    429, 500, 502, 503, 504
-                ]);
-
-                if (!$retryable) {
-                    break;
-                }
-
-                Log::warning('Gemini API Retry', [
-                    'attempt' => $attempt,
-                    'status' => $status,
-                    'message' => $response->json('error.message'),
-                ]);
-
-            } catch (ConnectionException $e) {
-
-                Log::warning('Gemini Connection Error', [
-                    'attempt' => $attempt,
-                    'message' => $e->getMessage(),
-                    'duration' => round(microtime(true) - $startTime, 2),
-                ]);
-            }
-
-            if ($attempt < $maxAttempts) {
-                sleep(2 ** $attempt);
-            }
-        }
-
-        if (!$response || $response->failed()) {
-
-            Log::error('Gemini API Failed', [
-                'status' => $response?->status(),
-                'response' => $response?->json(),
-                'attempts' => $maxAttempts,
+            Log::info('Gemini Request Duration', [
+                'duration' => $duration,
+                'status' => $response->status(),
             ]);
 
-            throw new Exception(
-                'Gagal mendapatkan rekomendasi dari Gemini.'
-            );
+        } catch (ConnectionException $e) {
+            Log::error('Gemini Connection Error', [
+                'message' => $e->getMessage(),
+                'duration' => round(microtime(true) - $startTime, 2),
+            ]);
+
+            throw new Exception('Tidak dapat terhubung ke Gemini API.');
         }
 
-        $text = $response->json(
-            'candidates.0.content.parts.0.text'
-        );
+        if ($response->failed()) {
+            Log::error('Gemini API Failed', [
+                'status' => $response->status(),
+                'response' => $response->json(),
+            ]);
+
+            throw new Exception('Gagal mendapatkan rekomendasi dari Gemini.');
+        }
+
+        $text = $response->json('candidates.0.content.parts.0.text');
 
         if (!$text) {
             Log::error('Gemini Empty Response', [
@@ -157,11 +119,10 @@ class GeminiService
                 'json_error' => json_last_error_msg(),
             ]);
 
-            throw new Exception(
-                'Format itinerary dari Gemini tidak valid.'
-            );
+            throw new Exception('Format itinerary dari Gemini tidak valid.');
         }
 
         return $result;
     }
+
 }

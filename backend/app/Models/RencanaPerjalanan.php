@@ -53,11 +53,4 @@ class RencanaPerjalanan extends Model
         return $this->hasMany(HariPerjalanan::class, 'id_rencana', 'id_rencana')
             ->orderBy('urutan_hari', 'asc');
     }
-
-    public function detailItineraries()
-    {
-        return $this->hasMany(DetailItinerary::class, 'id_rencana', 'id_rencana')
-            ->orderBy('hari_ke')
-            ->orderBy('urutan');
-    }
 }
