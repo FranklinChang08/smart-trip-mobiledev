@@ -12,7 +12,8 @@
         <!-- Page Header -->
         <div class="flex items-center gap-3">
             <h1 class="text-2xl font-bold text-textPrimary tracking-tight">Data Destinasi Wisata</h1>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-[#235D52] border border-teal-200">
+            <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-[#235D52] border border-teal-200">
                 {{ $wisatas->total() }} Wisata Terdaftar
             </span>
         </div>
@@ -70,7 +71,8 @@
                         <tr
                             class="bg-background border-b border-border text-xs font-semibold text-textSecondary uppercase tracking-wider">
                             <th class="p-4 w-10 text-center">
-                                <input type="checkbox" id="select-all" class="rounded border-border text-primary focus:ring-primary cursor-pointer">
+                                <input type="checkbox" id="select-all"
+                                    class="rounded border-border text-primary focus:ring-primary cursor-pointer">
                             </th>
                             <th class="p-4">No</th>
                             <th class="p-4">Foto</th>
@@ -86,7 +88,8 @@
                         @forelse ($wisatas as $wisata)
                             <tr class="hover:bg-slate-50 transition">
                                 <td class="p-4 text-center">
-                                    <input type="checkbox" class="row-checkbox rounded border-border text-primary focus:ring-primary cursor-pointer"
+                                    <input type="checkbox"
+                                        class="row-checkbox rounded border-border text-primary focus:ring-primary cursor-pointer"
                                         value="{{ $wisata->id_wisata }}">
                                 </td>
                                 <td class="p-4 text-textSecondary">
@@ -103,8 +106,11 @@
                                                 alt="{{ $wisata->nama_wisata }}"
                                                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
                                         @else
-                                            <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                                </path>
                                             </svg>
                                         @endif
                                     </div>
@@ -133,10 +139,14 @@
                                 <td class="p-4 text-textSecondary text-xs">
                                     @if ($wisata->jamOperasis->count() > 0)
                                         <div class="flex items-center gap-1.5 font-medium text-slate-600">
-                                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
-                                            <span>{{ \Illuminate\Support\Str::substr($wisata->jamOperasis->first()->jam_buka, 0, 5) }} - {{ \Illuminate\Support\Str::substr($wisata->jamOperasis->first()->jam_tutup, 0, 5) }}</span>
+                                            <span>{{ \Illuminate\Support\Str::substr($wisata->jamOperasis->first()->jam_buka, 0, 5) }}
+                                                -
+                                                {{ \Illuminate\Support\Str::substr($wisata->jamOperasis->first()->jam_tutup, 0, 5) }}</span>
                                         </div>
                                     @else
                                         <span class="text-slate-400">-</span>
@@ -156,13 +166,16 @@
                                         <a href="{{ route('admin.wisata.show', ['wisata' => $wisata->id_wisata]) }}"
                                             class="p-2 text-slate-500 hover:text-primary hover:bg-teal-50 rounded-lg transition"
                                             title="Edit">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
                                                 </path>
                                             </svg>
                                         </a>
-                                        <form action="{{ route('admin.wisata.destroy', ['wisata' => $wisata->id_wisata]) }}" method="POST"
+                                        <form
+                                            action="{{ route('admin.wisata.destroy', ['wisata' => $wisata->id_wisata]) }}"
+                                            method="POST"
                                             onsubmit="return confirmDelete(event, this, '{{ addslashes($wisata->nama_wisata) }}');"
                                             class="inline-block">
                                             @csrf
@@ -193,24 +206,14 @@
             </div>
 
             <!-- Pagination di Bawah Tabel -->
-            <div class="bg-white border-border pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="text-sm text-textSecondary">
-                    Menampilkan
-                    <span class="font-medium text-textPrimary">{{ $wisatas->firstItem() ?? 0 }}</span> sampai
-                    <span class="font-medium text-textPrimary">{{ $wisatas->lastItem() ?? 0 }}</span> dari
-                    <span class="font-medium text-textPrimary">{{ $wisatas->total() }}</span> data
-                </div>
-                <div>
-                    {{ $wisatas->withQueryString()->links() }}
-                </div>
-            </div>
+            {{ $wisatas->withQueryString()->links('components.pagination-custom') }}
 
         </div>
 
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const selectAll = document.getElementById('select-all');
             const rowCheckboxes = document.querySelectorAll('.row-checkbox');
             const selectedCountEl = document.getElementById('selected-count');
@@ -231,7 +234,7 @@
             }
 
             if (selectAll) {
-                selectAll.addEventListener('change', function () {
+                selectAll.addEventListener('change', function() {
                     rowCheckboxes.forEach(cb => {
                         cb.checked = selectAll.checked;
                     });
@@ -244,12 +247,13 @@
             });
 
             if (bulkDeleteBtn) {
-                bulkDeleteBtn.addEventListener('click', function () {
+                bulkDeleteBtn.addEventListener('click', function() {
                     const checked = document.querySelectorAll('.row-checkbox:checked');
                     if (checked.length === 0) return;
-                    confirmDelete(function () {
+                    confirmDelete(function() {
                         if (window.showToast) {
-                            window.showToast('error', 'Fitur hapus massal sedang dalam pengembangan.');
+                            window.showToast('error',
+                                'Fitur hapus massal sedang dalam pengembangan.');
                         }
                     }, `${checked.length} data wisata terpilih`);
                 });

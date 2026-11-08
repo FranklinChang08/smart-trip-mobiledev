@@ -164,17 +164,7 @@
             </div>
 
             <!-- Pagination di Bawah Tabel -->
-            <div class="bg-white border-border pt-2 flex items-center justify-between">
-                <div class="text-sm text-textSecondary">
-                    Menampilkan
-                    <span class="font-medium text-textPrimary">{{ $lokasi_transportasi->firstItem() ?? 0 }}</span> sampai
-                    <span class="font-medium text-textPrimary">{{ $lokasi_transportasi->lastItem() ?? 0 }}</span> dari
-                    <span class="font-medium text-textPrimary">{{ $lokasi_transportasi->total() }}</span> data
-                </div>
-                <div>
-                    {{ $lokasi_transportasi->withQueryString()->links() }}
-                </div>
-            </div>
+            {{ $lokasi_transportasi->withQueryString()->links('components.pagination-custom') }}
 
         </div>
 

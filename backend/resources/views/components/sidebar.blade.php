@@ -86,8 +86,8 @@
                 <span>Data Kategori</span>
             </a>
 
-            <a href=""
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary">
+            <a href="{{ route('admin.fasilitas.index') }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('admin.fasilitas*') ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary' }} ">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                     class="lucide lucide-house-cog preview-icon">
@@ -107,8 +107,8 @@
                 <span>Data Fasilitas</span>
             </a>
 
-            <a href=""
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary">
+            <a href="{{ route('admin.kecamatan.index') }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors {{ request()->routeIs('admin.kecamatan*') ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'text-textSecondary hover:bg-[#F3F4F6] hover:text-textPrimary' }} ">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                     stroke-linejoin="round" class="lucide lucide-building-complex-plus preview-icon">

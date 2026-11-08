@@ -42,10 +42,10 @@ class KecamatanController extends Controller
                 $kecamatan->lokasi_transportasis_count;
 
             // Ambil foto destinasi pertama melalui relasi polimorfik fotoDestinasis
-            $firstWisataPhoto = optional($kecamatan->wisatas->first()?->fotoDestinasis->first())->foto;
-            $firstRestoPhoto = optional($kecamatan->restorans->first()?->fotoDestinasis->first())->foto;
-            $firstInapPhoto = optional($kecamatan->penginapans->first()?->fotoDestinasis->first())->foto;
-            $firstTransPhoto = optional($kecamatan->lokasiTransportasis->first()?->fotoDestinasis->first())->foto;
+            $firstWisataPhoto = optional($kecamatan->wisatas->first()?->fotoDestinasis->first())->link_photo;
+            $firstRestoPhoto = optional($kecamatan->restorans->first()?->fotoDestinasis->first())->link_photo;
+            $firstInapPhoto = optional($kecamatan->penginapans->first()?->fotoDestinasis->first())->link_photo;
+            $firstTransPhoto = optional($kecamatan->lokasiTransportasis->first()?->fotoDestinasis->first())->link_photo;
 
             $kecamatan->first_destination_photo =
                 $firstWisataPhoto ??

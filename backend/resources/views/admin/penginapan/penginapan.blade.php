@@ -3,7 +3,8 @@
 @section('title', 'Data Penginapan')
 @php
     $pageTitle = 'Kelola Data Penginapan';
-    $pageDesc = 'Halaman ini digunakan untuk mengelola data tempat penginapan, hotel, resort, dan rekomendasi akomodasi SmartTrip.';
+    $pageDesc =
+        'Halaman ini digunakan untuk mengelola data tempat penginapan, hotel, resort, dan rekomendasi akomodasi SmartTrip.';
 @endphp
 
 @section('content')
@@ -12,7 +13,8 @@
         <!-- Page Header -->
         <div class="flex items-center gap-3">
             <h1 class="text-2xl font-bold text-textPrimary tracking-tight">Data Tempat Penginapan</h1>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-primary border border-teal-200">
+            <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-primary border border-teal-200">
                 {{ $penginapans->total() }} Penginapan Terdaftar
             </span>
         </div>
@@ -173,17 +175,7 @@
             </div>
 
             <!-- Pagination di Bawah Tabel -->
-            <div class="bg-white border-border pt-2 flex items-center justify-between">
-                <div class="text-sm text-textSecondary">
-                    Menampilkan
-                    <span class="font-medium text-textPrimary">{{ $penginapans->firstItem() ?? 0 }}</span> sampai
-                    <span class="font-medium text-textPrimary">{{ $penginapans->lastItem() ?? 0 }}</span> dari
-                    <span class="font-medium text-textPrimary">{{ $penginapans->total() }}</span> data
-                </div>
-                <div>
-                    {{ $penginapans->withQueryString()->links() }}
-                </div>
-            </div>
+            {{ $penginapans->withQueryString()->links('components.pagination-custom') }}
 
         </div>
 

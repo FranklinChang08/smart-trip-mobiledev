@@ -51,8 +51,14 @@
                         </label>
                         <input id="nama_wisata" type="text" name="nama_wisata"
                             value="{{ old('nama_wisata', $wisata->nama_wisata ?? '') }}" placeholder="Contoh: Pantai Nongsa"
-                            class="w-full px-3.5 py-2.5 bg-background border @error('nama_wisata') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary transition-all">
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('nama_wisata') ? '' : 'hidden' }}">
+                            @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'nama_wisata'),
+                                'border-border focus:ring-primary' => !$errors->has('nama_wisata'),
+                            ])>
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('nama_wisata') ? '' : 'hidden' }}">
                             {{ $errors->first('nama_wisata') ?: 'Nama wisata wajib diisi' }}
                         </p>
                     </div>
@@ -61,7 +67,8 @@
                         <x-multi-selection name="categories" label="Kategori Wisata" placeholder="Pilih Kategori"
                             searchPlaceholder="Cari atau tambah kategori..." :initial-options="$categories" :selected-values="$selectedCategories"
                             :allow-add="true" />
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('categories') || $errors->has('categories.*') ? '' : 'hidden' }}">
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('categories') || $errors->has('categories.*') ? '' : 'hidden' }}">
                             {{ $errors->first('categories') ?: ($errors->first('categories.*') ?: 'Kategori wisata wajib dipilih') }}
                         </p>
                     </div>
@@ -70,7 +77,8 @@
                         <x-searchable-select name="id_kecamatan" id="id_kecamatan" label="Kecamatan" :options="$kecamatan"
                             :selectedValue="old('id_kecamatan', $wisata->id_kecamatan ?? '')" placeholder="Pilih Kecamatan" searchPlaceholder="Cari kecamatan..."
                             :required="true" />
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('id_kecamatan') ? '' : 'hidden' }}">
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('id_kecamatan') ? '' : 'hidden' }}">
                             {{ $errors->first('id_kecamatan') ?: 'Kecamatan wajib dipilih' }}
                         </p>
                     </div>
@@ -80,9 +88,14 @@
                             Alamat Detail <span class="text-red-500">*</span>
                         </label>
                         <textarea id="alamat_detail_wisata" name="alamat_detail_wisata" rows="2"
-                            placeholder="Masukkan alamat lengkap lokasi wisata..."
-                            class="w-full px-3.5 py-2.5 bg-background border @error('alamat_detail_wisata') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary transition-all">{{ old('alamat_detail_wisata', $wisata->alamat_detail_wisata ?? '') }}</textarea>
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('alamat_detail_wisata') ? '' : 'hidden' }}">
+                            placeholder="Masukkan alamat lengkap lokasi wisata..." @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'alamat_detail_wisata'),
+                                'border-border focus:ring-primary' => !$errors->has('alamat_detail_wisata'),
+                            ])>{{ old('alamat_detail_wisata', $wisata->alamat_detail_wisata ?? '') }}</textarea>
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('alamat_detail_wisata') ? '' : 'hidden' }}">
                             {{ $errors->first('alamat_detail_wisata') ?: 'Alamat detail wajib diisi' }}
                         </p>
                     </div>
@@ -92,8 +105,14 @@
                                 class="text-red-500">*</span></label>
                         <input id="latitude" type="number" step="any" name="latitude"
                             value="{{ old('latitude', $wisata->latitude ?? '') }}" placeholder="Contoh: 1.13010000"
-                            class="w-full px-3.5 py-2.5 bg-background border @error('latitude') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary font-mono transition-all">
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('latitude') ? '' : 'hidden' }}">
+                            @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 font-mono transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'latitude'),
+                                'border-border focus:ring-primary' => !$errors->has('latitude'),
+                            ])>
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('latitude') ? '' : 'hidden' }}">
                             {{ $errors->first('latitude') ?: 'Latitude wajib diisi' }}
                         </p>
                     </div>
@@ -103,20 +122,32 @@
                                 class="text-red-500">*</span></label>
                         <input id="longitude" type="number" step="any" name="longitude"
                             value="{{ old('longitude', $wisata->longitude ?? '') }}" placeholder="Contoh: 104.05290000"
-                            class="w-full px-3.5 py-2.5 bg-background border @error('longitude') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary font-mono transition-all">
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('longitude') ? '' : 'hidden' }}">
+                            @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 font-mono transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'longitude'),
+                                'border-border focus:ring-primary' => !$errors->has('longitude'),
+                            ])>
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('longitude') ? '' : 'hidden' }}">
                             {{ $errors->first('longitude') ?: 'Longitude wajib diisi' }}
                         </p>
                     </div>
 
                     <div class="md:col-span-2">
-                        <label for="link_on_maps" class="block text-sm font-semibold text-textPrimary mb-1.5">Link Google Maps
+                        <label for="link_on_maps" class="block text-sm font-semibold text-textPrimary mb-1.5">Link Google
+                            Maps
                             <span class="text-red-500">*</span></label>
                         <input id="link_on_maps" type="url" name="link_on_maps"
                             value="{{ old('link_on_maps', $wisata->link_on_maps ?? '') }}"
-                            placeholder="https://maps.google.com/..."
-                            class="w-full px-3.5 py-2.5 bg-background border @error('link_on_maps') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary transition-all">
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('link_on_maps') ? '' : 'hidden' }}">
+                            placeholder="https://maps.google.com/..." @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'link_on_maps'),
+                                'border-border focus:ring-primary' => !$errors->has('link_on_maps'),
+                            ])>
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('link_on_maps') ? '' : 'hidden' }}">
                             {{ $errors->first('link_on_maps') ?: 'Link Google Maps wajib diisi' }}
                         </p>
                     </div>
@@ -129,8 +160,12 @@
                                 class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-textSecondary font-medium">Rp</span>
                             <input id="harga_tiket_masuk" type="number" name="harga_tiket_masuk"
                                 value="{{ old('harga_tiket_masuk', $wisata->harga_tiket_masuk ?? '') }}" min="0"
-                                placeholder="50000"
-                                class="w-full pl-11 pr-4 py-2.5 bg-background border @error('harga_tiket_masuk') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary transition-all">
+                                placeholder="50000" @class([
+                                    'w-full pl-11 pr-4 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                                    'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                        'harga_tiket_masuk'),
+                                    'border-border focus:ring-primary' => !$errors->has('harga_tiket_masuk'),
+                                ])>
                         </div>
                         @error('harga_tiket_masuk')
                             <p class="text-xs text-red-600 mt-1.5 ml-1 font-medium" role="alert">{{ $message }}</p>
@@ -141,8 +176,12 @@
                         <label for="deskripsi" class="block text-sm font-semibold text-textPrimary mb-1.5">Deskripsi
                             Destinasi</label>
                         <textarea id="deskripsi" name="deskripsi" rows="4"
-                            placeholder="Tuliskan deskripsi lengkap mengenai tempat wisata ini..."
-                            class="w-full px-3.5 py-2.5 bg-background border @error('deskripsi') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary transition-all">{{ old('deskripsi', $wisata->deskripsi ?? '') }}</textarea>
+                            placeholder="Tuliskan deskripsi lengkap mengenai tempat wisata ini..." @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'deskripsi'),
+                                'border-border focus:ring-primary' => !$errors->has('deskripsi'),
+                            ])>{{ old('deskripsi', $wisata->deskripsi ?? '') }}</textarea>
                         @error('deskripsi')
                             <p class="text-xs text-red-600 mt-1.5 ml-1 font-medium" role="alert">{{ $message }}</p>
                         @enderror
@@ -150,7 +189,7 @@
                 </div>
             </div>
 
-            {{-- Jam operasional. Komponen perlu menerima data lama untuk mode edit. --}}
+            {{-- Jam operasional --}}
             <x-jam-operasional :initial-data="$jamOperasional ?? []" />
 
             <x-upload-foto :is-edit="$isEdit" :foto-destinasi="$fotoDestinasi ?? []" :destinasi="$wisata ?? []" />
@@ -167,13 +206,14 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('formWisata');
             if (!form) return;
 
             function setError(inputEl, containerEl, hasError, message) {
                 const errorEl = containerEl.querySelector('.field-error');
-                const trigger = containerEl.querySelector('.select-trigger') || containerEl.querySelector('.dropdown-trigger') || inputEl;
+                const trigger = containerEl.querySelector('.select-trigger') || containerEl.querySelector(
+                    '.dropdown-trigger') || inputEl;
 
                 if (hasError) {
                     if (trigger) {
@@ -195,35 +235,31 @@
                 }
             }
 
+            // Bersihkan error secara instan saat user mengetik/mengubah nilai
             form.querySelectorAll('input, textarea, select').forEach(input => {
-                input.addEventListener('input', function () {
+                input.addEventListener('input', function() {
                     const container = input.closest('.md\\:col-span-2') || input.closest('div');
                     if (container) setError(input, container, false);
                 });
-                input.addEventListener('change', function () {
+                input.addEventListener('change', function() {
                     const container = input.closest('.md\\:col-span-2') || input.closest('div');
                     if (container) setError(input, container, false);
                 });
             });
 
-            // Observer for categories and kecamatan
-            const observer = new MutationObserver(function () {
-                const catContainer = document.getElementById('categories-field-container');
-                if (catContainer) {
-                    const catInputs = catContainer.querySelectorAll('input[name="categories[]"]');
-                    if (catInputs.length > 0) setError(null, catContainer, false);
-                }
+            // Event listener khusus untuk komponen kustom (jika dispatch event pilihan berubah)
+            const catContainer = document.getElementById('categories-field-container');
+            if (catContainer) {
+                catContainer.addEventListener('click', () => setError(null, catContainer, false));
+                catContainer.addEventListener('input', () => setError(null, catContainer, false));
+            }
 
-                const kecContainer = document.getElementById('kecamatan-field-container');
-                if (kecContainer) {
-                    const kecInput = kecContainer.querySelector('input[name="id_kecamatan"]');
-                    if (kecInput && kecInput.value) setError(null, kecContainer, false);
-                }
-            });
+            const kecContainer = document.getElementById('kecamatan-field-container');
+            if (kecContainer) {
+                kecContainer.addEventListener('click', () => setError(null, kecContainer, false));
+            }
 
-            observer.observe(form, { childList: true, subtree: true, attributes: true });
-
-            form.addEventListener('submit', function (e) {
+            form.addEventListener('submit', function(e) {
                 let firstInvalid = null;
 
                 // 1. Nama Wisata
@@ -234,7 +270,6 @@
                 }
 
                 // 2. Kategori
-                const catContainer = document.getElementById('categories-field-container');
                 if (catContainer) {
                     const cats = catContainer.querySelectorAll('input[name="categories[]"]');
                     if (cats.length === 0) {
@@ -244,7 +279,6 @@
                 }
 
                 // 3. Kecamatan
-                const kecContainer = document.getElementById('kecamatan-field-container');
                 if (kecContainer) {
                     const kec = kecContainer.querySelector('input[name="id_kecamatan"]');
                     if (!kec || !kec.value) {
@@ -283,7 +317,10 @@
 
                 if (firstInvalid) {
                     e.preventDefault();
-                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
                     if (typeof firstInvalid.focus === 'function') {
                         firstInvalid.focus();
                     }
