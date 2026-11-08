@@ -67,8 +67,8 @@ class WisataController extends Controller
             ],
 
             'alamat_detail_wisata' => ['required', 'string'],
-            'latitude' => ['required', 'numeric'],
-            'longitude' => ['required', 'numeric'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
 
             'link_on_maps' => [
                 'required',
@@ -131,9 +131,11 @@ class WisataController extends Controller
 
             'latitude.required' => 'Latitude wajib diisi.',
             'latitude.numeric' => 'Latitude harus berupa angka.',
+            'latitude.between' => 'Latitude harus berada di antara -90 sampai 90.',
 
             'longitude.required' => 'Longitude wajib diisi.',
             'longitude.numeric' => 'Longitude harus berupa angka.',
+            'longitude.between' => 'Longitude harus berada di antara -180 sampai 180.',
 
             'link_on_maps.required' => 'Link Maps wajib diisi.',
             'link_on_maps.url' => 'Link Maps harus berupa URL yang valid.',
@@ -294,8 +296,8 @@ class WisataController extends Controller
             ],
 
             'alamat_detail_wisata' => ['required', 'string'],
-            'latitude' => ['required', 'numeric'],
-            'longitude' => ['required', 'numeric'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
 
             'link_on_maps' => [
                 'required',
@@ -355,12 +357,13 @@ class WisataController extends Controller
             'id_kecamatan.exists' => 'Kecamatan yang dipilih tidak valid.',
 
             'alamat_detail_wisata.required' => 'Alamat wisata wajib diisi.',
-
             'latitude.required' => 'Latitude wajib diisi.',
             'latitude.numeric' => 'Latitude harus berupa angka.',
+            'latitude.between' => 'Latitude harus berada di antara -90 sampai 90.',
 
             'longitude.required' => 'Longitude wajib diisi.',
             'longitude.numeric' => 'Longitude harus berupa angka.',
+            'longitude.between' => 'Longitude harus berada di antara -180 sampai 180.',
 
             'link_on_maps.required' => 'Link Maps wajib diisi.',
             'link_on_maps.url' => 'Link Maps harus berupa URL yang valid.',

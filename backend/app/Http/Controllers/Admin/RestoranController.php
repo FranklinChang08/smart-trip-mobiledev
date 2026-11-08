@@ -28,7 +28,7 @@ class RestoranController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nama_restoran', 'like', "%{$search}%")
-                    ->orWhere('alamat_Detail_restoran', 'like', "%{$search}%");
+                    ->orWhere('alamat_detail_restoran', 'like', "%{$search}%");
             });
         }
 
@@ -66,9 +66,9 @@ class RestoranController extends Controller
             ],
             'type_food' => ['required', 'in:Halal,Vegetarian,Semua'],
             'harga_makan_per_orang' => ['nullable', 'numeric', 'min:0'],
-            'alamat_Detail_restoran' => ['required', 'string'],
-            'latitude' => ['required', 'numeric'],
-            'longitude' => ['required', 'numeric'],
+            'alamat_detail_restoran' => ['required', 'string'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
             'link_on_maps' => [
                 'required',
                 'url',
@@ -126,11 +126,14 @@ class RestoranController extends Controller
             'id_kecamatan.exists' => 'Kecamatan yang dipilih tidak valid.',
             'type_food.required' => 'Tipe makanan wajib dipilih.',
             'type_food.in' => 'Tipe makanan harus Halal, Vegetarian, atau Semua.',
-            'alamat_Detail_restoran.required' => 'Alamat restoran wajib diisi.',
+            'alamat_detail_restoran.required' => 'Alamat restoran wajib diisi.',
             'latitude.required' => 'Latitude wajib diisi.',
             'latitude.numeric' => 'Latitude harus berupa angka.',
+            'latitude.between' => 'Latitude harus berada di antara -90 sampai 90.',
+
             'longitude.required' => 'Longitude wajib diisi.',
             'longitude.numeric' => 'Longitude harus berupa angka.',
+            'longitude.between' => 'Longitude harus berada di antara -180 sampai 180.',
             'link_on_maps.required' => 'Link Maps wajib diisi.',
             'link_on_maps.url' => 'Link Maps harus berupa URL yang valid.',
             'categories.required' => 'Pilih minimal satu kategori kuliner.',
@@ -151,6 +154,7 @@ class RestoranController extends Controller
             'foto_destinasi.*.max' => 'Ukuran setiap foto maksimal 5 MB.',
         ]);
 
+
         $storedPaths = [];
 
         try {
@@ -160,7 +164,7 @@ class RestoranController extends Controller
                     'id_restoran' => (string) Str::uuid(),
                     'id_kecamatan' => $validated['id_kecamatan'],
                     'nama_restoran' => $validated['nama_restoran'],
-                    'alamat_Detail_restoran' => $validated['alamat_Detail_restoran'],
+                    'alamat_detail_restoran' => $validated['alamat_detail_restoran'],
                     'latitude' => $validated['latitude'],
                     'longitude' => $validated['longitude'],
                     'link_on_maps' => $validated['link_on_maps'],
@@ -266,9 +270,9 @@ class RestoranController extends Controller
             ],
             'type_food' => ['required', 'in:Halal,Vegetarian,Semua'],
             'harga_makan_per_orang' => ['nullable', 'numeric', 'min:0'],
-            'alamat_Detail_restoran' => ['required', 'string'],
-            'latitude' => ['required', 'numeric'],
-            'longitude' => ['required', 'numeric'],
+            'alamat_detail_restoran' => ['required', 'string'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
             'link_on_maps' => [
                 'required',
                 'url',
@@ -326,11 +330,14 @@ class RestoranController extends Controller
             'id_kecamatan.exists' => 'Kecamatan yang dipilih tidak valid.',
             'type_food.required' => 'Tipe makanan wajib dipilih.',
             'type_food.in' => 'Tipe makanan harus Halal, Vegetarian, atau Semua.',
-            'alamat_Detail_restoran.required' => 'Alamat restoran wajib diisi.',
+            'alamat_detail_restoran.required' => 'Alamat restoran wajib diisi.',
             'latitude.required' => 'Latitude wajib diisi.',
             'latitude.numeric' => 'Latitude harus berupa angka.',
+            'latitude.between' => 'Latitude harus berada di antara -90 sampai 90.',
+
             'longitude.required' => 'Longitude wajib diisi.',
             'longitude.numeric' => 'Longitude harus berupa angka.',
+            'longitude.between' => 'Longitude harus berada di antara -180 sampai 180.',
             'link_on_maps.required' => 'Link Maps wajib diisi.',
             'link_on_maps.url' => 'Link Maps harus berupa URL yang valid.',
             'categories.required' => 'Pilih minimal satu kategori kuliner.',
@@ -359,7 +366,7 @@ class RestoranController extends Controller
                 $restoran->update([
                     'id_kecamatan' => $validated['id_kecamatan'],
                     'nama_restoran' => $validated['nama_restoran'],
-                    'alamat_Detail_restoran' => $validated['alamat_Detail_restoran'],
+                    'alamat_detail_restoran' => $validated['alamat_detail_restoran'],
                     'latitude' => $validated['latitude'],
                     'longitude' => $validated['longitude'],
                     'link_on_maps' => $validated['link_on_maps'],

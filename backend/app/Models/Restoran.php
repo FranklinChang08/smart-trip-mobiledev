@@ -18,7 +18,7 @@ class Restoran extends Model
         'id_restoran',
         'id_kecamatan',
         'nama_restoran',
-        'alamat_Detail_restoran',
+        'alamat_detail_restoran',
         'latitude',
         'longitude',
         'deskripsi',

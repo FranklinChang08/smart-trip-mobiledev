@@ -120,7 +120,7 @@
                                     <div class="font-bold text-textPrimary leading-snug">{{ $restoran->nama_restoran }}
                                     </div>
                                     <div class="text-xs text-textSecondary mt-0.5 line-clamp-2">
-                                        {{ $restoran->alamat_Detail_restoran }}
+                                        {{ $restoran->alamat_detail_restoran }}
                                         @if ($restoran->kecamatan)
                                             , {{ $restoran->kecamatan->nama_kecamatan }}
                                         @endif
