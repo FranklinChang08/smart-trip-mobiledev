@@ -1,13 +1,21 @@
 @extends('layouts.admin')
 
-@section('title', 'Data penginapan')
+@section('title', 'Data Penginapan')
 @php
-    $pageTitle = 'Kelola Data Destinasi penginapan';
-    $pageDesc = 'Halaman ini digunakan untuk mengelola data tempat penginapan, rute, dan kategori destinasi SmartTrip.';
+    $pageTitle = 'Kelola Data Penginapan';
+    $pageDesc = 'Halaman ini digunakan untuk mengelola data tempat penginapan, hotel, resort, dan rekomendasi akomodasi SmartTrip.';
 @endphp
 
 @section('content')
     <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Page Header -->
+        <div class="flex items-center gap-3">
+            <h1 class="text-2xl font-bold text-textPrimary tracking-tight">Data Tempat Penginapan</h1>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-primary border border-teal-200">
+                {{ $penginapans->total() }} Penginapan Terdaftar
+            </span>
+        </div>
 
         <!-- WRAPPER 1: Form Pencarian & Tombol Tambah -->
         <form method="GET" action="{{ route('admin.penginapan.index') }}"
@@ -25,13 +33,13 @@
                     class="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
             </div>
 
-            <!-- Tombol Tambah Tempat penginapan -->
+            <!-- Tombol Tambah Tempat Penginapan -->
             <a href="{{ route('admin.penginapan.create') }}"
                 class="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-95 transition shadow-sm">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
-                Tambah Tempat penginapan
+                Tambah Penginapan
             </a>
         </form>
 

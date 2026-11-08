@@ -316,6 +316,11 @@ class RencanaPerjalananController extends Controller
 
         $availableWisata = $wisataQuery->take(15)->get();
 
+        // Fallback: Jika di kecamatan yang dipilih belum ada data wisata, ambil data wisata lain di Batam
+        if ($availableWisata->isEmpty()) {
+            $availableWisata = Wisata::with(['kategoris', 'kecamatan'])->take(15)->get();
+        }
+
         // 3. Ambil kandidat restoran
         $restoranQuery = Restoran::with('kecamatan');
 
@@ -337,6 +342,11 @@ class RencanaPerjalananController extends Controller
         }
 
         $availableRestoran = $restoranQuery->take(10)->get();
+
+        // Fallback: Jika di kecamatan tersebut belum ada restoran yang cocok, ambil restoran yang ada
+        if ($availableRestoran->isEmpty()) {
+            $availableRestoran = Restoran::with('kecamatan')->take(10)->get();
+        }
 
         Log::info('Kandidat destinasi ditemukan', [
             'total_wisata' => $availableWisata->count(),
@@ -610,29 +620,32 @@ class RencanaPerjalananController extends Controller
         OpenRouterService $openRouterService,
         GroqService $groqService
     ): array {
-        try {
-            return $geminiService->generateItinerary($data);
-
-        } catch (Exception $e) {
-            Log::warning('Gemini gagal, mencoba OpenRouter', [
-                'error' => $e->getMessage(),
-            ]);
-        }
-
+        // 1. Coba Groq lebih dulu (kecepatan respon ~1-2 detik)
         try {
             return $groqService->generateItinerary($data);
 
         } catch (Exception $e) {
-            Log::error('Semua AI provider gagal', [
+            Log::warning('Groq gagal, mencoba OpenRouter', [
                 'error' => $e->getMessage(),
             ]);
         }
 
+        // 2. Coba OpenRouter (~2-4 detik)
         try {
             return $openRouterService->generateItinerary($data);
 
         } catch (Exception $e) {
-            Log::warning('OpenRouter gagal, mencoba Groq', [
+            Log::warning('OpenRouter gagal, mencoba Gemini', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // 3. Cadangan terakhir: Gemini
+        try {
+            return $geminiService->generateItinerary($data);
+
+        } catch (Exception $e) {
+            Log::error('Semua layanan AI gagal', [
                 'error' => $e->getMessage(),
             ]);
 

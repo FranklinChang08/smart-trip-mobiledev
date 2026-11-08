@@ -46,8 +46,8 @@ class GroqService
             }
         ";
 
-        $response = Http::connectTimeout(15)
-            ->timeout(180)
+        $response = Http::connectTimeout(8)
+            ->timeout(20)
             ->withToken($apiKey)
             ->post(
                 'https://api.groq.com/openai/v1/chat/completions',

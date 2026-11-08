@@ -46,8 +46,8 @@ class OpenRouterService
             }
         ";
 
-        $response = Http::connectTimeout(15)
-            ->timeout(180)
+        $response = Http::connectTimeout(8)
+            ->timeout(20)
             ->withToken($apiKey)
             ->withHeaders([
                 'HTTP-Referer' => config('app.url'),

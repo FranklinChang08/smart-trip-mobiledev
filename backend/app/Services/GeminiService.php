@@ -52,7 +52,7 @@ class GeminiService
 
         $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
 
-        $maxAttempts = 3;
+        $maxAttempts = 1;
         $response = null;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
@@ -60,8 +60,8 @@ class GeminiService
             $startTime = microtime(true);
 
             try {
-                $response = Http::connectTimeout(15)
-                    ->timeout(180)
+                $response = Http::connectTimeout(8)
+                    ->timeout(15)
                     ->withHeaders([
                         'x-goog-api-key' => $apiKey,
                     ])

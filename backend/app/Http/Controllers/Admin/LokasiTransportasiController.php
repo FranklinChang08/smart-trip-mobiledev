@@ -269,16 +269,14 @@ class LokasiTransportasiController extends Controller
                     'deskripsi' => $validated['deskripsi'] ?? null,
                 ]);
 
-                // 2. Sinkronisasi kategori.
-                $lokasi_transportasi->kategoris()->sync(
-                    $validated['categories']
-                );
+                // 2. Sinkronisasi fasilitas jika dikirimkan.
+                if (isset($validated['fasilitas'])) {
+                    $lokasi_transportasi->fasilitas()->sync(
+                        $validated['fasilitas']
+                    );
+                }
 
-                // 3. Sinkronisasi fasilitas.
-                $lokasi_transportasi->fasilitas()->sync(
-                    $validated['fasilitas'] ?? []
-                );
-                // 4. Tambahkan foto baru jika tersedia.
+                // 3. Tambahkan foto baru jika tersedia.
                 foreach (
                     $request->file('foto_destinasi', []) ?? []
                     as $file

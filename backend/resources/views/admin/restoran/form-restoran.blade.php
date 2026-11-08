@@ -172,7 +172,7 @@
             </div>
 
             {{-- Fasilitas Restoran (Many to Many) --}}
-            <x-fasilitas-selection :all-fasilitas="$fasilitas ?? []" :selected-fasilitas="$selectedFasilitas ?? []" />
+            <x-fasilitas-selection :all-fasilitas="$fasilitas ?? []" :selected-fasilitas="$selectedFasilitas ?? []" title="Fasilitas Restoran (Opsional)" accent="orange" />
 
             {{-- Jam operasional --}}
             <x-jam-operasional :initial-data="$jamOperasional ?? []" />
