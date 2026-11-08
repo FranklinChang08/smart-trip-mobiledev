@@ -20,8 +20,7 @@
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
                 </span>
-                <input type="text" name="search" value="{{ request('search') }}"
-                    placeholder="Cari nama kategori..."
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama kategori..."
                     class="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
             </div>
 
@@ -155,17 +154,7 @@
             </div>
 
             <!-- Pagination di Bawah Tabel -->
-            <div class="bg-white border-border pt-2 flex items-center justify-between">
-                <div class="text-sm text-textSecondary">
-                    Menampilkan
-                    <span class="font-medium text-textPrimary">{{ $kategoris->firstItem() ?? 0 }}</span> sampai
-                    <span class="font-medium text-textPrimary">{{ $kategoris->lastItem() ?? 0 }}</span> dari
-                    <span class="font-medium text-textPrimary">{{ $kategoris->total() }}</span> data
-                </div>
-                <div>
-                    {{ $kategoris->withQueryString()->links() }}
-                </div>
-            </div>
+            {{ $kategoris->withQueryString()->links('components.pagination-custom') }}
 
         </div>
 

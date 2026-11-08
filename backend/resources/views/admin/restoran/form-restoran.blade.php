@@ -51,9 +51,14 @@
                         </label>
                         <input id="nama_restoran" type="text" name="nama_restoran"
                             value="{{ old('nama_restoran', $restoran->nama_restoran ?? '') }}"
-                            placeholder="Contoh: Harbour Bay Seafood Restaurant"
-                            class="w-full px-3.5 py-2.5 bg-background border @error('nama_restoran') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-[#934515] transition-all">
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('nama_restoran') ? '' : 'hidden' }}">
+                            placeholder="Contoh: Harbour Bay Seafood Restaurant" @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'nama_restoran'),
+                                'border-border focus:ring-[#934515]' => !$errors->has('nama_restoran'),
+                            ])>
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('nama_restoran') ? '' : 'hidden' }}">
                             {{ $errors->first('nama_restoran') ?: 'Nama restoran wajib diisi' }}
                         </p>
                     </div>
@@ -62,7 +67,8 @@
                         <x-multi-selection name="categories" label="Kategori Kuliner" placeholder="Pilih Kategori"
                             searchPlaceholder="Cari atau tambah kategori..." :initial-options="$categories" :selected-values="$selectedCategories"
                             :allow-add="true" />
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('categories') || $errors->has('categories.*') ? '' : 'hidden' }}">
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('categories') || $errors->has('categories.*') ? '' : 'hidden' }}">
                             {{ $errors->first('categories') ?: ($errors->first('categories.*') ?: 'Kategori kuliner wajib dipilih') }}
                         </p>
                     </div>
@@ -71,7 +77,8 @@
                         <x-searchable-select name="id_kecamatan" id="id_kecamatan" label="Kecamatan" :options="$kecamatan"
                             :selectedValue="old('id_kecamatan', $restoran->id_kecamatan ?? '')" placeholder="Pilih Kecamatan" searchPlaceholder="Cari kecamatan..."
                             :required="true" />
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('id_kecamatan') ? '' : 'hidden' }}">
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('id_kecamatan') ? '' : 'hidden' }}">
                             {{ $errors->first('id_kecamatan') ?: 'Kecamatan wajib dipilih' }}
                         </p>
                     </div>
@@ -80,13 +87,24 @@
                         <label for="type_food" class="block text-sm font-semibold text-textPrimary mb-1.5">
                             Tipe Makanan <span class="text-red-500">*</span>
                         </label>
-                        <select id="type_food" name="type_food"
-                            class="w-full px-3.5 py-2.5 bg-background border @error('type_food') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-[#934515] transition-all">
-                            <option value="Semua" {{ old('type_food', $restoran->type_food ?? 'Semua') === 'Semua' ? 'selected' : '' }}>Semua Jenis Makanan</option>
-                            <option value="Halal" {{ old('type_food', $restoran->type_food ?? '') === 'Halal' ? 'selected' : '' }}>Halal</option>
-                            <option value="Vegetarian" {{ old('type_food', $restoran->type_food ?? '') === 'Vegetarian' ? 'selected' : '' }}>Vegetarian</option>
+                        <select id="type_food" name="type_food" @class([
+                            'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                            'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                'type_food'),
+                            'border-border focus:ring-[#934515]' => !$errors->has('type_food'),
+                        ])>
+                            <option value="Semua"
+                                {{ old('type_food', $restoran->type_food ?? 'Semua') === 'Semua' ? 'selected' : '' }}>Semua
+                                Jenis Makanan</option>
+                            <option value="Halal"
+                                {{ old('type_food', $restoran->type_food ?? '') === 'Halal' ? 'selected' : '' }}>Halal
+                            </option>
+                            <option value="Vegetarian"
+                                {{ old('type_food', $restoran->type_food ?? '') === 'Vegetarian' ? 'selected' : '' }}>
+                                Vegetarian</option>
                         </select>
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('type_food') ? '' : 'hidden' }}">
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('type_food') ? '' : 'hidden' }}">
                             {{ $errors->first('type_food') ?: 'Tipe makanan wajib dipilih' }}
                         </p>
                     </div>
@@ -99,9 +117,14 @@
                             <span
                                 class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-textSecondary font-medium">Rp</span>
                             <input id="harga_makan_per_orang" type="number" name="harga_makan_per_orang"
-                                value="{{ old('harga_makan_per_orang', $restoran->harga_makan_per_orang ?? '') }}" min="0"
-                                placeholder="35000"
-                                class="w-full pl-11 pr-4 py-2.5 bg-background border @error('harga_makan_per_orang') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-[#934515] transition-all">
+                                value="{{ old('harga_makan_per_orang', $restoran->harga_makan_per_orang ?? '') }}"
+                                min="0" placeholder="35000" @class([
+                                    'w-full pl-11 pr-4 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                                    'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                        'harga_makan_per_orang'),
+                                    'border-border focus:ring-[#934515]' => !$errors->has(
+                                        'harga_makan_per_orang'),
+                                ])>
                         </div>
                         @error('harga_makan_per_orang')
                             <p class="text-xs text-red-600 mt-1.5 ml-1 font-medium" role="alert">{{ $message }}</p>
@@ -113,9 +136,15 @@
                             Alamat Detail <span class="text-red-500">*</span>
                         </label>
                         <textarea id="alamat_Detail_restoran" name="alamat_Detail_restoran" rows="2"
-                            placeholder="Masukkan alamat lengkap lokasi restoran..."
-                            class="w-full px-3.5 py-2.5 bg-background border @error('alamat_Detail_restoran') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-[#934515] transition-all">{{ old('alamat_Detail_restoran', $restoran->alamat_Detail_restoran ?? '') }}</textarea>
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('alamat_Detail_restoran') ? '' : 'hidden' }}">
+                            placeholder="Masukkan alamat lengkap lokasi restoran..." @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'alamat_Detail_restoran'),
+                                'border-border focus:ring-[#934515]' => !$errors->has(
+                                    'alamat_Detail_restoran'),
+                            ])>{{ old('alamat_Detail_restoran', $restoran->alamat_Detail_restoran ?? '') }}</textarea>
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('alamat_Detail_restoran') ? '' : 'hidden' }}">
                             {{ $errors->first('alamat_Detail_restoran') ?: 'Alamat restoran wajib diisi' }}
                         </p>
                     </div>
@@ -126,8 +155,14 @@
                         </label>
                         <input id="latitude" type="number" step="any" name="latitude"
                             value="{{ old('latitude', $restoran->latitude ?? '') }}" placeholder="Contoh: 1.13010000"
-                            class="w-full px-3.5 py-2.5 bg-background border @error('latitude') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-[#934515] font-mono transition-all">
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('latitude') ? '' : 'hidden' }}">
+                            @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 font-mono transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'latitude'),
+                                'border-border focus:ring-[#934515]' => !$errors->has('latitude'),
+                            ])>
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('latitude') ? '' : 'hidden' }}">
                             {{ $errors->first('latitude') ?: 'Latitude wajib diisi' }}
                         </p>
                     </div>
@@ -138,8 +173,14 @@
                         </label>
                         <input id="longitude" type="number" step="any" name="longitude"
                             value="{{ old('longitude', $restoran->longitude ?? '') }}" placeholder="Contoh: 104.05290000"
-                            class="w-full px-3.5 py-2.5 bg-background border @error('longitude') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-[#934515] font-mono transition-all">
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('longitude') ? '' : 'hidden' }}">
+                            @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 font-mono transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'longitude'),
+                                'border-border focus:ring-[#934515]' => !$errors->has('longitude'),
+                            ])>
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('longitude') ? '' : 'hidden' }}">
                             {{ $errors->first('longitude') ?: 'Longitude wajib diisi' }}
                         </p>
                     </div>
@@ -150,9 +191,14 @@
                         </label>
                         <input id="link_on_maps" type="url" name="link_on_maps"
                             value="{{ old('link_on_maps', $restoran->link_on_maps ?? '') }}"
-                            placeholder="https://maps.google.com/..."
-                            class="w-full px-3.5 py-2.5 bg-background border @error('link_on_maps') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-[#934515] transition-all">
-                        <p class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('link_on_maps') ? '' : 'hidden' }}">
+                            placeholder="https://maps.google.com/..." @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'link_on_maps'),
+                                'border-border focus:ring-[#934515]' => !$errors->has('link_on_maps'),
+                            ])>
+                        <p
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('link_on_maps') ? '' : 'hidden' }}">
                             {{ $errors->first('link_on_maps') ?: 'Link Google Maps wajib diisi' }}
                         </p>
                     </div>
@@ -163,7 +209,12 @@
                         </label>
                         <textarea id="deskripsi" name="deskripsi" rows="4"
                             placeholder="Tuliskan deskripsi lengkap mengenai tempat makan atau restoran ini, menu favorit, suasana..."
-                            class="w-full px-3.5 py-2.5 bg-background border @error('deskripsi') border-red-500 ring-1 ring-red-500/20 @else border-border @enderror rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-[#934515] transition-all">{{ old('deskripsi', $restoran->deskripsi ?? '') }}</textarea>
+                            @class([
+                                'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
+                                'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
+                                    'deskripsi'),
+                                'border-border focus:ring-[#934515]' => !$errors->has('deskripsi'),
+                            ])>{{ old('deskripsi', $restoran->deskripsi ?? '') }}</textarea>
                         @error('deskripsi')
                             <p class="text-xs text-red-600 mt-1.5 ml-1 font-medium" role="alert">{{ $message }}</p>
                         @enderror
@@ -172,7 +223,8 @@
             </div>
 
             {{-- Fasilitas Restoran (Many to Many) --}}
-            <x-fasilitas-selection :all-fasilitas="$fasilitas ?? []" :selected-fasilitas="$selectedFasilitas ?? []" title="Fasilitas Restoran (Opsional)" accent="orange" />
+            <x-fasilitas-selection :all-fasilitas="$fasilitas ?? []" :selected-fasilitas="$selectedFasilitas ?? []" title="Fasilitas Restoran (Opsional)"
+                accent="orange" />
 
             {{-- Jam operasional --}}
             <x-jam-operasional :initial-data="$jamOperasional ?? []" />
@@ -195,13 +247,14 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('formRestoran');
             if (!form) return;
 
             function setError(inputEl, containerEl, hasError, message) {
                 const errorEl = containerEl.querySelector('.field-error');
-                const trigger = containerEl.querySelector('.select-trigger') || containerEl.querySelector('.dropdown-trigger') || inputEl;
+                const trigger = containerEl.querySelector('.select-trigger') || containerEl.querySelector(
+                    '.dropdown-trigger') || inputEl;
 
                 if (hasError) {
                     if (trigger) {
@@ -224,34 +277,28 @@
             }
 
             form.querySelectorAll('input, textarea, select').forEach(input => {
-                input.addEventListener('input', function () {
+                input.addEventListener('input', function() {
                     const container = input.closest('.md\\:col-span-2') || input.closest('div');
                     if (container) setError(input, container, false);
                 });
-                input.addEventListener('change', function () {
+                input.addEventListener('change', function() {
                     const container = input.closest('.md\\:col-span-2') || input.closest('div');
                     if (container) setError(input, container, false);
                 });
             });
 
-            // Observer for categories and kecamatan
-            const observer = new MutationObserver(function () {
-                const catContainer = document.getElementById('categories-field-container');
-                if (catContainer) {
-                    const catInputs = catContainer.querySelectorAll('input[name="categories[]"]');
-                    if (catInputs.length > 0) setError(null, catContainer, false);
-                }
+            const catContainer = document.getElementById('categories-field-container');
+            if (catContainer) {
+                catContainer.addEventListener('click', () => setError(null, catContainer, false));
+                catContainer.addEventListener('input', () => setError(null, catContainer, false));
+            }
 
-                const kecContainer = document.getElementById('kecamatan-field-container');
-                if (kecContainer) {
-                    const kecInput = kecContainer.querySelector('input[name="id_kecamatan"]');
-                    if (kecInput && kecInput.value) setError(null, kecContainer, false);
-                }
-            });
+            const kecContainer = document.getElementById('kecamatan-field-container');
+            if (kecContainer) {
+                kecContainer.addEventListener('click', () => setError(null, kecContainer, false));
+            }
 
-            observer.observe(form, { childList: true, subtree: true, attributes: true });
-
-            form.addEventListener('submit', function (e) {
+            form.addEventListener('submit', function(e) {
                 let firstInvalid = null;
 
                 // 1. Nama Restoran
@@ -262,7 +309,6 @@
                 }
 
                 // 2. Kategori
-                const catContainer = document.getElementById('categories-field-container');
                 if (catContainer) {
                     const cats = catContainer.querySelectorAll('input[name="categories[]"]');
                     if (cats.length === 0) {
@@ -272,7 +318,6 @@
                 }
 
                 // 3. Kecamatan
-                const kecContainer = document.getElementById('kecamatan-field-container');
                 if (kecContainer) {
                     const kec = kecContainer.querySelector('input[name="id_kecamatan"]');
                     if (!kec || !kec.value) {
@@ -318,7 +363,10 @@
 
                 if (firstInvalid) {
                     e.preventDefault();
-                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
                     if (typeof firstInvalid.focus === 'function') {
                         firstInvalid.focus();
                     }
