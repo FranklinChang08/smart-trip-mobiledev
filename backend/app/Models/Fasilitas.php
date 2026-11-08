@@ -26,4 +26,26 @@ class Fasilitas extends Model
             'destinasi_id'
         );
     }
+
+    public function penginapans()
+    {
+        return $this->morphedByMany(
+            Penginapan::class,
+            'destinasi',
+            'fasilitas_destinasi',
+            'id_fasilitas',
+            'destinasi_id'
+        );
+    }
+
+    public function lokasiTransportasis()
+    {
+        return $this->morphedByMany(
+            LokasiTransportasi::class,
+            'destinasi',
+            'fasilitas_destinasi',
+            'id_fasilitas',
+            'destinasi_id'
+        );
+    }
 }
