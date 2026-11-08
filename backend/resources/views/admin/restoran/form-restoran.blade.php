@@ -132,20 +132,20 @@
                     </div>
 
                     <div class="md:col-span-2">
-                        <label for="alamat_Detail_restoran" class="block text-sm font-semibold text-textPrimary mb-1.5">
+                        <label for="alamat_detail_restoran" class="block text-sm font-semibold text-textPrimary mb-1.5">
                             Alamat Detail <span class="text-red-500">*</span>
                         </label>
-                        <textarea id="alamat_Detail_restoran" name="alamat_Detail_restoran" rows="2"
+                        <textarea id="alamat_detail_restoran" name="alamat_detail_restoran" rows="2"
                             placeholder="Masukkan alamat lengkap lokasi restoran..." @class([
                                 'w-full px-3.5 py-2.5 bg-background border rounded-lg text-sm text-textPrimary focus:outline-none focus:ring-2 transition-all',
                                 'border-red-500 ring-1 ring-red-500/20 focus:ring-red-500' => $errors->has(
-                                    'alamat_Detail_restoran'),
+                                    'alamat_detail_restoran'),
                                 'border-border focus:ring-[#934515]' => !$errors->has(
-                                    'alamat_Detail_restoran'),
-                            ])>{{ old('alamat_Detail_restoran', $restoran->alamat_Detail_restoran ?? '') }}</textarea>
+                                    'alamat_detail_restoran'),
+                            ])>{{ old('alamat_detail_restoran', $restoran->alamat_detail_restoran ?? '') }}</textarea>
                         <p
-                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('alamat_Detail_restoran') ? '' : 'hidden' }}">
-                            {{ $errors->first('alamat_Detail_restoran') ?: 'Alamat restoran wajib diisi' }}
+                            class="field-error text-xs text-red-600 mt-1.5 ml-1 font-medium {{ $errors->has('alamat_detail_restoran') ? '' : 'hidden' }}">
+                            {{ $errors->first('alamat_detail_restoran') ?: 'Alamat restoran wajib diisi' }}
                         </p>
                     </div>
 
@@ -334,7 +334,7 @@
                 }
 
                 // 5. Alamat Detail
-                const alamat = form.querySelector('#alamat_Detail_restoran');
+                const alamat = form.querySelector('#alamat_detail_restoran');
                 if (alamat && !alamat.value.trim()) {
                     setError(alamat, alamat.closest('div'), true, 'Alamat detail restoran wajib diisi');
                     if (!firstInvalid) firstInvalid = alamat;
