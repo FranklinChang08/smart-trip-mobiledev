@@ -4,7 +4,6 @@
 
 @php
     $isEdit = isset($lokasi_transportasi) && $lokasi_transportasi && $lokasi_transportasi->exists;
-    $selectedCategories = old('categories', $selectedCategories ?? []);
 @endphp
 
 @section('content')
@@ -164,10 +163,6 @@
                     </div>
                 </div>
             </div>
-
-            <x-fasilitas-selection :all-fasilitas="$fasilitas ?? []" :selected-fasilitas="$selectedFasilitas ?? []" />
-
-            <x-upload-foto :is-edit="$isEdit" :foto-destinasi="$fotoDestinasi ?? []" :destinasi="$lokasi_transportasi ?? []" />
 
             <div class="flex justify-end gap-3">
                 <a href="{{ route('admin.lokasi.index') }}"

@@ -1,11 +1,29 @@
-@props(['allFasilitas' => [], 'selectedFasilitas' => []])
+@props([
+    'allFasilitas' => [],
+    'selectedFasilitas' => [],
+    'title' => 'Fasilitas (Opsional)',
+    'accent' => 'primary',
+])
+
+@php
+    $isOrange = $accent === 'orange' || $accent === '#934515';
+    $barClass = $isOrange ? 'bg-[#934515]' : 'bg-primary';
+    $btnClass = $isOrange ? 'bg-[#934515] hover:bg-[#7D3A11]' : 'bg-primary hover:bg-[#00524B]';
+    $ringClass = $isOrange ? 'focus:ring-[#934515]' : 'focus:ring-primary';
+    $checkboxClass = $isOrange
+        ? 'text-[#934515] focus:ring-[#934515] accent-[#934515]'
+        : 'text-primary focus:ring-primary accent-primary';
+    $checkedItemClass = $isOrange
+        ? 'has-[:checked]:bg-[#934515]/10 has-[:checked]:border-[#934515] has-[:checked]:text-[#934515] has-[:checked]:font-semibold'
+        : 'has-[:checked]:bg-primary/10 has-[:checked]:border-primary has-[:checked]:text-primary has-[:checked]:font-semibold';
+@endphp
 
 <div class="bg-white p-6 rounded-xl border border-border shadow-sm space-y-4">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border pb-3">
         <div>
             <h2 class="text-base font-bold text-textPrimary flex items-center">
-                <span class="w-2 h-5 bg-[#934515] rounded-full mr-2"></span>
-                Fasilitas Restoran (Opsional)
+                <span class="w-2 h-5 {{ $barClass }} rounded-full mr-2"></span>
+                {{ $title }}
             </h2>
             <p class="text-xs text-textSecondary mt-0.5">
                 Pilih fasilitas yang tersedia untuk memudahkan pengunjung. Anda juga dapat menambahkan fasilitas baru.
@@ -25,10 +43,10 @@
             <div class="relative flex-1">
                 <input type="text" id="new-fasilitas-input"
                     placeholder="Ketik fasilitas baru jika belum ada di daftar (contoh: Area Bermain Anak)..."
-                    class="w-full px-3.5 py-2 bg-background border border-border rounded-lg text-xs md:text-sm text-textPrimary focus:outline-none focus:ring-2 focus:ring-[#934515]">
+                    class="w-full px-3.5 py-2 bg-background border border-border rounded-lg text-xs md:text-sm text-textPrimary focus:outline-none focus:ring-2 {{ $ringClass }}">
             </div>
             <button type="button" id="btn-add-fasilitas"
-                class="px-4 py-2 bg-[#934515] hover:bg-[#7D3A11] text-white text-xs md:text-sm font-semibold rounded-lg transition shadow-sm shrink-0 flex items-center gap-1.5 cursor-pointer">
+                class="px-4 py-2 {{ $btnClass }} text-white text-xs md:text-sm font-semibold rounded-lg transition shadow-sm shrink-0 flex items-center gap-1.5 cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
@@ -45,10 +63,10 @@
         </label>
         <div id="fasilitas-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
             @forelse($allFasilitas as $item)
-                <label class="fasilitas-item relative flex items-center gap-2.5 p-3 rounded-xl border border-border bg-slate-50 cursor-pointer hover:bg-slate-100 transition has-[:checked]:bg-[#934515]/10 has-[:checked]:border-[#934515] has-[:checked]:text-[#934515] has-[:checked]:font-semibold">
+                <label class="fasilitas-item relative flex items-center gap-2.5 p-3 rounded-xl border border-border bg-slate-50 cursor-pointer hover:bg-slate-100 transition {{ $checkedItemClass }}">
                     <input type="checkbox" name="fasilitas[]" value="{{ $item->id_fasilitas }}"
                         {{ in_array($item->id_fasilitas, (array)$selectedFasilitas) ? 'checked' : '' }}
-                        class="fasilitas-checkbox w-4 h-4 rounded border-border text-[#934515] focus:ring-[#934515] accent-[#934515] cursor-pointer">
+                        class="fasilitas-checkbox w-4 h-4 rounded border-border {{ $checkboxClass }} cursor-pointer">
                     <span class="text-xs md:text-sm text-textPrimary select-none truncate" title="{{ $item->nama_fasilitas }}">
                         {{ $item->nama_fasilitas }}
                     </span>
@@ -69,6 +87,8 @@
         const addBtn = document.getElementById('btn-add-fasilitas');
         const feedback = document.getElementById('fasilitas-feedback');
         const countLabel = document.getElementById('selected-fasilitas-count');
+        const checkedItemClass = '{{ $checkedItemClass }}';
+        const checkboxClass = '{{ $checkboxClass }}';
 
         function updateCount() {
             if (!container) return;
@@ -141,10 +161,10 @@
 
                 // Buat elemen baru dan langsung centang
                 const label = document.createElement('label');
-                label.className = 'fasilitas-item relative flex items-center gap-2.5 p-3 rounded-xl border border-border bg-slate-50 cursor-pointer hover:bg-slate-100 transition has-[:checked]:bg-[#934515]/10 has-[:checked]:border-[#934515] has-[:checked]:text-[#934515] has-[:checked]:font-semibold';
+                label.className = `fasilitas-item relative flex items-center gap-2.5 p-3 rounded-xl border border-border bg-slate-50 cursor-pointer hover:bg-slate-100 transition ${checkedItemClass}`;
                 label.innerHTML = `
                     <input type="checkbox" name="fasilitas[]" value="${newId}" checked
-                        class="fasilitas-checkbox w-4 h-4 rounded border-border text-[#934515] focus:ring-[#934515] accent-[#934515] cursor-pointer">
+                        class="fasilitas-checkbox w-4 h-4 rounded border-border ${checkboxClass} cursor-pointer">
                     <span class="text-xs md:text-sm text-textPrimary select-none truncate" title="${newName}">
                         ${newName}
                     </span>

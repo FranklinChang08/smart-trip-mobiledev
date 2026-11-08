@@ -54,8 +54,8 @@ class GeminiService
         $startTime = microtime(true);
 
         try {
-            $response = Http::connectTimeout(15)
-                ->timeout(180)
+            $response = Http::connectTimeout(8)
+                ->timeout(15)
                 ->withHeaders([
                     'x-goog-api-key' => $apiKey,
                 ])
