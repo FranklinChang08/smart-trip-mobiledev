@@ -50,16 +50,32 @@ class KategoriController extends Controller
 
         try {
             // Simpan ke database
-            Kategori::create([
+            $kategori = Kategori::create([
                 'nama_kategori' => $validated['nama_kategori'],
                 'jenis_kategori' => $validated['jenis_kategori'],
             ]);
+
+            // Cek jika request dari AJAX/Fetch
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Kategori berhasil ditambahkan.',
+                    'data' => $kategori
+                ]);
+            }
 
             return redirect()
                 ->route('admin.kategori.index')
                 ->with('success', 'Kategori berhasil ditambahkan.');
 
         } catch (\Exception $e) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menyimpan kategori: ' . $e->getMessage()
+                ], 500);
+            }
+
             return redirect()
                 ->back()
                 ->withInput()
