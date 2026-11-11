@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
+import 'package:frontend/components/trip_plan/trip_location_selector.dart';
 import 'package:frontend/components/trip_plan/trip_step1_form.dart';
 import 'package:frontend/components/trip_plan/trip_step2_form.dart';
 import 'package:frontend/components/trip_plan/trip_summary_bottom_sheet.dart';
@@ -26,6 +27,10 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
   late DateTime _startDate;
   late DateTime _endDate;
   String _selectedLocation = 'Pelabuhan Ferry Batam Center';
+  TripLocationModel? _selectedLocationModel;
+  String _selectedEndLocation = 'Pelabuhan Ferry Batam Center';
+  TripLocationModel? _selectedEndLocationModel;
+  List<TripLocationModel> _availableLocations = kBatamLocations;
 
   List<TripThemeModel> _availableThemes = kTripThemes;
   final Set<String> _selectedThemes = {
@@ -65,10 +70,25 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
   Future<void> _loadMasterDataFromApi() async {
     final categories = await TripPlanService.fetchCategories();
     final kecamatanList = await TripPlanService.fetchKecamatan();
+    final locations = await TripPlanService.fetchLocations();
     if (mounted) {
       setState(() {
         if (categories.isNotEmpty) _availableThemes = categories;
         if (kecamatanList.isNotEmpty) _availableAreas = kecamatanList;
+        if (locations.isNotEmpty) {
+          _availableLocations = locations;
+          _selectedLocationModel = locations.firstWhere(
+            (l) => l.name == _selectedLocation,
+            orElse: () => locations.first,
+          );
+          _selectedLocation = _selectedLocationModel!.name;
+
+          _selectedEndLocationModel = locations.firstWhere(
+            (l) => l.name == _selectedEndLocation,
+            orElse: () => _selectedLocationModel!,
+          );
+          _selectedEndLocation = _selectedEndLocationModel!.name;
+        }
       });
     }
   }
@@ -141,418 +161,34 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     }
   }
 
-  /// Dialog pemilihan Titik Awal Perjalanan dengan fitur pencarian real-time, filter kategori,
-  /// dan meletakkan item yang terpilih di paling atas daftar.
-  void _openLocationDialog() {
-    showModalBottomSheet(
+  /// Menampilkan detail lengkap titik lokasi dari database
+  void _showLocationDetail(TripLocationModel loc) {
+    TripLocationModal.showLocationDetail(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        String searchQuery = '';
-        String selectedCategory = 'all';
-        final searchController = TextEditingController();
-
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            // Filter lokasi berdasarkan kategori dan kata kunci pencarian
-            List<TripLocationModel> filtered = kBatamLocations.where((loc) {
-              final matchesCategory =
-                  selectedCategory == 'all' || loc.category == selectedCategory;
-              final query = searchQuery.trim().toLowerCase();
-              final matchesQuery =
-                  query.isEmpty ||
-                  loc.name.toLowerCase().contains(query) ||
-                  loc.type.toLowerCase().contains(query) ||
-                  loc.quickLabel.toLowerCase().contains(query);
-              return matchesCategory && matchesQuery;
-            }).toList();
-
-            // Urutkan lokasi
-            filtered.sort((a, b) {
-              if (a.name == _selectedLocation) return -1;
-              if (b.name == _selectedLocation) return 1;
-              return 0;
-            });
-
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.82,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  // Handle Penarik
-                  Center(
-                    child: Container(
-                      width: 44,
-                      height: 4.5,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Header Modal
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Icons.location_on_outlined,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Pilih Titik Awal Perjalanan',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Mulai dari pelabuhan, bandara, atau hotel tempat menginap',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 20),
-                          onPressed: () => Navigator.pop(context),
-                          splashRadius: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Kolom Pencarian Cepat
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: TextField(
-                      controller: searchController,
-                      onChanged: (val) {
-                        setModalState(() {
-                          searchQuery = val;
-                        });
-                      },
-
-                      decoration: InputDecoration(
-                        hintText:
-                            'Cari hotel, pelabuhan, bandara (mis: Aston)...',
-                        hintStyle: TextStyle(
-                          fontSize: 12.5,
-                          color: Colors.grey.shade400,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          size: 20,
-                          color: AppColors.primary,
-                        ),
-                        suffixIcon: searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  searchController.clear();
-                                  setModalState(() {
-                                    searchQuery = '';
-                                  });
-                                },
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE2E8F0),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE2E8F0),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: AppColors.primary,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Filter Kategori Pill Tabs
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          _buildFilterCategoryPill(
-                            label: 'Semua',
-                            isSelected: selectedCategory == 'all',
-                            onTap: () =>
-                                setModalState(() => selectedCategory = 'all'),
-                          ),
-                          const SizedBox(width: 6),
-                          _buildFilterCategoryPill(
-                            label: '🏨 Hotel & Resort',
-                            isSelected: selectedCategory == 'hotel',
-                            onTap: () =>
-                                setModalState(() => selectedCategory = 'hotel'),
-                          ),
-                          const SizedBox(width: 6),
-                          _buildFilterCategoryPill(
-                            label: '🚢 Pelabuhan Ferry',
-                            isSelected: selectedCategory == 'pelabuhan',
-                            onTap: () => setModalState(
-                              () => selectedCategory = 'pelabuhan',
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          _buildFilterCategoryPill(
-                            label: '✈️ Bandara',
-                            isSelected: selectedCategory == 'bandara',
-                            onTap: () => setModalState(
-                              () => selectedCategory = 'bandara',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(height: 1),
-
-                  // Daftar Lokasi
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.search_off,
-                                    size: 40,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Tidak ditemukan lokasi "$searchQuery"',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Coba gunakan kata kunci lain seperti nama hotel atau pelabuhan.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            itemCount: filtered.length,
-                            separatorBuilder: (context, i) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (context, i) {
-                              final loc = filtered[i];
-                              final isSelected = _selectedLocation == loc.name;
-
-                              return InkWell(
-                                onTap: () {
-                                  setState(() => _selectedLocation = loc.name);
-                                  Navigator.pop(context);
-                                },
-                                borderRadius: BorderRadius.circular(14),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? AppColors.primary.withValues(
-                                            alpha: 0.07,
-                                          )
-                                        : const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : const Color(0xFFE2E8F0),
-                                      width: isSelected ? 1.5 : 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(9),
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? AppColors.primary
-                                              : Colors.grey.shade200,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          loc.icon,
-                                          size: 18,
-                                          color: isSelected
-                                              ? Colors.white
-                                              : Colors.grey.shade700,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            if (isSelected)
-                                              Container(
-                                                margin: const EdgeInsets.only(
-                                                  bottom: 3,
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.primary,
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: const Text(
-                                                  '📍 TITIK AWAL TERPILIH',
-                                                  style: TextStyle(
-                                                    fontSize: 8.5,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                              ),
-                                            Text(
-                                              loc.name,
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: isSelected
-                                                    ? FontWeight.bold
-                                                    : FontWeight.w600,
-                                                color: isSelected
-                                                    ? AppColors.primary
-                                                    : AppColors.textPrimary,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              loc.type,
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                color: AppColors.textSecondary,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      if (isSelected)
-                                        const Icon(
-                                          Icons.check_circle,
-                                          color: AppColors.primary,
-                                          size: 22,
-                                        )
-                                      else
-                                        Icon(
-                                          Icons.chevron_right,
-                                          color: Colors.grey.shade400,
-                                          size: 20,
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      location: loc,
     );
   }
 
-  Widget _buildFilterCategoryPill({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.textPrimary,
-          ),
-        ),
-      ),
+  /// Dialog pemilihan Titik Awal / Akhir Perjalanan
+  void _openLocationDialog({bool isEndLocation = false}) {
+    TripLocationModal.showLocationDialog(
+      context: context,
+      availableLocations: _availableLocations,
+      currentSelectedName:
+          isEndLocation ? _selectedEndLocation : _selectedLocation,
+      isEndLocation: isEndLocation,
+      onLocationSelected: (loc) {
+        setState(() {
+          if (isEndLocation) {
+            _selectedEndLocation = loc.name;
+            _selectedEndLocationModel = loc;
+          } else {
+            _selectedLocation = loc.name;
+            _selectedLocationModel = loc;
+          }
+        });
+      },
+      onShowDetail: _showLocationDetail,
     );
   }
 
@@ -627,12 +263,18 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       startDate: _startDate,
       endDate: _endDate,
       startLocation: _selectedLocation,
+      titikAwalId: _selectedLocationModel?.id,
+      titikAwalType: _selectedLocationModel?.modelType,
+      endLocation: _selectedEndLocation,
+      titikAkhirId: _selectedEndLocationModel?.id,
+      titikAkhirType: _selectedEndLocationModel?.modelType,
       budget: _budgetController.text.trim(),
       selectedThemes: _selectedThemes.toList(),
       selectedAreas: _selectedAreas.toList(),
       isHalal: _isHalalOnly,
       isSeafood: _isSeafoodSpecialist,
       isActive: true,
+      isDraft: false,
     );
 
     showModalBottomSheet(
@@ -682,7 +324,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     );
   }
 
-  /// Tombol Rekomendasi
+  /// Tombol Rekomendasi (Generate AI)
   void _onRecommendationsClicked() async {
     if (!_validateStep1()) {
       setState(() => _currentStep = 0);
@@ -699,26 +341,54 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       startDate: _startDate,
       endDate: _endDate,
       startLocation: _selectedLocation,
+      titikAwalId: _selectedLocationModel?.id,
+      titikAwalType: _selectedLocationModel?.modelType,
+      endLocation: _selectedEndLocation,
+      titikAkhirId: _selectedEndLocationModel?.id,
+      titikAkhirType: _selectedEndLocationModel?.modelType,
       budget: _budgetController.text.trim(),
       selectedThemes: _selectedThemes.toList(),
       selectedAreas: _selectedAreas.toList(),
       isHalal: _isHalalOnly,
       isSeafood: _isSeafoodSpecialist,
       isActive: true,
+      isDraft: false,
     );
 
-    // Simpan otomatis sebagai rencana aktif ke backend & local cache
+    // Simpan otomatis sebagai rencana aktif
     _planSaved = true;
+
+    // Tampilkan loading snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            SizedBox(width: 12),
+            Text('SmartTrip AI sedang menyusun rekomendasi itinerary...'),
+          ],
+        ),
+        duration: Duration(seconds: 4),
+      ),
+    );
 
     final saved = await TripPlanService.saveTripPlan(plan);
 
     if (!mounted) return;
 
+    final targetPlanId = (saved?.id != null && saved!.id.isNotEmpty)
+        ? saved.id
+        : (plan.id.isNotEmpty ? plan.id : null);
+
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => TripItineraryPage(
-          planId: saved?.id ?? plan.id,
+          planId: targetPlanId,
           tripName: saved?.tripName ?? plan.tripName,
           startDate: saved?.startDate ?? plan.startDate,
           endDate: saved?.endDate ?? plan.endDate,
@@ -727,6 +397,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
           selectedThemes: saved?.selectedThemes ?? plan.selectedThemes,
           selectedAreas: saved?.selectedAreas ?? plan.selectedAreas,
           notes: saved?.notes ?? plan.notes,
+          isDraft: false,
 
           // Menggunakan relasi hari perjalanan
           initialHariPerjalanan: saved?.hariPerjalanan,
@@ -735,6 +406,95 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     );
 
     // Kembali ke HomePage dengan sinyal update
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
+  /// Tombol Tambah Destinasi ke Draf (Kustom Manual)
+  void _onSaveAsDraftClicked() async {
+    if (!_validateStep1()) {
+      setState(() => _currentStep = 0);
+      return;
+    }
+
+    final plan = SavedTripPlan(
+      id: '',
+      tripName: _tripNameController.text.trim().isNotEmpty
+          ? _tripNameController.text.trim()
+          : 'Draf Rencana Batam',
+      startDate: _startDate,
+      endDate: _endDate,
+      startLocation: _selectedLocation,
+      titikAwalId: _selectedLocationModel?.id,
+      titikAwalType: _selectedLocationModel?.modelType,
+      endLocation: _selectedEndLocation,
+      titikAkhirId: _selectedEndLocationModel?.id,
+      titikAkhirType: _selectedEndLocationModel?.modelType,
+      budget: _budgetController.text.trim(),
+      selectedThemes: _selectedThemes.toList(),
+      selectedAreas: _selectedAreas.toList(),
+      isHalal: _isHalalOnly,
+      isSeafood: _isSeafoodSpecialist,
+      isActive: false,
+      isDraft: true,
+    );
+
+    _planSaved = true;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            SizedBox(width: 12),
+            Text('Menyimpan draf rencana perjalanan...'),
+          ],
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    final saved = await TripPlanService.saveTripPlan(plan);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Draf "${saved?.tripName ?? plan.tripName}" berhasil dibuat! Silakan tambah destinasi pilihan Anda.',
+        ),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    final targetPlanId = (saved?.id != null && saved!.id.isNotEmpty)
+        ? saved.id
+        : (plan.id.isNotEmpty ? plan.id : null);
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TripItineraryPage(
+          planId: targetPlanId,
+          tripName: saved?.tripName ?? plan.tripName,
+          startDate: saved?.startDate ?? plan.startDate,
+          endDate: saved?.endDate ?? plan.endDate,
+          startLocation: saved?.startLocation ?? plan.startLocation,
+          budget: saved?.budget ?? plan.budget,
+          selectedThemes: saved?.selectedThemes ?? plan.selectedThemes,
+          selectedAreas: saved?.selectedAreas ?? plan.selectedAreas,
+          notes: saved?.notes ?? plan.notes,
+          isDraft: true,
+          initialHariPerjalanan: saved?.hariPerjalanan,
+        ),
+      ),
+    );
+
     if (mounted) {
       Navigator.pop(context, true);
     }
@@ -772,13 +532,34 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                 startTime: _startTime,
                 endTime: _endTime,
                 selectedLocation: _selectedLocation,
+                selectedEndLocation: _selectedEndLocation,
+                selectedLocationModel: _selectedLocationModel,
+                selectedEndLocationModel: _selectedEndLocationModel,
+                availableLocations: _availableLocations,
                 budgetController: _budgetController,
                 onSelectDateRange: _selectDateRange,
                 onSelectDurationPreset: _selectDurationPreset,
                 onPickTime: _pickTime,
-                onSelectLocation: (loc) =>
-                    setState(() => _selectedLocation = loc),
+                onSelectLocation: (loc) {
+                  setState(() {
+                    _selectedLocation = loc;
+                    _selectedLocationModel = _availableLocations.firstWhere(
+                      (l) => l.name == loc,
+                      orElse: () => _availableLocations.first,
+                    );
+                  });
+                },
+                onSelectEndLocation: (loc) {
+                  setState(() {
+                    _selectedEndLocation = loc;
+                    _selectedEndLocationModel = _availableLocations.firstWhere(
+                      (l) => l.name == loc,
+                      orElse: () => _availableLocations.first,
+                    );
+                  });
+                },
                 onOpenLocationDialog: _openLocationDialog,
+                onShowLocationDetail: _showLocationDetail,
                 onSelectBudgetPreset: (preset) {
                   setState(() => _budgetController.text = preset);
                 },
@@ -822,6 +603,8 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                 onToggleHalal: (val) => setState(() => _isHalalOnly = val),
                 onToggleSeafood: (val) =>
                     setState(() => _isSeafoodSpecialist = val),
+                onGenerateRecommendations: _onRecommendationsClicked,
+                onSaveAsDraft: _onSaveAsDraftClicked,
               ),
       ),
       bottomNavigationBar: TripBottomActionBar(
@@ -842,15 +625,13 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
         },
         onContinueToStep2: _goToStep2,
         onSavePreferences: _savePreferences,
+        onSaveAsDraft: _onSaveAsDraftClicked,
         onViewRecommendations: _onRecommendationsClicked,
       ),
     );
   }
 }
 
-/// ============================================================================
-/// KOMPONEN HEADER & NAVIGASI BAWAH HALAMAN BUAT RENCANA PERJALANAN
-/// ============================================================================
 
 /// Header AppBar khusus halaman pembuatan rencana perjalanan
 class TripPlanHeader extends StatelessWidget implements PreferredSizeWidget {
@@ -938,6 +719,7 @@ class TripBottomActionBar extends StatelessWidget {
   final VoidCallback onCancelOrBack;
   final VoidCallback onContinueToStep2;
   final VoidCallback onSavePreferences;
+  final VoidCallback? onSaveAsDraft;
   final VoidCallback onViewRecommendations;
 
   const TripBottomActionBar({
@@ -946,6 +728,7 @@ class TripBottomActionBar extends StatelessWidget {
     required this.onCancelOrBack,
     required this.onContinueToStep2,
     required this.onSavePreferences,
+    this.onSaveAsDraft,
     required this.onViewRecommendations,
   });
 
@@ -1031,7 +814,7 @@ class TripBottomActionBar extends StatelessWidget {
         OutlinedButton(
           onPressed: onCancelOrBack,
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -1040,24 +823,24 @@ class TripBottomActionBar extends StatelessWidget {
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.arrow_back, size: 15, color: AppColors.textPrimary),
-              SizedBox(width: 4),
+              Icon(Icons.arrow_back, size: 14, color: AppColors.textPrimary),
+              SizedBox(width: 3),
               Text(
                 'Kembali',
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: 11.5,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         OutlinedButton(
-          onPressed: onSavePreferences,
+          onPressed: onSaveAsDraft ?? onSavePreferences,
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -1066,20 +849,20 @@ class TripBottomActionBar extends StatelessWidget {
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.save_outlined, size: 15, color: AppColors.primary),
+              Icon(Icons.note_add_outlined, size: 14, color: AppColors.primary),
               SizedBox(width: 4),
               Text(
-                'Simpan',
+                'Ke Draf',
                 style: TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: 11.5,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
           child: ElevatedButton(
             onPressed: onViewRecommendations,
@@ -1099,7 +882,7 @@ class TripBottomActionBar extends StatelessWidget {
                 SizedBox(width: 5),
                 Flexible(
                   child: ManropeFont(
-                    'Rekomendasi',
+                    'Rekomendasi AI',
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.bold,

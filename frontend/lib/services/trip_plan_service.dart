@@ -173,21 +173,80 @@ class TripPlanService {
         if (json['success'] == true && json['data'] is List) {
           final list = json['data'] as List;
           if (list.isNotEmpty) {
-            return list.map((item) {
+            final seenNames = <String>{};
+            final result = <TripAreaModel>[];
+
+            for (final item in list) {
               final id = item['id_kecamatan'] as int?;
               final name = item['nama_kecamatan'].toString();
-              return TripAreaModel(
-                id: id,
-                name: name,
-                desc: getDescForKecamatan(name),
-                icon: getIconForKecamatan(name),
-              );
-            }).toList();
+
+              if (seenNames.add(name)) {
+                result.add(
+                  TripAreaModel(
+                    id: id,
+                    name: name,
+                    desc: getDescForKecamatan(name),
+                    icon: getIconForKecamatan(name),
+                  ),
+                );
+              }
+            }
+            return result;
           }
         }
       }
     } catch (_) {}
     return kBatamKecamatanList;
+  }
+
+  /// Mengambil daftar titik lokasi (transportasi & hotel)
+  static Future<List<TripLocationModel>> fetchLocations() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/titik-lokasi'),
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] is List) {
+          final list = json['data'] as List;
+          if (list.isNotEmpty) {
+            return list
+                .map((item) => TripLocationModel.fromJson(
+                    Map<String, dynamic>.from(item)))
+                .toList();
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Gagal memuat titik lokasi dari API: $e');
+    }
+    return kBatamLocations;
+  }
+
+  /// Mengambil detail satu titik lokasi (hotel / transportasi) dari database
+  static Future<Map<String, dynamic>?> fetchLocationDetail(String id) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/titik-lokasi/$id'),
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['success'] == true && json['data'] is Map) {
+          return Map<String, dynamic>.from(json['data']);
+        }
+      }
+    } catch (e) {
+      debugPrint('Gagal memuat detail titik lokasi: $e');
+    }
+    return null;
   }
 
   static Future<String> _getStorageKey() async {
@@ -200,7 +259,7 @@ class TripPlanService {
   }
 
   /// Menyimpan rencana perjalanan
-  static Future<SavedTripPlan?> saveTripPlan(SavedTripPlan plan) async {
+  static Future<SavedTripPlan?> saveTripPlan(SavedTripPlan plan, {bool isDraft = false}) async {
     SavedTripPlan? savedResult;
     try {
       final token = await AuthService.getToken();
@@ -216,6 +275,8 @@ class TripPlanService {
         plan.budget.replaceAll(RegExp(r'[^0-9]'), ''),
       );
 
+      final isDraftMode = isDraft || plan.isDraft;
+
       final body = jsonEncode({
         'nama_rencana': plan.tripName,
         'hari_start': plan.startDate.toIso8601String().split('T').first,
@@ -223,6 +284,11 @@ class TripPlanService {
         'tanggal_mulai': plan.startDate.toIso8601String().split('T').first,
         'tanggal_selesai': plan.endDate.toIso8601String().split('T').first,
         'titik_awal': plan.startLocation,
+        'titik_awal_id': plan.titikAwalId,
+        'titik_awal_type': plan.titikAwalType,
+        'titik_akhir': plan.endLocation,
+        'titik_akhir_id': plan.titikAkhirId,
+        'titik_akhir_type': plan.titikAkhirType,
         'budget_trip': numericBudget,
         'total_anggaran': numericBudget,
         'type_food': plan.isHalal
@@ -232,6 +298,9 @@ class TripPlanService {
         'kecamatan_pilihan': plan.selectedAreas,
         'is_halal': plan.isHalal,
         'is_seafood': plan.isSeafood,
+        'is_draft': isDraftMode,
+        'mode': isDraftMode ? 'manual' : 'ai',
+        'status': isDraftMode ? 'draf' : 'aktif',
       });
 
       final response = await http
@@ -265,8 +334,9 @@ class TripPlanService {
       } else {
         debugPrint('GAGAL MENYIMPAN KE BACKEND');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Sinkronisasi backend rencana perjalanan: $e');
+      debugPrint('Stack trace: $stackTrace');
     }
 
     final planToSave = savedResult ?? plan;
