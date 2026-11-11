@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:frontend/services/api_service.dart';
+
 class CustomSearchBar extends StatefulWidget {
+  final bool readOnly;
+  final VoidCallback? onTap;
+  final VoidCallback? onFilterTap;
+
+  final ValueChanged<String>? onSubmitted;
+  final Function(String, Set<String>)? onApply;
+
+  final FocusNode? focusNode;
+
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
-
-  final List<String> categories;
-  final bool isLoadingCategories;
-  final String? categoryError;
-  final VoidCallback onRetryCategories;
 
   final String selectedFilter;
   final Set<String> selectedCategories;
@@ -19,14 +28,18 @@ class CustomSearchBar extends StatefulWidget {
     super.key,
     required this.controller,
     required this.onChanged,
-    required this.categories,
-    required this.isLoadingCategories,
-    required this.categoryError,
-    required this.onRetryCategories,
+
     required this.selectedFilter,
     required this.selectedCategories,
     required this.onApplyFilter,
     required this.onApplyCategories,
+
+    this.onSubmitted,
+    this.onApply,
+    this.readOnly = false,
+    this.onTap,
+    this.onFilterTap,
+    this.focusNode,
   });
 
   @override
@@ -34,6 +47,79 @@ class CustomSearchBar extends StatefulWidget {
 }
 
 class _CustomSearchBarState extends State<CustomSearchBar> {
+  static Future<List<String>>? _categoriesFuture;
+
+  List<String> _categories = ['Semua'];
+  bool _isLoadingCategories = true;
+  String? _categoryError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories({bool retry = false}) async {
+    if (retry) {
+      _categoriesFuture = null;
+    }
+
+    setState(() {
+      _isLoadingCategories = true;
+      _categoryError = null;
+    });
+
+    try {
+      final future = _categoriesFuture ??= _requestCategories();
+
+      final categories = await future;
+
+      if (!mounted) return;
+
+      setState(() {
+        _categories = categories;
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      _categoriesFuture = null;
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingCategories = false;
+        _categoryError = 'Gagal mengambil kategori.';
+      });
+
+      debugPrint('Error fetching categories: $e');
+    }
+  }
+
+  static Future<List<String>> _requestCategories() async {
+    final response = await http.get(
+      Uri.parse(ApiService.kategoriUrl),
+      headers: {'Accept': 'application/json'},
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('HTTP ${response.statusCode}');
+    }
+
+    final jsonResponse = jsonDecode(response.body);
+
+    final List<dynamic> items = jsonResponse is List
+        ? jsonResponse
+        : (jsonResponse['data'] as List<dynamic>? ?? []);
+
+    final categories = items
+        .whereType<Map>()
+        .map((item) => (item['nama_kategori'] ?? '').toString().trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList();
+
+    return ['Semua', ...categories];
+  }
+
   void _showFilterBottomSheet() {
     String draftFilter = widget.selectedFilter;
     Set<String> draftCategories = Set<String>.from(widget.selectedCategories);
@@ -159,7 +245,7 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                       ),
                       const SizedBox(height: 10),
 
-                      if (widget.isLoadingCategories)
+                      if (_isLoadingCategories)
                         const Center(
                           child: Padding(
                             padding: EdgeInsets.all(16),
@@ -168,16 +254,18 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                             ),
                           ),
                         )
-                      else if (widget.categoryError != null)
+                      else if (_categoryError != null)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.categoryError!,
+                              _categoryError!,
                               style: const TextStyle(color: AppColors.errorRed),
                             ),
                             TextButton.icon(
-                              onPressed: widget.onRetryCategories,
+                              onPressed: () {
+                                _fetchCategories(retry: true);
+                              },
                               icon: const Icon(Icons.refresh),
                               label: const Text('Coba lagi'),
                             ),
@@ -187,7 +275,7 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: widget.categories
+                          children: _categories
                               .where((category) => category != 'Semua')
                               .map((category) {
                                 final isSelected = draftCategories.contains(
@@ -228,17 +316,23 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                               })
                               .toList(),
                         ),
-
                       const SizedBox(height: 28),
 
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
-                            widget.onApplyFilter(draftFilter);
-                            widget.onApplyCategories(
-                              Set<String>.from(draftCategories),
-                            );
+                            if (widget.onApply != null) {
+                              widget.onApply!(
+                                draftFilter,
+                                Set<String>.from(draftCategories),
+                              );
+                            } else {
+                              widget.onApplyFilter(draftFilter);
+                              widget.onApplyCategories(
+                                Set<String>.from(draftCategories),
+                              );
+                            }
 
                             Navigator.pop(context);
                           },
@@ -287,6 +381,10 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
       child: TextField(
         controller: widget.controller,
         onChanged: widget.onChanged,
+        readOnly: widget.readOnly,
+        onTap: widget.onTap,
+        onSubmitted: widget.onSubmitted,
+        focusNode: widget.focusNode,
         textAlignVertical: TextAlignVertical.center,
         decoration: InputDecoration(
           hintText: 'Cari destinasi atau kuliner...',
@@ -304,7 +402,7 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: IconButton(
-                onPressed: _showFilterBottomSheet,
+                onPressed: widget.onFilterTap ?? _showFilterBottomSheet,
                 icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
                 tooltip: 'Filter destinasi',
               ),
