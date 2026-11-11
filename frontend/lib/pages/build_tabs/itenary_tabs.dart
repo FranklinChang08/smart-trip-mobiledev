@@ -85,6 +85,7 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
           selectedThemes: plan.selectedThemes,
           selectedAreas: plan.selectedAreas,
           notes: plan.notes,
+          isDraft: plan.isDraft,
 
           // Menggunakan relasi hari_perjalanan
           initialHariPerjalanan: plan.hariPerjalanan,
@@ -294,13 +295,17 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: heroPlan.isActive
-                            ? const Color(0xFFC05400)
-                            : Colors.blueGrey,
+                        color: heroPlan.isDraft
+                            ? const Color(0xFFD97706)
+                            : (heroPlan.isActive
+                                ? const Color(0xFFC05400)
+                                : Colors.blueGrey),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        heroPlan.isActive ? 'Aktif' : 'Tersimpan',
+                        heroPlan.isDraft
+                            ? 'Draf'
+                            : (heroPlan.isActive ? 'Aktif' : 'Tersimpan'),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10.5,
@@ -491,6 +496,27 @@ class _TripItineraryTabState extends State<TripItineraryTab> {
                           ),
                         ),
                       ),
+                      if (p.isDraft) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'Draf',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFB45309),
+                            ),
+                          ),
+                        ),
+                      ],
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,

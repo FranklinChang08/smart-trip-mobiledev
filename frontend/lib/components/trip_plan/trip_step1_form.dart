@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
+import 'package:frontend/components/trip_plan/trip_location_selector.dart';
 
 /// Lokasi Awal & Titik Kumpul, dan Alokasi Anggaran.
 class TripStep1Form extends StatelessWidget {
@@ -12,12 +13,18 @@ class TripStep1Form extends StatelessWidget {
   final TimeOfDay startTime;
   final TimeOfDay endTime;
   final String selectedLocation;
+  final String selectedEndLocation;
+  final TripLocationModel? selectedLocationModel;
+  final TripLocationModel? selectedEndLocationModel;
+  final List<TripLocationModel> availableLocations;
   final TextEditingController budgetController;
   final VoidCallback onSelectDateRange;
   final Function(int days) onSelectDurationPreset;
   final Function({required bool isStart})? onPickTime;
   final ValueChanged<String> onSelectLocation;
-  final VoidCallback onOpenLocationDialog;
+  final ValueChanged<String> onSelectEndLocation;
+  final Function({required bool isEndLocation})? onOpenLocationDialog;
+  final Function(TripLocationModel location)? onShowLocationDetail;
   final ValueChanged<String> onSelectBudgetPreset;
   final VoidCallback onGoToPreferences;
 
@@ -29,15 +36,21 @@ class TripStep1Form extends StatelessWidget {
     this.startTime = const TimeOfDay(hour: 8, minute: 30),
     this.endTime = const TimeOfDay(hour: 21, minute: 0),
     required this.selectedLocation,
+    String? selectedEndLocation,
+    this.selectedLocationModel,
+    this.selectedEndLocationModel,
+    this.availableLocations = kBatamLocations,
     required this.budgetController,
     required this.onSelectDateRange,
     required this.onSelectDurationPreset,
     this.onPickTime,
     required this.onSelectLocation,
-    required this.onOpenLocationDialog,
+    required this.onSelectEndLocation,
+    this.onOpenLocationDialog,
+    this.onShowLocationDetail,
     required this.onSelectBudgetPreset,
     required this.onGoToPreferences,
-  });
+  }) : selectedEndLocation = selectedEndLocation ?? selectedLocation;
 
   int get _tripDays {
     final diff = endDate.difference(startDate).inDays;
@@ -65,8 +78,17 @@ class TripStep1Form extends StatelessWidget {
         _buildTripNameSection(),
         const SizedBox(height: 16),
 
-        // 3. LOKASI AWAL & TITIK KUMPUL
-        _buildLocationSection(context),
+        // 3. LOKASI AWAL & TITIK KUMPUL (Container 1)
+        TripLocationSection(
+          selectedStartLocation: selectedLocation,
+          selectedEndLocation: selectedEndLocation,
+          selectedStartLocationModel: selectedLocationModel,
+          selectedEndLocationModel: selectedEndLocationModel,
+          availableLocations: availableLocations,
+          onSelectStartLocation: (loc) => onSelectLocation(loc.name),
+          onSelectEndLocation: (loc) => onSelectEndLocation(loc.name),
+          onShowLocationDetail: onShowLocationDetail,
+        ),
         const SizedBox(height: 16),
 
         // 4. PERIODE & RITME HARIAN
@@ -283,209 +305,6 @@ class TripStep1Form extends StatelessWidget {
                 ],
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 2. Lokasi Awal & Titik Kumpul
-  Widget _buildLocationSection(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Seksi
-          Row(
-            children: [
-              _buildSectionIcon(Icons.location_on_outlined),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ManropeFont(
-                      'Lokasi Awal & Titik Kumpul',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Tempat penjemputan atau kedatangan',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _buildRequiredBadge(),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Dropdown Selector Box
-          Builder(
-            builder: (context) {
-              final currentLoc = kBatamLocations.where((l) => l.name == selectedLocation).firstOrNull;
-              final locIcon = currentLoc?.icon ?? (selectedLocation.toLowerCase().contains('hotel') ? Icons.hotel : Icons.directions_boat_outlined);
-
-              return InkWell(
-                onTap: onOpenLocationDialog,
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          locIcon,
-                          color: AppColors.primary,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ManropeFont(
-                              selectedLocation,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            if (currentLoc != null)
-                              Text(
-                                currentLoc.type,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 10.5,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.unfold_more,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-
-          // Cepat Pilih Chips
-          Builder(
-            builder: (context) {
-              final List<TripLocationModel> quickChips = [];
-              final selectedModel = kBatamLocations.where((l) => l.name == selectedLocation).firstOrNull;
-              if (selectedModel != null) {
-                quickChips.add(selectedModel);
-              }
-              for (final l in kBatamLocations.where((l) => l.isQuick)) {
-                if (l.name != selectedLocation) {
-                  quickChips.add(l);
-                }
-              }
-
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: [
-                    Text(
-                      'Cepat pilih:',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: Colors.grey.shade500,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    for (final loc in quickChips) ...[
-                      InkWell(
-                        onTap: () => onSelectLocation(loc.name),
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 7),
-                          decoration: BoxDecoration(
-                            color: selectedLocation == loc.name
-                                ? AppColors.primary.withValues(alpha: 0.12)
-                                : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: selectedLocation == loc.name
-                                  ? AppColors.primary
-                                  : Colors.transparent,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                loc.icon,
-                                size: 14,
-                                color: selectedLocation == loc.name
-                                    ? AppColors.primary
-                                    : AppColors.textPrimary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                loc.quickLabel,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: selectedLocation == loc.name
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  color: selectedLocation == loc.name
-                                      ? AppColors.primary
-                                      : AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                    ],
-                  ],
-                ),
-              );
-            },
           ),
         ],
       ),

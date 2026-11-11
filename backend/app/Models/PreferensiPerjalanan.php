@@ -47,4 +47,23 @@ class PreferensiPerjalanan extends Model
             'id_kategori'
         );
     }
+
+    public function kecamatans()
+    {
+        return $this->belongsToMany(
+            Kecamatan::class,
+            'preferensi_kecamatan',
+            'id_preferensi',
+            'id_kecamatan'
+        );
+    }
+
+    public function getKecamatanPilihanAttribute($value)
+    {
+        if ($this->relationLoaded('kecamatans') && $this->kecamatans->isNotEmpty()) {
+            return $this->kecamatans->pluck('nama_kecamatan')->all();
+        }
+
+        return $value;
+    }
 }

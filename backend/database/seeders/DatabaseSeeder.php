@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             FasilitasSeeder::class,
             WisataSeeder::class,
             RestoranSeeder::class,
+            LokasiTransportasiSeeder::class,
+            PenginapanSeeder::class,
         ]);
     }
 }

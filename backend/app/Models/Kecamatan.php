@@ -36,4 +36,14 @@ class Kecamatan extends Model
     {
         return $this->hasMany(LokasiTransportasi::class, 'id_kecamatan', 'id_kecamatan');
     }
+
+    public function preferensis()
+    {
+        return $this->belongsToMany(
+            PreferensiPerjalanan::class,
+            'preferensi_kecamatan',
+            'id_kecamatan',
+            'id_preferensi'
+        );
+    }
 }

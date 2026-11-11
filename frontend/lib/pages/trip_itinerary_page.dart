@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/components/font/bebas_neue_font.dart';
 import 'package:frontend/components/font/manrope_font.dart';
+import 'package:frontend/components/trip_plan/trip_location_selector.dart';
 import 'package:frontend/components/trip_plan/trip_plan_models.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/services/trip_plan_service.dart';
@@ -16,6 +17,7 @@ class TripItineraryPage extends StatefulWidget {
   final List<String> selectedThemes;
   final List<String> selectedAreas;
   final String notes;
+  final bool isDraft;
 
   // Menggunakan model hari perjalanan
   final List<HariPerjalananModel>? initialHariPerjalanan;
@@ -31,6 +33,7 @@ class TripItineraryPage extends StatefulWidget {
     required this.selectedThemes,
     required this.selectedAreas,
     this.notes = '',
+    this.isDraft = false,
     this.initialHariPerjalanan,
   });
 
@@ -47,13 +50,16 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
   List<HariPerjalananModel> _days = [];
 
   bool _isLoadingDetails = false;
+  late bool _isDraft;
 
   @override
   void initState() {
     super.initState();
+    _isDraft = widget.isDraft;
 
     // Gunakan data awal jika tersedia
-    if (widget.initialHariPerjalanan != null) {
+    if (widget.initialHariPerjalanan != null &&
+        widget.initialHariPerjalanan!.isNotEmpty) {
       _days = widget.initialHariPerjalanan!;
     }
 
@@ -92,6 +98,7 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
         if (plan != null) {
           // Langsung menggunakan relasi hari_perjalanan
           _days = plan.hariPerjalanan;
+          _isDraft = plan.isDraft;
 
           // Pastikan index hari yang dipilih masih valid
           if (_days.isEmpty) {
@@ -527,6 +534,13 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
   Widget _buildTimelineForDay(int dayIndex) {
     final items = _getDestinationsForDay(dayIndex);
 
+    if (items.isEmpty) {
+      if (_isDraft) {
+        return _buildDraftEmptyState(dayIndex);
+      }
+      return _buildEmptyAiState(dayIndex);
+    }
+
     return Column(
       children: [
         for (int i = 0; i < items.length; i++) ...[
@@ -542,6 +556,629 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
             ),
         ],
       ],
+    );
+  }
+
+  /// Tampilan ketika hari perjalanan rekomendasi AI belum memiliki destinasi
+  Widget _buildEmptyAiState(int dayIndex) {
+    HariPerjalananModel? currentDay;
+    if (_days.isNotEmpty) {
+      final matches = _days.where((d) => d.urutanHari == dayIndex + 1);
+      if (matches.isNotEmpty) {
+        currentDay = matches.first;
+      } else if (dayIndex >= 0 && dayIndex < _days.length) {
+        currentDay = _days[dayIndex];
+      }
+    }
+
+    final startLoc = currentDay?.lokasiAwal ?? widget.startLocation;
+    final endLoc = currentDay?.lokasiAkhir ?? widget.startLocation;
+    final startLocId = currentDay?.lokasiAwalId;
+    final endLocId = currentDay?.lokasiAkhirId;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              size: 32,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Hari ke-${dayIndex + 1} Siap Diatur',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Belum ada destinasi yang tersusun untuk hari ini. Silakan muat ulang atau tambahkan destinasi pilihan Anda.',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: Colors.grey.shade600,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+
+          // Container Rute Titik Awal & Titik Akhir
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.radio_button_checked,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Titik Awal Penjemputan',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            startLoc,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Lihat detail titik awal',
+                      icon: const Icon(
+                        Icons.info_outline_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: () {
+                        if (startLocId != null && startLocId.isNotEmpty) {
+                          TripLocationModal.showLocationDetailById(
+                            context: context,
+                            locationId: startLocId,
+                            fallbackName: startLoc,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Detail tempat: $startLoc'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(left: 7),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      height: 10,
+                      child: VerticalDivider(
+                        color: Color(0xFFCBD5E1),
+                        thickness: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 16, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Titik Akhir Kepulangan / Penginapan',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            endLoc,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Lihat detail titik akhir',
+                      icon: const Icon(
+                        Icons.info_outline_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: () {
+                        if (endLocId != null && endLocId.isNotEmpty) {
+                          TripLocationModal.showLocationDetailById(
+                            context: context,
+                            locationId: endLocId,
+                            fallbackName: endLoc,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Detail tempat: $endLoc'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              if (widget.planId != null && widget.planId!.isNotEmpty) ...[
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _loadDetails,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Muat Ulang'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _showAddDestinationDialog(dayIndex),
+                  icon: const Icon(Icons.add_location_alt_outlined, size: 16),
+                  label: const Text(
+                    'Tambah Destinasi',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Tampilan ketika hari perjalanan berstatus Draf dan belum memiliki destinasi
+  Widget _buildDraftEmptyState(int dayIndex) {
+    HariPerjalananModel? currentDay;
+    if (_days.isNotEmpty) {
+      final matches = _days.where((d) => d.urutanHari == dayIndex + 1);
+      if (matches.isNotEmpty) {
+        currentDay = matches.first;
+      }
+    }
+
+    final startLoc = currentDay?.lokasiAwal ?? widget.startLocation;
+    final endLoc = currentDay?.lokasiAkhir ?? widget.startLocation;
+    final startLocId = currentDay?.lokasiAwalId;
+    final endLocId = currentDay?.lokasiAkhirId;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFEF3C7),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.edit_calendar_rounded,
+              size: 32,
+              color: Color(0xFFB45309),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Draf Hari ke-${dayIndex + 1} Tersimpan',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Hari ini telah terdaftar sebagai draf. Belum ada destinasi wisata atau restoran yang ditambahkan ke hari ini.',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: Colors.grey.shade600,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+
+          // Container Rute Titik Awal & Titik Akhir
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.trip_origin, size: 16, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Titik Awal Penjemputan',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            startLoc,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Lihat detail titik awal',
+                      icon: const Icon(
+                        Icons.info_outline_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: () {
+                        if (startLocId != null && startLocId.isNotEmpty) {
+                          TripLocationModal.showLocationDetailById(
+                            context: context,
+                            locationId: startLocId,
+                            fallbackName: startLoc,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Detail tempat: $startLoc'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(left: 7),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      height: 10,
+                      child: VerticalDivider(
+                        color: Color(0xFFCBD5E1),
+                        thickness: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 16, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Titik Akhir Kepulangan / Penginapan',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            endLoc,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Lihat detail titik akhir',
+                      icon: const Icon(
+                        Icons.info_outline_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: () {
+                        if (endLocId != null && endLocId.isNotEmpty) {
+                          TripLocationModal.showLocationDetailById(
+                            context: context,
+                            locationId: endLocId,
+                            fallbackName: endLoc,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Detail tempat: $endLoc'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Tombol Tambah Destinasi
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _showAddDestinationDialog(dayIndex),
+              icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+              label: const Text(
+                'Tambah Destinasi ke Draf Hari Ini',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Menampilkan opsi penambahan destinasi ke draf
+  void _showAddDestinationDialog(int dayIndex) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4.5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.add_location_alt_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tambah ke Draf Hari ke-${dayIndex + 1}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const Text(
+                        'Pilih kategori tempat yang ingin dikunjungi',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.beach_access, color: Colors.blue),
+                ),
+                title: const Text(
+                  'Tempat Wisata',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                subtitle: const Text(
+                  'Pantai, alam, edukasi, belanja, dan budaya Batam',
+                  style: TextStyle(fontSize: 11.5),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Buka tab Jelajahi untuk memilih destinasi wisata Batam.',
+                      ),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 6),
+
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.restaurant, color: Colors.orange),
+                ),
+                title: const Text(
+                  'Restoran & Kuliner',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                subtitle: const Text(
+                  'Seafood khas, masakan melayu, kopi, dan santapan favorit',
+                  style: TextStyle(fontSize: 11.5),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Buka tab Jelajahi untuk memilih tempat kuliner Batam.',
+                      ),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -1052,28 +1689,38 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
         if (names.isNotEmpty) {
           return names.join(' • ');
         }
+      } else {
+        return 'Draf perjalanan • Belum ada destinasi ditentukan';
       }
     }
 
-    switch (dayIndex) {
-      case 0:
-        return 'Pusat Kota Batam, Sejarah & Landmark Barelang';
-      case 1:
-        return 'Wisata Bahari Barelang, Camp Vietnam & Kelong Seafood';
-      case 2:
-        return 'Kawasan Pantai Nongsa & Belanja Oleh-Oleh Kepulangan';
-      default:
-        return 'Jelajah Wisata Rekreasi & Bahari Batam';
+    if (widget.selectedThemes.isNotEmpty) {
+      return widget.selectedThemes.join(', ');
     }
+
+    return 'Draf perjalanan • Belum ada destinasi';
   }
 
   String _getDayBudgetEstimate(int dayIndex) {
     if (_days.isNotEmpty) {
-      final day = _days.where((d) => d.urutanHari == dayIndex + 1);
+      HariPerjalananModel? day;
+      final matches = _days.where((d) => d.urutanHari == dayIndex + 1);
 
-      if (day.isNotEmpty) {
-        final total = day.first.estimasiBiaya;
+      if (matches.isNotEmpty) {
+        day = matches.first;
+      } else if (dayIndex >= 0 && dayIndex < _days.length) {
+        day = _days[dayIndex];
+      }
 
+      if (day != null) {
+        if (day.itemPerjalanan.isEmpty) {
+          if (_isDraft) {
+            return 'Rp 0 / orang (Draf - belum ada destinasi)';
+          }
+          return 'Rp 0 / orang (Belum ada destinasi)';
+        }
+
+        final total = day.estimasiBiaya;
         if (total > 0) {
           final formatted = total.toInt().toString().replaceAllMapped(
             RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -1082,20 +1729,21 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
 
           return '~Rp $formatted / orang '
               '(Total estimasi aktivitas & kuliner hari ini)';
+        } else {
+          return 'Gratis / Bebas Biaya Tiket';
         }
       }
     }
 
-    switch (dayIndex) {
-      case 0:
-        return '~Rp 320.000 / orang (Transport, Mie Tarempa & Seafood)';
-      case 1:
-        return '~Rp 450.000 / orang (Tiket Galang, Mirota & Kelong)';
-      case 2:
-        return '~Rp 280.000 / orang (Kafe Nongsa & Oleh-Oleh)';
-      default:
-        return '~Rp 350.000 / orang';
+    final items = _getDestinationsForDay(dayIndex);
+    if (items.isEmpty) {
+      if (_isDraft) {
+        return 'Rp 0 / orang (Draf - belum ada destinasi)';
+      }
+      return 'Rp 0 / orang (Belum ada destinasi)';
     }
+
+    return 'Gratis / Bebas Biaya Tiket';
   }
 
   List<Map<String, dynamic>> _getDestinationsForDay(int dayIndex) {

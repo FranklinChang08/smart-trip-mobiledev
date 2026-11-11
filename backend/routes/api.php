@@ -51,6 +51,8 @@ Route::prefix('restoran')->name('restoran.')->group(function () {
 });
 
 Route::get('/kategori-list', [ExploreController::class, 'showKategori']);
+Route::get('/titik-lokasi', [ExploreController::class, 'getTitikLokasi']);
+Route::get('/titik-lokasi/{id}', [ExploreController::class, 'showTitikLokasi']);
 
 Route::get('/rencana-perjalanan', [RencanaPerjalananController::class, 'index']);
 Route::get('/rencana-perjalanan/{id}', [RencanaPerjalananController::class, 'show']);
@@ -58,3 +60,4 @@ Route::post('/rencana-perjalanan', [RencanaPerjalananController::class, 'store']
 Route::put('/rencana-perjalanan/{id}/urutan', [RencanaPerjalananController::class, 'updateUrutan']);
 Route::put('/rencana-perjalanan/{id}/aktif', [RencanaPerjalananController::class, 'setActive']);
 Route::delete('/rencana-perjalanan/{id}', [RencanaPerjalananController::class, 'destroy']);
+   
