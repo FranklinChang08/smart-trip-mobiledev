@@ -57,7 +57,11 @@ Route::get('/titik-lokasi/{id}', [ExploreController::class, 'showTitikLokasi']);
 Route::get('/rencana-perjalanan', [RencanaPerjalananController::class, 'index']);
 Route::get('/rencana-perjalanan/{id}', [RencanaPerjalananController::class, 'show']);
 Route::post('/rencana-perjalanan', [RencanaPerjalananController::class, 'store']);
+Route::post('/rencana-perjalanan/{id}/generate-ai', [RencanaPerjalananController::class, 'generateAi']);
 Route::put('/rencana-perjalanan/{id}/urutan', [RencanaPerjalananController::class, 'updateUrutan']);
 Route::put('/rencana-perjalanan/{id}/aktif', [RencanaPerjalananController::class, 'setActive']);
 Route::delete('/rencana-perjalanan/{id}', [RencanaPerjalananController::class, 'destroy']);
+Route::put('/rencana-perjalanan/{id}/hari/{idHari}/lokasi', [RencanaPerjalananController::class, 'updateLokasiHari']);
+Route::post('/rencana-perjalanan/{id}/hari/{idHari}/item', [RencanaPerjalananController::class, 'tambahItemHari']);
+Route::delete('/rencana-perjalanan/item/{idItem}', [RencanaPerjalananController::class, 'hapusItemHari']);
    
