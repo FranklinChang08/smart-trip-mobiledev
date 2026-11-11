@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/components/font/noto_font.dart';
+import 'package:frontend/components/search_and_filter.dart';
 import 'package:frontend/pages/build_tabs/detail_destination_tabs.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:http/http.dart' as http;
@@ -13,7 +14,14 @@ import 'package:frontend/core/theme/app_colors.dart';
 
 class HomeTabs extends StatefulWidget {
   final VoidCallback onSeeAllPressed;
-  const HomeTabs({super.key, required this.onSeeAllPressed});
+  final void Function({String keyword, String filter, Set<String> categories})
+  onNavigateToExplore;
+
+  const HomeTabs({
+    super.key,
+    required this.onSeeAllPressed,
+    required this.onNavigateToExplore,
+  });
 
   @override
   State<HomeTabs> createState() => _HomeTabsState();
@@ -21,17 +29,27 @@ class HomeTabs extends StatefulWidget {
 
 class _HomeTabsState extends State<HomeTabs> {
   int currentIndex = 0;
+
+  final String _homeSelectedFilter = 'Semua';
+  final Set<String> _homeSelectedCategories = {};
   // ==========================================
   // VARIABEL API & STATE
   // ==========================================
   bool _isLoading = true;
   List<Map<String, dynamic>> _destinations = [];
   List<Map<String, dynamic>> _restaurants = [];
+  final TextEditingController _homeSearchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _fetchHomeData();
+  }
+
+  @override
+  void dispose() {
+    _homeSearchController.dispose();
+    super.dispose();
   }
 
   String _resolveImageUrl(dynamic linkFoto, String endpointType) {
@@ -234,67 +252,32 @@ class _HomeTabsState extends State<HomeTabs> {
             const AutoSlider(),
             const SizedBox(height: 20),
 
-            // Search Bar
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                         blurRadius: 2,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Cari destinasi atau kuliner...',
-                  prefixIcon: const Padding(
-                    padding: EdgeInsets.only(left: 14, right: 8),
-                    child: Icon(Icons.search_rounded, color: Color(0xFF006399)),
-                  ),
-                  suffixIcon: Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00685F).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: IconButton(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.tune_rounded,
-                          color: Color(0xFF00685F),
-                        ),
-                      ),
-                    ),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFE5E7EB),
-                      width: 0.5,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFE5E7EB),
-                      width: 0.5,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color.fromRGBO(0, 99, 153, 1),
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
+            CustomSearchBar(
+              controller: _homeSearchController,
+              onChanged: (_) {},
+              readOnly: false,
+
+              selectedFilter: _homeSelectedFilter,
+              selectedCategories: _homeSelectedCategories,
+
+              onApplyFilter: (_) {},
+              onApplyCategories: (_) {},
+
+              onSubmitted: (keyword) {
+                widget.onNavigateToExplore(
+                  keyword: keyword,
+                  filter: _homeSelectedFilter,
+                  categories: _homeSelectedCategories,
+                );
+              },
+
+              onApply: (filter, categories) {
+                widget.onNavigateToExplore(
+                  keyword: _homeSearchController.text,
+                  filter: filter,
+                  categories: categories,
+                );
+              },
             ),
 
             const SizedBox(height: 30),

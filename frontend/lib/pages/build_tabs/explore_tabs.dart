@@ -10,7 +10,16 @@ import 'package:frontend/pages/build_tabs/detail_destination_tabs.dart';
 import 'package:frontend/services/api_service.dart';
 
 class ExploreTabs extends StatefulWidget {
-  const ExploreTabs({super.key});
+  final String initialKeyword;
+  final String initialFilter;
+  final Set<String> initialCategories;
+
+  const ExploreTabs({
+    super.key,
+    this.initialKeyword = '',
+    this.initialFilter = 'Semua',
+    this.initialCategories = const {},
+  });
 
   @override
   State<ExploreTabs> createState() => _ExploreTabsState();
@@ -20,13 +29,12 @@ class _ExploreTabsState extends State<ExploreTabs> {
   // =========================================================
   // STATE
   // =========================================================
-
+  final FocusNode _searchFocusNode = FocusNode();
   int _currentPage = 1;
   final int _itemsPerPage = 5;
 
   final String _apiUrl = ApiService.wisataUrl;
   final String _restoranApiUrl = ApiService.restoranUrl;
-  final String _kategoriApiUrl = ApiService.kategoriUrl;
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -39,11 +47,6 @@ class _ExploreTabsState extends State<ExploreTabs> {
   Set<String> _selectedCategories = {};
   String _selectedFilter = 'Semua';
   final String _selectedSort = 'Populer';
-
-  List<String> _categories = ['Semua'];
-
-  bool _isLoadingCategories = true;
-  String? _categoryError;
 
   // =========================================================
   // PAGINATION
@@ -174,9 +177,9 @@ class _ExploreTabsState extends State<ExploreTabs> {
     final rawPrice = isWisata
         ? (item['harga_tiket_masuk'] ?? item['harga_tiket'] ?? item['harga'])
         : (item['harga_makan_per_orang'] ??
-            item['harga_rata_rata'] ??
-            item['harga_per_orang'] ??
-            item['harga']);
+              item['harga_rata_rata'] ??
+              item['harga_per_orang'] ??
+              item['harga']);
 
     return {
       // Data asli dari API tetap dipertahankan.
@@ -278,53 +281,6 @@ class _ExploreTabsState extends State<ExploreTabs> {
       }
     }
   }
-
-  // =========================================================
-  // FETCH KATEGORI
-  // =========================================================
-
-  Future<void> _fetchCategories() async {
-    try {
-      final response = await http.get(
-        Uri.parse(_kategoriApiUrl),
-        headers: {'Accept': 'application/json'},
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception(
-          'Gagal mengambil kategori '
-          '(${response.statusCode}).',
-        );
-      }
-
-      final items = _extractItems(response.body);
-
-      final categories = items
-          .whereType<Map>()
-          .map((item) => (item['nama_kategori'] ?? '').toString().trim())
-          .where((name) => name.isNotEmpty)
-          .toSet()
-          .toList();
-
-      if (!mounted) return;
-
-      setState(() {
-        _categories = ['Semua', ...categories];
-        _isLoadingCategories = false;
-        _categoryError = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _isLoadingCategories = false;
-        _categoryError = e.toString();
-      });
-
-      debugPrint('Error mengambil kategori: $e');
-    }
-  }
-
   // =========================================================
   // FILTER KATEGORI
   // =========================================================
@@ -464,8 +420,33 @@ class _ExploreTabsState extends State<ExploreTabs> {
   @override
   void initState() {
     super.initState();
+
+    _searchController.text = widget.initialKeyword;
+    _searchQuery = widget.initialKeyword;
+
+    _selectedFilter = widget.initialFilter;
+    _selectedCategories = Set<String>.from(widget.initialCategories);
+
     _fetchDestinations();
-    _fetchCategories();
+  }
+
+  @override
+  void didUpdateWidget(covariant ExploreTabs oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.initialKeyword != widget.initialKeyword ||
+        oldWidget.initialFilter != widget.initialFilter ||
+        oldWidget.initialCategories != widget.initialCategories) {
+      setState(() {
+        _searchController.text = widget.initialKeyword;
+        _searchQuery = widget.initialKeyword;
+
+        _selectedFilter = widget.initialFilter;
+        _selectedCategories = Set<String>.from(widget.initialCategories);
+
+        _currentPage = 1;
+      });
+    }
   }
 
   @override
@@ -630,27 +611,6 @@ class _ExploreTabsState extends State<ExploreTabs> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: const [
-            Icon(Icons.location_on, size: 14, color: AppColors.primary),
-            SizedBox(width: 4),
-            ManropeFont(
-              'Eksplor Jembatan Barelang',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            SizedBox(width: 8),
-            ManropeFont(
-              '•',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            SizedBox(width: 8),
-            ManropeFont(
-              'Masjid 3 Sanctuary',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            Spacer(),
-          ],
-        ),
         const SizedBox(height: 8),
         const ManropeFont(
           'Eksplorasi Batam',
@@ -670,10 +630,7 @@ class _ExploreTabsState extends State<ExploreTabs> {
         CustomSearchBar(
           controller: _searchController,
           onChanged: _onSearchChanged,
-          categories: _categories,
-          isLoadingCategories: _isLoadingCategories,
-          categoryError: _categoryError,
-          onRetryCategories: _fetchCategories,
+          focusNode: _searchFocusNode,
           selectedFilter: _selectedFilter,
           selectedCategories: _selectedCategories,
           onApplyFilter: _onFilterChanged,
@@ -807,10 +764,8 @@ class _ExploreTabsState extends State<ExploreTabs> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => DetailDestinationTabs(
-                  wisataId: id,
-                  jenis: jenis,
-                ),
+                builder: (context) =>
+                    DetailDestinationTabs(wisataId: id, jenis: jenis),
               ),
             );
           },

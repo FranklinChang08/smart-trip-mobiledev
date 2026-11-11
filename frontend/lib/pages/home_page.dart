@@ -23,6 +23,25 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
+
+  String _exploreKeyword = '';
+  String _exploreFilter = 'Semua';
+  Set<String> _exploreCategories = {};
+
+  void _navigateToExplore({
+    String keyword = '',
+    String filter = 'Semua',
+    Set<String> categories = const {},
+  }) {
+    setState(() {
+      _exploreKeyword = keyword;
+      _exploreFilter = filter;
+      _exploreCategories = Set<String>.from(categories);
+
+      currentIndex = 1;
+    });
+  }
+
   bool isBellHovered = false;
   Key _itineraryKey = UniqueKey();
   bool _isGuest = false;
@@ -34,6 +53,24 @@ class _HomePageState extends State<HomePage> {
     _checkAuthStatus();
   }
 
+  void _resetExploreFilters() {
+    setState(() {
+      _exploreKeyword = '';
+      _exploreFilter = 'Semua';
+      _exploreCategories = {};
+    });
+  }
+
+  void _onTabChanged(int index) {
+    if (currentIndex == 1 && index != 1) {
+      _resetExploreFilters();
+    }
+
+    setState(() {
+      currentIndex = index;
+    });
+  }
+
   Future<void> _checkAuthStatus() async {
     final loggedIn = await AuthService.isLoggedIn();
     if (mounted) {
@@ -43,10 +80,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _showLoginPrompt({
-    required String title,
-    required String message,
-  }) {
+  void _showLoginPrompt({required String title, required String message}) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -142,8 +176,7 @@ class _HomePageState extends State<HomePage> {
     if (_isGuest) {
       _showLoginPrompt(
         title: 'Buat Rencana Perjalanan',
-        message:
-            'Silakan masuk ke akun SmartTrip terlebih dahulu untuk mulai membuat dan menyimpan rencana liburan cerdas Anda.',
+        message: 'Silakan masuk ke akun SmartTrip terlebih dahulu untuk mulai membuat dan menyimpan rencana liburan cerdas Anda.',
       );
       return;
     }
@@ -189,7 +222,9 @@ class _HomePageState extends State<HomePage> {
                               height: 45,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: _isGuest ? const Color(0xFFF1F5F9) : null,
+                                color: _isGuest
+                                    ? const Color(0xFFF1F5F9)
+                                    : null,
                                 border: _isGuest
                                     ? Border.all(
                                         color: const Color(0xFFE2E8F0),
@@ -311,6 +346,7 @@ class _HomePageState extends State<HomePage> {
             ),
       body: currentIndex == 0
           ? HomeTabs(
+              onNavigateToExplore: _navigateToExplore,
               onSeeAllPressed: () {
                 setState(() {
                   currentIndex = 1;
@@ -318,7 +354,11 @@ class _HomePageState extends State<HomePage> {
               },
             )
           : currentIndex == 1
-          ? ExploreTabs()
+          ? ExploreTabs(
+              initialKeyword: _exploreKeyword,
+              initialFilter: _exploreFilter,
+              initialCategories: _exploreCategories,
+            )
           : currentIndex == 2
           ? TripItineraryTab(
               key: _itineraryKey,
@@ -326,8 +366,7 @@ class _HomePageState extends State<HomePage> {
               onLoginPrompt: () {
                 _showLoginPrompt(
                   title: 'Buat Rencana Perjalanan',
-                  message:
-                      'Silakan masuk ke akun SmartTrip terlebih dahulu untuk mulai membuat dan menyimpan rencana liburan cerdas Anda.',
+                  message: 'Silakan masuk ke akun SmartTrip terlebih dahulu untuk mulai membuat dan menyimpan rencana liburan cerdas Anda.',
                 );
               },
             )
@@ -449,12 +488,13 @@ class _HomePageState extends State<HomePage> {
 
     return GestureDetector(
       onTap: () {
-        setState(() {
-          currentIndex = index;
-          if (index == 2) {
+        _onTabChanged(index);
+
+        if (index == 2) {
+          setState(() {
             _itineraryKey = UniqueKey();
-          }
-        });
+          });
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
