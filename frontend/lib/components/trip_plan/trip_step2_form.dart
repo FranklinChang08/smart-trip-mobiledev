@@ -24,6 +24,7 @@ class TripStep2Form extends StatefulWidget {
   final VoidCallback? onPickEndTime;
   final VoidCallback? onGenerateRecommendations;
   final VoidCallback? onSaveAsDraft;
+  final VoidCallback? onSubmitPlan;
 
   const TripStep2Form({
     super.key,
@@ -45,6 +46,7 @@ class TripStep2Form extends StatefulWidget {
     this.onPickEndTime,
     this.onGenerateRecommendations,
     this.onSaveAsDraft,
+    this.onSubmitPlan,
   });
 
   @override
@@ -151,14 +153,7 @@ class _TripStep2FormState extends State<TripStep2Form> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.08),
-                  AppColors.primary.withValues(alpha: 0.02),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: borderGradientLight(),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: AppColors.primary.withValues(alpha: 0.25),
@@ -197,7 +192,7 @@ class _TripStep2FormState extends State<TripStep2Form> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Buat Itinerary Cerdas & Otomatis',
+                  'Langsung Dapatkan Rekomendasi Destinasi',
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.bold,
@@ -206,7 +201,7 @@ class _TripStep2FormState extends State<TripStep2Form> {
                 ),
                 const SizedBox(height: 3),
                 const Text(
-                  'AI SmartTrip akan memilihkan destinasi wisata, restoran, dan rute optimal sesuai preferensi Anda.',
+                  'AI SmartTrip akan otomatis menyusun rute wisata, restoran, dan jam kunjungan optimal berdasarkan preferensi Anda.',
                   style: TextStyle(
                     fontSize: 11.5,
                     color: AppColors.textSecondary,
@@ -220,7 +215,7 @@ class _TripStep2FormState extends State<TripStep2Form> {
                     onPressed: widget.onGenerateRecommendations,
                     icon: const Icon(Icons.auto_awesome, size: 16),
                     label: const Text(
-                      'Generate Rekomendasi (AI)',
+                      'Dapatkan Rekomendasi AI',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -290,7 +285,7 @@ class _TripStep2FormState extends State<TripStep2Form> {
                 ),
                 const SizedBox(height: 3),
                 const Text(
-                  'Membuat jadwal hari perjalanan kosong dengan titik awal & akhir. Anda dapat melihat detail tempat dan menambahkannya secara fleksibel.',
+                  'Membuat draf rencana perjalanan kosong dengan titik awal & akhir yang dapat disesuaikan per hari.',
                   style: TextStyle(
                     fontSize: 11.5,
                     color: AppColors.textSecondary,
@@ -325,6 +320,17 @@ class _TripStep2FormState extends State<TripStep2Form> {
           ),
         ],
       ),
+    );
+  }
+
+  Gradient borderGradientLight() {
+    return LinearGradient(
+      colors: [
+        AppColors.primary.withValues(alpha: 0.08),
+        AppColors.primary.withValues(alpha: 0.02),
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
     );
   }
 
