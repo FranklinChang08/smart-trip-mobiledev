@@ -14,20 +14,25 @@ class KecamatanSeeder extends Seeder
     public function run(): void
     {
         $kecamatan = [
-            ['nama_kecamatan' => 'Batam Kota'],
-            ['nama_kecamatan' => 'Batu Aji'],
-            ['nama_kecamatan' => 'Batu Ampar'],
-            ['nama_kecamatan' => 'Bengkong'],
-            ['nama_kecamatan' => 'Belakang Padang'],
-            ['nama_kecamatan' => 'Bulang'],
-            ['nama_kecamatan' => 'Galang'],
-            ['nama_kecamatan' => 'Lubuk Baja'],
-            ['nama_kecamatan' => 'Nongsa'],
-            ['nama_kecamatan' => 'Sagulung'],
-            ['nama_kecamatan' => 'Sei Beduk'],
-            ['nama_kecamatan' => 'Sekupang'],
+            'Batam Kota',
+            'Batu Aji',
+            'Batu Ampar',
+            'Bengkong',
+            'Belakang Padang',
+            'Bulang',
+            'Galang',
+            'Lubuk Baja',
+            'Nongsa',
+            'Sagulung',
+            'Sei Beduk',
+            'Sekupang',
         ];
 
-        DB::table('kecamatan')->insert($kecamatan);
+        foreach ($kecamatan as $nama) {
+            DB::table('kecamatan')->updateOrInsert(
+                ['nama_kecamatan' => $nama],
+                ['nama_kecamatan' => $nama]
+            );
+        }
     }
 }

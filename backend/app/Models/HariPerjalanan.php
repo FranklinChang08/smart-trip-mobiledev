@@ -19,7 +19,11 @@ class HariPerjalanan extends Model
         'tanggal',
         'urutan_hari',
         'lokasi_awal',
+        'lokasi_awal_type',
+        'lokasi_awal_id',
         'lokasi_akhir',
+        'lokasi_akhir_type',
+        'lokasi_akhir_id',
         'estimasi_biaya',
     ];
 
@@ -34,5 +38,15 @@ class HariPerjalanan extends Model
     {
         return $this->hasMany(ItemPerjalanan::class, 'id_hari', 'id_hari')
             ->orderBy('urutan_item', 'asc');
+    }
+
+    public function lokasiAwalLocation()
+    {
+        return $this->morphTo('lokasiAwalLocation', 'lokasi_awal_type', 'lokasi_awal_id');
+    }
+
+    public function lokasiAkhirLocation()
+    {
+        return $this->morphTo('lokasiAkhirLocation', 'lokasi_akhir_type', 'lokasi_akhir_id');
     }
 }

@@ -24,6 +24,11 @@ class RencanaPerjalanan extends Model
         'hari_end',
         'total_hari',
         'titik_awal',
+        'titik_awal_type',
+        'titik_awal_id',
+        'titik_akhir',
+        'titik_akhir_type',
+        'titik_akhir_id',
         'budget_trip',
         'type_food',
         'start_time',
@@ -52,5 +57,15 @@ class RencanaPerjalanan extends Model
     {
         return $this->hasMany(HariPerjalanan::class, 'id_rencana', 'id_rencana')
             ->orderBy('urutan_hari', 'asc');
+    }
+
+    public function titikAwalLocation()
+    {
+        return $this->morphTo('titikAwalLocation', 'titik_awal_type', 'titik_awal_id');
+    }
+
+    public function titikAkhirLocation()
+    {
+        return $this->morphTo('titikAkhirLocation', 'titik_akhir_type', 'titik_akhir_id');
     }
 }

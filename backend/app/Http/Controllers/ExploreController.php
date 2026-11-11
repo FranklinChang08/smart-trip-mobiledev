@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kategori;
+use App\Models\LokasiTransportasi;
+use App\Models\Penginapan;
 use App\Models\Restoran;
 use App\Models\Wisata;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ExploreController extends Controller
 {
@@ -163,5 +166,105 @@ class ExploreController extends Controller
             'success' => true,
             'data' => $kategori,
         ]);
+    }
+
+    public function getTitikLokasi(Request $request)
+    {
+        $search = $request->query('search');
+
+        $transportQuery = LokasiTransportasi::with('kecamatan');
+        $hotelQuery = Penginapan::with('kecamatan');
+
+        if ($search) {
+            $transportQuery->where(function ($q) use ($search) {
+                $q->where('nama_lokasi', 'like', "%{$search}%")
+                    ->orWhere('alamat_detail_lokasi', 'like', "%{$search}%");
+            });
+            $hotelQuery->where(function ($q) use ($search) {
+                $q->where('nama_penginapan', 'like', "%{$search}%")
+                    ->orWhere('alamat_detail_penginapan', 'like', "%{$search}%");
+            });
+        }
+
+        $transports = $transportQuery->get()->map(function ($item) {
+            $cat = strtolower($item->type_lokasi ?? 'pelabuhan');
+            $kecName = $item->kecamatan?->nama_kecamatan ?? 'Batam';
+            return [
+                'id' => $item->id_lokasi,
+                'name' => $item->nama_lokasi,
+                'type' => "{$item->type_lokasi} • {$kecName}",
+                'category' => $cat,
+                'model_type' => LokasiTransportasi::class,
+                'id_kecamatan' => $item->id_kecamatan,
+                'nama_kecamatan' => $kecName,
+                'alamat' => $item->alamat_detail_lokasi,
+                'latitude' => $item->latitude,
+                'longitude' => $item->longitude,
+                'deskripsi' => $item->deskripsi,
+                'link_on_maps' => $item->link_on_maps,
+                'is_quick' => in_array($cat, ['pelabuhan', 'bandara']),
+                'quick_label' => Str::limit($item->nama_lokasi, 18),
+            ];
+        });
+
+        $hotels = $hotelQuery->get()->map(function ($item) {
+            $cat = strtolower($item->type_penginapan ?? 'hotel');
+            $kecName = $item->kecamatan?->nama_kecamatan ?? 'Batam';
+            return [
+                'id' => $item->id_penginapan,
+                'name' => $item->nama_penginapan,
+                'type' => "{$item->type_penginapan} • {$kecName}",
+                'category' => $cat,
+                'model_type' => Penginapan::class,
+                'id_kecamatan' => $item->id_kecamatan,
+                'nama_kecamatan' => $kecName,
+                'alamat' => $item->alamat_detail_penginapan,
+                'latitude' => $item->latitude,
+                'longitude' => $item->longitude,
+                'deskripsi' => $item->deskripsi,
+                'harga' => $item->harga_penginapan,
+                'link_on_maps' => $item->link_on_maps,
+                'is_quick' => str_contains(strtolower($item->nama_penginapan), 'harris') || str_contains(strtolower($item->nama_penginapan), 'aston'),
+                'quick_label' => Str::limit($item->nama_penginapan, 18),
+            ];
+        });
+
+        $merged = $transports->concat($hotels)->values();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Daftar titik lokasi berhasil diambil.',
+            'data' => $merged,
+        ]);
+    }
+
+    public function showTitikLokasi(string $id)
+    {
+        $transport = LokasiTransportasi::with(['kecamatan', 'fotoDestinasis', 'fasilitas'])->find($id);
+        if ($transport) {
+            return response()->json([
+                'success' => true,
+                'data' => array_merge($transport->toArray(), [
+                    'model_type' => LokasiTransportasi::class,
+                    'is_hotel' => false,
+                ]),
+            ]);
+        }
+
+        $penginapan = Penginapan::with(['kecamatan', 'fotoDestinasis', 'kategoris', 'fasilitas'])->find($id);
+        if ($penginapan) {
+            return response()->json([
+                'success' => true,
+                'data' => array_merge($penginapan->toArray(), [
+                    'model_type' => Penginapan::class,
+                    'is_hotel' => true,
+                ]),
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Lokasi tidak ditemukan.',
+        ], 404);
     }
 }

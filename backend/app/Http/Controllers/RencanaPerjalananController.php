@@ -6,6 +6,8 @@ use App\Models\HariPerjalanan;
 use App\Models\ItemPerjalanan;
 use App\Models\Kategori;
 use App\Models\Kecamatan;
+use App\Models\LokasiTransportasi;
+use App\Models\Penginapan;
 use App\Models\PreferensiPerjalanan;
 use App\Models\RencanaPerjalanan;
 use App\Models\Restoran;
@@ -39,6 +41,11 @@ class RencanaPerjalananController extends Controller
 
         $query = RencanaPerjalanan::with([
             'preferensi.kategoris',
+            'preferensi.kecamatans',
+            'titikAwalLocation',
+            'titikAkhirLocation',
+            'hariPerjalanan.lokasiAwalLocation',
+            'hariPerjalanan.lokasiAkhirLocation',
             'hariPerjalanan.itemPerjalanan',
         ])
             ->where('id_pengguna', $userId)
@@ -58,6 +65,11 @@ class RencanaPerjalananController extends Controller
     {
         $plan = RencanaPerjalanan::with([
             'preferensi.kategoris',
+            'preferensi.kecamatans',
+            'titikAwalLocation',
+            'titikAkhirLocation',
+            'hariPerjalanan.lokasiAwalLocation',
+            'hariPerjalanan.lokasiAkhirLocation',
             'hariPerjalanan.itemPerjalanan.destinasi',
         ])->find($id);
 
@@ -87,6 +99,11 @@ class RencanaPerjalananController extends Controller
             'tanggal_mulai' => 'nullable|date',
             'tanggal_selesai' => 'nullable|date',
             'titik_awal' => 'nullable|string|max:255',
+            'titik_awal_id' => 'nullable|string|max:36',
+            'titik_awal_type' => 'nullable|string|max:255',
+            'titik_akhir' => 'nullable|string|max:255',
+            'titik_akhir_id' => 'nullable|string|max:36',
+            'titik_akhir_type' => 'nullable|string|max:255',
             'budget_trip' => 'nullable|numeric|min:0',
             'total_anggaran' => 'nullable|numeric|min:0',
             'type_food' => 'nullable|string|max:50',
@@ -96,6 +113,9 @@ class RencanaPerjalananController extends Controller
             'kecamatan_pilihan' => 'nullable|array',
             'is_halal' => 'nullable|boolean',
             'is_seafood' => 'nullable|boolean',
+            'is_draft' => 'nullable|boolean',
+            'mode' => 'nullable|string',
+            'status' => 'nullable|string',
             'custom_destinations' => 'nullable|array',
         ]);
 
@@ -128,8 +148,68 @@ class RencanaPerjalananController extends Controller
         $startTime = $validated['start_time'] ?? '08:30';
         $endTime = $validated['end_time'] ?? '21:00';
 
-        $titikAwal = $validated['titik_awal']
-            ?? 'Pelabuhan Ferry Batam Center';
+        // Resolve Titik Awal
+        $titikAwalName = $validated['titik_awal'] ?? null;
+        $titikAwalId = $validated['titik_awal_id'] ?? null;
+        $titikAwalType = $validated['titik_awal_type'] ?? null;
+
+        if ($titikAwalId) {
+            if (!$titikAwalType) {
+                if ($trans = LokasiTransportasi::find($titikAwalId)) {
+                    $titikAwalType = LokasiTransportasi::class;
+                    $titikAwalName = $titikAwalName ?: $trans->nama_lokasi;
+                } elseif ($hotel = Penginapan::find($titikAwalId)) {
+                    $titikAwalType = Penginapan::class;
+                    $titikAwalName = $titikAwalName ?: $hotel->nama_penginapan;
+                }
+            }
+        } elseif ($titikAwalName) {
+            if ($trans = LokasiTransportasi::where('nama_lokasi', $titikAwalName)->first()) {
+                $titikAwalId = $trans->id_lokasi;
+                $titikAwalType = LokasiTransportasi::class;
+            } elseif ($hotel = Penginapan::where('nama_penginapan', $titikAwalName)->first()) {
+                $titikAwalId = $hotel->id_penginapan;
+                $titikAwalType = Penginapan::class;
+            }
+        }
+
+        if (!$titikAwalName) {
+            $defaultTransport = LokasiTransportasi::first();
+            $titikAwalName = $defaultTransport?->nama_lokasi ?? 'Pelabuhan Ferry Batam Center';
+            $titikAwalId = $defaultTransport?->id_lokasi;
+            $titikAwalType = LokasiTransportasi::class;
+        }
+
+        // Resolve Titik Akhir
+        $titikAkhirName = $validated['titik_akhir'] ?? null;
+        $titikAkhirId = $validated['titik_akhir_id'] ?? null;
+        $titikAkhirType = $validated['titik_akhir_type'] ?? null;
+
+        if ($titikAkhirId) {
+            if (!$titikAkhirType) {
+                if ($trans = LokasiTransportasi::find($titikAkhirId)) {
+                    $titikAkhirType = LokasiTransportasi::class;
+                    $titikAkhirName = $titikAkhirName ?: $trans->nama_lokasi;
+                } elseif ($hotel = Penginapan::find($titikAkhirId)) {
+                    $titikAkhirType = Penginapan::class;
+                    $titikAkhirName = $titikAkhirName ?: $hotel->nama_penginapan;
+                }
+            }
+        } elseif ($titikAkhirName) {
+            if ($trans = LokasiTransportasi::where('nama_lokasi', $titikAkhirName)->first()) {
+                $titikAkhirId = $trans->id_lokasi;
+                $titikAkhirType = LokasiTransportasi::class;
+            } elseif ($hotel = Penginapan::where('nama_penginapan', $titikAkhirName)->first()) {
+                $titikAkhirId = $hotel->id_penginapan;
+                $titikAkhirType = Penginapan::class;
+            }
+        }
+
+        if (!$titikAkhirName) {
+            $titikAkhirName = $titikAwalName;
+            $titikAkhirId = $titikAwalId;
+            $titikAkhirType = $titikAwalType;
+        }
 
         $selectedAreas = $validated['kecamatan_pilihan']
             ?? ['Batam Kota', 'Lubuk Baja'];
@@ -143,9 +223,12 @@ class RencanaPerjalananController extends Controller
         $isSeafood = ($validated['is_seafood'] ?? false)
             || str_contains(strtolower($typeFood), 'seafood');
 
+        // Mode draft / manual vs AI
+        $isDraft = ($request->boolean('is_draft') || ($validated['mode'] ?? '') === 'manual' || ($validated['status'] ?? '') === 'draf');
+        $planStatus = $isDraft ? 'draf' : 'aktif';
+
         // 5. Ambil user
         $user = auth('sanctum')->user() ?? $request->user();
-
         $userId = $user?->id_pengguna;
 
         Log::info('Request pembuatan rencana perjalanan', [
@@ -153,14 +236,17 @@ class RencanaPerjalananController extends Controller
             'nama_rencana' => $validated['nama_rencana'],
             'total_days' => $totalDays,
             'budget' => $budget,
+            'status' => $planStatus,
+            'titik_awal' => $titikAwalName,
+            'titik_akhir' => $titikAkhirName,
         ]);
 
         // 6. Mulai transaksi database
         DB::beginTransaction();
 
         try {
-            // 7. Nonaktifkan rencana sebelumnya
-            if ($userId) {
+            // 7. Nonaktifkan rencana sebelumnya jika status aktif
+            if ($userId && $planStatus === 'aktif') {
                 RencanaPerjalanan::where('id_pengguna', $userId)
                     ->where('status', 'aktif')
                     ->update([
@@ -168,17 +254,32 @@ class RencanaPerjalananController extends Controller
                     ]);
             }
 
-            // 8. Simpan preferensi perjalanan
+            // 8. Simpan preferensi perjalanan (data kecamatan disimpan murni ke tabel pivot preferensi_kecamatan)
             $preferensi = PreferensiPerjalanan::create([
                 'id_pengguna' => $userId,
                 'type_food' => $typeFood,
                 'maks_budget_trip' => $budget,
-                'kecamatan_pilihan' => $selectedAreas,
+                'kecamatan_pilihan' => null,
             ]);
 
             Log::info('Preferensi perjalanan berhasil dibuat', [
                 'id_preferensi' => $preferensi->id_preferensi,
             ]);
+
+            // Sync pivot preferensi_kecamatan
+            if (!empty($selectedAreas)) {
+                $kecamatanIds = Kecamatan::whereIn('id_kecamatan', $selectedAreas)
+                    ->orWhereIn('nama_kecamatan', $selectedAreas)
+                    ->orderBy('id_kecamatan')
+                    ->get()
+                    ->unique('nama_kecamatan')
+                    ->pluck('id_kecamatan')
+                    ->all();
+
+                if (!empty($kecamatanIds)) {
+                    $preferensi->kecamatans()->sync($kecamatanIds);
+                }
+            }
 
             // 9. Simpan relasi kategori minat
             if (!empty($selectedThemes)) {
@@ -214,38 +315,66 @@ class RencanaPerjalananController extends Controller
                 'hari_start' => $start->toDateString(),
                 'hari_end' => $end->toDateString(),
                 'total_hari' => $totalDays,
-                'titik_awal' => $titikAwal,
+                'titik_awal' => $titikAwalName,
+                'titik_awal_type' => $titikAwalType,
+                'titik_awal_id' => $titikAwalId,
+                'titik_akhir' => $titikAkhirName,
+                'titik_akhir_type' => $titikAkhirType,
+                'titik_akhir_id' => $titikAkhirId,
                 'budget_trip' => $budget,
                 'type_food' => $typeFood,
                 'start_time' => $startTime,
                 'end_time' => $endTime,
-                'status' => 'aktif',
+                'status' => $planStatus,
             ]);
 
             Log::info('Rencana perjalanan berhasil dibuat', [
                 'id_rencana' => $plan->id_rencana,
             ]);
 
-            // // 11. Generate itinerary menggunakan Gemini
-            $this->generateRecommendationItinerary(
-                $plan,
-                $totalDays,
-                $titikAwal,
-                $selectedAreas,
-                $selectedThemes,
-                $geminiService,
-                $openRouterService,
-                $groqService,
-                $isHalal,
-                $isSeafood,
-                $startTime,
-                $endTime
-            );
+            if ($isDraft) {
+                // Buat struktur hari_perjalanan untuk draf (tanpa memanggil AI)
+                for ($dayNumber = 1; $dayNumber <= $totalDays; $dayNumber++) {
+                    HariPerjalanan::create([
+                        'id_rencana' => $plan->id_rencana,
+                        'tanggal' => $start->copy()->addDays($dayNumber - 1),
+                        'urutan_hari' => $dayNumber,
+                        'lokasi_awal' => $titikAwalName,
+                        'lokasi_awal_type' => $titikAwalType,
+                        'lokasi_awal_id' => $titikAwalId,
+                        'lokasi_akhir' => $titikAkhirName,
+                        'lokasi_akhir_type' => $titikAkhirType,
+                        'lokasi_akhir_id' => $titikAkhirId,
+                        'estimasi_biaya' => 0,
+                    ]);
+                }
+            } else {
+                // 11. Generate itinerary menggunakan Gemini / Groq AI
+                $this->generateRecommendationItinerary(
+                    $plan,
+                    $totalDays,
+                    $titikAwalName,
+                    $selectedAreas,
+                    $selectedThemes,
+                    $geminiService,
+                    $openRouterService,
+                    $groqService,
+                    $isHalal,
+                    $isSeafood,
+                    $startTime,
+                    $endTime
+                );
+            }
 
             // 12. Ambil hasil itinerary dari database
             $fullPlan = RencanaPerjalanan::with([
                 'preferensi.kategoris',
-                'hariPerjalanan.itemPerjalanan',
+                'preferensi.kecamatans',
+                'titikAwalLocation',
+                'titikAkhirLocation',
+                'hariPerjalanan.lokasiAwalLocation',
+                'hariPerjalanan.lokasiAkhirLocation',
+                'hariPerjalanan.itemPerjalanan.destinasi',
             ])->findOrFail($plan->id_rencana);
 
             // 13. Commit seluruh penyimpanan
@@ -258,7 +387,9 @@ class RencanaPerjalananController extends Controller
             // 14. Kirim response ke Flutter
             return response()->json([
                 'success' => true,
-                'message' => 'Rencana perjalanan dan itinerary AI berhasil dibuat.',
+                'message' => $isDraft
+                    ? 'Draf rencana perjalanan berhasil disimpan.'
+                    : 'Rencana perjalanan dan itinerary AI berhasil dibuat.',
                 'data' => $fullPlan,
             ], 201);
 
@@ -310,6 +441,7 @@ class RencanaPerjalananController extends Controller
                     if (!$preferensi->rencanaPerjalanan()->exists()) {
 
                         $preferensi->kategoris()->detach();
+                        $preferensi->kecamatans()->detach();
 
                         // Event deleting preferensi juga dijalankan
                         $preferensi->delete();
@@ -431,16 +563,16 @@ class RencanaPerjalananController extends Controller
             );
         }
 
-        // 5. Siapkan data destinasi untuk Gemini
+        // 5. Siapkan data destinasi untuk Gemini / AI
         $destinations = [];
 
         foreach ($availableWisata as $item) {
             $destinations[] = [
                 'destination_id' => $item->id_wisata,
-                'name' => $item->nama,
+                'name' => $item->nama_wisata ?? $item->nama ?? 'Wisata Batam',
                 'type' => 'wisata',
                 'description' => $item->deskripsi,
-                'price' => $item->harga_tiket,
+                'price' => (float) ($item->harga_tiket_masuk ?? $item->harga_tiket ?? 0),
                 'area' => $item->kecamatan->nama_kecamatan ?? null,
             ];
         }
@@ -448,11 +580,11 @@ class RencanaPerjalananController extends Controller
         foreach ($availableRestoran as $item) {
             $destinations[] = [
                 'destination_id' => $item->id_restoran,
-                'name' => $item->nama,
+                'name' => $item->nama_restoran ?? $item->nama ?? 'Restoran Batam',
                 'type' => 'restoran',
                 'description' => $item->deskripsi,
                 'food_type' => $item->type_food,
-                'price' => $item->harga_per_orang ?? null,
+                'price' => (float) ($item->harga_makan_per_orang ?? $item->harga_per_orang ?? 0),
                 'area' => $item->kecamatan->nama_kecamatan ?? null,
             ];
         }
@@ -547,8 +679,12 @@ class RencanaPerjalananController extends Controller
                 'id_rencana' => $plan->id_rencana,
                 'tanggal' => $startDate->copy()->addDays($dayNumber - 1),
                 'urutan_hari' => $dayNumber,
-                'lokasi_awal' => $startLocation,
-                'lokasi_akhir' => $startLocation,
+                'lokasi_awal' => $plan->titik_awal ?: $startLocation,
+                'lokasi_awal_type' => $plan->titik_awal_type,
+                'lokasi_awal_id' => $plan->titik_awal_id,
+                'lokasi_akhir' => $plan->titik_akhir ?: ($plan->titik_awal ?: $startLocation),
+                'lokasi_akhir_type' => $plan->titik_akhir_type ?: $plan->titik_awal_type,
+                'lokasi_akhir_id' => $plan->titik_akhir_id ?: $plan->titik_awal_id,
                 'estimasi_biaya' => 0,
             ]);
 
@@ -556,6 +692,8 @@ class RencanaPerjalananController extends Controller
                 'id_hari' => $hari->id_hari,
                 'urutan_hari' => $dayNumber,
             ]);
+
+            $totalBiayaHari = 0;
 
             // Simpan item perjalanan
             foreach (($day['items'] ?? []) as $index => $item) {
@@ -589,6 +727,8 @@ class RencanaPerjalananController extends Controller
                     );
                 }
 
+                $itemCost = 0;
+
                 // Validasi destinasi berdasarkan tipe
                 if ($type === 'wisata') {
                     $destination = $availableWisata->firstWhere(
@@ -597,6 +737,7 @@ class RencanaPerjalananController extends Controller
                     );
 
                     $destinationType = Wisata::class;
+                    $itemCost = (float) ($destination?->harga_tiket_masuk ?? 0);
                 } else {
                     $destination = $availableRestoran->firstWhere(
                         'id_restoran',
@@ -604,6 +745,7 @@ class RencanaPerjalananController extends Controller
                     );
 
                     $destinationType = Restoran::class;
+                    $itemCost = (float) ($destination?->harga_makan_per_orang ?? 0);
                 }
 
                 if (!$destination) {
@@ -611,9 +753,13 @@ class RencanaPerjalananController extends Controller
                         'Gemini memberikan destinasi yang tidak tersedia.'
                     );
                 }
+
+                $totalBiayaHari += $itemCost;
+
                 Log::info('Data item perjalanan sebelum disimpan', [
                     'start_time' => $startTime,
                     'end_time' => $endTime,
+                    'cost' => $itemCost,
                 ]);
                 // Simpan item itinerary
                 $itemPerjalanan = ItemPerjalanan::create([
@@ -634,6 +780,9 @@ class RencanaPerjalananController extends Controller
                     'type' => $type,
                 ]);
             }
+
+            // Update estimasi biaya riil per hari dari destinasi yang terpilih
+            $hari->update(['estimasi_biaya' => $totalBiayaHari]);
         }
 
         Log::info('Generate itinerary berhasil', [

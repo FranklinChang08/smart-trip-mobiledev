@@ -46,59 +46,73 @@ class OpenRouterService
             }
         ";
 
-        $response = Http::connectTimeout(8)
-            ->timeout(20)
-            ->withToken($apiKey)
-            ->withHeaders([
-                'HTTP-Referer' => config('app.url'),
-                'X-OpenRouter-Title' => 'SmartTrip',
-            ])
-            ->post(
-                'https://openrouter.ai/api/v1/chat/completions',
-                [
-                    'model' => $model,
-                    'messages' => [
+        $modelsToTry = array_unique(array_filter([
+            $model,
+            'google/gemma-4-26b-a4b-it:free',
+            'nvidia/nemotron-3.5-lightning:free',
+            'google/gemma-4-31b-it:free',
+        ]));
+
+        foreach ($modelsToTry as $currentModel) {
+            try {
+                $response = Http::connectTimeout(8)
+                    ->timeout(20)
+                    ->withToken($apiKey)
+                    ->withHeaders([
+                        'HTTP-Referer' => config('app.url'),
+                        'X-OpenRouter-Title' => 'SmartTrip',
+                    ])
+                    ->post(
+                        'https://openrouter.ai/api/v1/chat/completions',
                         [
-                            'role' => 'user',
-                            'content' => $prompt,
-                        ],
-                    ],
-                    'temperature' => 0.3,
-                ]
-            );
+                            'model' => $currentModel,
+                            'messages' => [
+                                [
+                                    'role' => 'user',
+                                    'content' => $prompt,
+                                ],
+                            ],
+                            'temperature' => 0.3,
+                        ]
+                    );
 
-        if ($response->failed()) {
-            Log::error('OpenRouter API Error', [
-                'status' => $response->status(),
-                'response' => $response->json(),
-            ]);
+                if ($response->failed()) {
+                    Log::warning("OpenRouter model {$currentModel} failed", [
+                        'status' => $response->status(),
+                        'response' => $response->json(),
+                    ]);
+                    continue;
+                }
 
-            throw new Exception(
-                'Gagal mendapatkan rekomendasi dari OpenRouter.'
-            );
+                $text = $response->json('choices.0.message.content');
+
+                if (!is_string($text) || trim($text) === '') {
+                    continue;
+                }
+
+                // Membersihkan kemungkinan markdown code fence.
+                $text = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim($text));
+
+                $result = json_decode($text, true);
+
+                if (
+                    !is_array($result) ||
+                    !isset($result['itinerary']) ||
+                    !is_array($result['itinerary'])
+                ) {
+                    continue;
+                }
+
+                Log::info("OpenRouter berhasil menghasilkan itinerary dengan model {$currentModel}");
+
+                return $result;
+            } catch (Exception $e) {
+                Log::warning("OpenRouter exception on model {$currentModel}: " . $e->getMessage());
+            }
         }
 
-        $text = $response->json('choices.0.message.content');
-
-        if (!is_string($text) || trim($text) === '') {
-            throw new Exception('Respons OpenRouter kosong.');
-        }
-
-        // Membersihkan kemungkinan markdown code fence.
-        $text = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim($text));
-
-        $result = json_decode($text, true);
-
-        if (
-            !is_array($result) ||
-            !isset($result['itinerary']) ||
-            !is_array($result['itinerary'])
-        ) {
-            throw new Exception('Format itinerary OpenRouter tidak valid.');
-        }
-
-        Log::info('OpenRouter berhasil menghasilkan itinerary');
-
-        return $result;
+        throw new Exception(
+            'Gagal mendapatkan rekomendasi dari OpenRouter.'
+        );
     }
 }
