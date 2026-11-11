@@ -13,7 +13,7 @@ class TripStep1Form extends StatelessWidget {
   final TimeOfDay startTime;
   final TimeOfDay endTime;
   final String selectedLocation;
-  final String? selectedEndLocation;
+  final String selectedEndLocation;
   final TripLocationModel? selectedLocationModel;
   final TripLocationModel? selectedEndLocationModel;
   final List<TripLocationModel> availableLocations;
@@ -22,7 +22,7 @@ class TripStep1Form extends StatelessWidget {
   final Function(int days) onSelectDurationPreset;
   final Function({required bool isStart})? onPickTime;
   final ValueChanged<String> onSelectLocation;
-  final ValueChanged<String>? onSelectEndLocation;
+  final ValueChanged<String> onSelectEndLocation;
   final Function({required bool isEndLocation})? onOpenLocationDialog;
   final Function(TripLocationModel location)? onShowLocationDetail;
   final ValueChanged<String> onSelectBudgetPreset;
@@ -36,7 +36,7 @@ class TripStep1Form extends StatelessWidget {
     this.startTime = const TimeOfDay(hour: 8, minute: 30),
     this.endTime = const TimeOfDay(hour: 21, minute: 0),
     required this.selectedLocation,
-    this.selectedEndLocation,
+    String? selectedEndLocation,
     this.selectedLocationModel,
     this.selectedEndLocationModel,
     this.availableLocations = kBatamLocations,
@@ -45,12 +45,12 @@ class TripStep1Form extends StatelessWidget {
     required this.onSelectDurationPreset,
     this.onPickTime,
     required this.onSelectLocation,
-    this.onSelectEndLocation,
+    required this.onSelectEndLocation,
     this.onOpenLocationDialog,
     this.onShowLocationDetail,
     required this.onSelectBudgetPreset,
     required this.onGoToPreferences,
-  });
+  }) : selectedEndLocation = selectedEndLocation ?? selectedLocation;
 
   int get _tripDays {
     final diff = endDate.difference(startDate).inDays;
@@ -81,11 +81,13 @@ class TripStep1Form extends StatelessWidget {
         // 3. LOKASI AWAL & TITIK KUMPUL (Container 1)
         TripLocationSection(
           selectedStartLocation: selectedLocation,
+          selectedEndLocation: selectedEndLocation,
           selectedStartLocationModel: selectedLocationModel,
+          selectedEndLocationModel: selectedEndLocationModel,
           availableLocations: availableLocations,
           onSelectStartLocation: (loc) => onSelectLocation(loc.name),
+          onSelectEndLocation: (loc) => onSelectEndLocation(loc.name),
           onShowLocationDetail: onShowLocationDetail,
-          showEndLocation: false,
         ),
         const SizedBox(height: 16),
 

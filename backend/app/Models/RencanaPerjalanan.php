@@ -23,18 +23,17 @@ class RencanaPerjalanan extends Model
         'hari_start',
         'hari_end',
         'total_hari',
+        'titik_awal',
+        'titik_awal_type',
+        'titik_awal_id',
+        'titik_akhir',
+        'titik_akhir_type',
+        'titik_akhir_id',
         'budget_trip',
         'type_food',
         'start_time',
         'end_time',
         'status',
-    ];
-
-    protected $appends = [
-        'titik_awal',
-        'titik_akhir',
-        'titik_awal_location',
-        'titik_akhir_location',
     ];
 
     protected $casts = [
@@ -60,27 +59,13 @@ class RencanaPerjalanan extends Model
             ->orderBy('urutan_hari', 'asc');
     }
 
-    // Helper accessor untuk titik awal (diambil dari lokasi awal hari ke-1)
-    public function getTitikAwalAttribute()
+    public function titikAwalLocation()
     {
-        return $this->hariPerjalanan->first()?->lokasi_awal;
+        return $this->morphTo('titikAwalLocation', 'titik_awal_type', 'titik_awal_id');
     }
 
-    // Helper accessor untuk titik akhir (diambil dari lokasi akhir hari terakhir)
-    public function getTitikAkhirAttribute()
+    public function titikAkhirLocation()
     {
-        return $this->hariPerjalanan->last()?->lokasi_akhir ?? $this->titik_awal;
-    }
-
-    // Helper accessor untuk lokasi awal morph object
-    public function getTitikAwalLocationAttribute()
-    {
-        return $this->hariPerjalanan->first()?->lokasiAwalLocation;
-    }
-
-    // Helper accessor untuk lokasi akhir morph object
-    public function getTitikAkhirLocationAttribute()
-    {
-        return $this->hariPerjalanan->last()?->lokasiAkhirLocation;
+        return $this->morphTo('titikAkhirLocation', 'titik_akhir_type', 'titik_akhir_id');
     }
 }

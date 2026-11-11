@@ -324,7 +324,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
     );
   }
 
-  /// Buat rencana perjalanan langsung dengan AI & buka Jadwal Rekomendasi Resmi
+  /// Tombol Rekomendasi (Generate AI)
   void _onRecommendationsClicked() async {
     if (!_validateStep1()) {
       setState(() => _currentStep = 0);
@@ -355,110 +355,74 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       isDraft: false,
     );
 
+    // Simpan otomatis sebagai rencana aktif
     _planSaved = true;
 
-    // Tampilkan modal loading agar user melihat proses pembuatan rekomendasi AI
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => PopScope(
-        canPop: false,
-        child: Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3.5,
-                    valueColor: AlwaysStoppedAnimation(AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Menyusun Rekomendasi AI...',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'SmartTrip sedang memilih destinasi wisata, restoran, dan rute terbaik untuk Anda.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: Colors.grey.shade600,
-                    height: 1.4,
-                  ),
-                ),
-              ],
+    // Tampilkan loading snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             ),
-          ),
+            SizedBox(width: 12),
+            Text('SmartTrip AI sedang menyusun rekomendasi itinerary...'),
+          ],
         ),
+        duration: Duration(seconds: 4),
       ),
     );
 
-    final saved = await TripPlanService.saveTripPlan(plan, isDraft: false);
+    final saved = await TripPlanService.saveTripPlan(plan);
 
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pop(); // Tutup dialog loading
 
-    if (saved == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gagal menyusun rekomendasi AI. Silakan coba lagi.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final targetPlanId = saved.id.isNotEmpty ? saved.id : null;
+    final targetPlanId = (saved?.id != null && saved!.id.isNotEmpty)
+        ? saved.id
+        : (plan.id.isNotEmpty ? plan.id : null);
 
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => TripItineraryPage(
           planId: targetPlanId,
-          tripName: saved.tripName,
-          startDate: saved.startDate,
-          endDate: saved.endDate,
-          startLocation: saved.startLocation,
-          budget: saved.budget,
-          selectedThemes: saved.selectedThemes,
-          selectedAreas: saved.selectedAreas,
-          notes: saved.notes,
+          tripName: saved?.tripName ?? plan.tripName,
+          startDate: saved?.startDate ?? plan.startDate,
+          endDate: saved?.endDate ?? plan.endDate,
+          startLocation: saved?.startLocation ?? plan.startLocation,
+          budget: saved?.budget ?? plan.budget,
+          selectedThemes: saved?.selectedThemes ?? plan.selectedThemes,
+          selectedAreas: saved?.selectedAreas ?? plan.selectedAreas,
+          notes: saved?.notes ?? plan.notes,
           isDraft: false,
-          initialHariPerjalanan: saved.hariPerjalanan,
+
+          // Menggunakan relasi hari perjalanan
+          initialHariPerjalanan: saved?.hariPerjalanan,
         ),
       ),
     );
 
+    // Kembali ke HomePage dengan sinyal update
     if (mounted) {
       Navigator.pop(context, true);
     }
   }
 
-  /// Simpan draf rencana perjalanan & buka Jadwal Perjalanan Draf (bisa kustom/ubah titik awal & akhir)
+  /// Tombol Tambah Destinasi ke Draf (Kustom Manual)
   void _onSaveAsDraftClicked() async {
     if (!_validateStep1()) {
       setState(() => _currentStep = 0);
       return;
     }
 
-    if (!_validateStep2()) return;
-
     final plan = SavedTripPlan(
       id: '',
       tripName: _tripNameController.text.trim().isNotEmpty
           ? _tripNameController.text.trim()
-          : 'Liburan Akhir Pekan di Batam',
+          : 'Draf Rencana Batam',
       startDate: _startDate,
       endDate: _endDate,
       startLocation: _selectedLocation,
@@ -472,7 +436,7 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
       selectedAreas: _selectedAreas.toList(),
       isHalal: _isHalalOnly,
       isSeafood: _isSeafoodSpecialist,
-      isActive: true,
+      isActive: false,
       isDraft: true,
     );
 
@@ -488,18 +452,25 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             ),
             SizedBox(width: 12),
-            Expanded(
-              child: Text('Menyiapkan draf rencana perjalanan Anda...'),
-            ),
+            Text('Menyimpan draf rencana perjalanan...'),
           ],
         ),
         duration: Duration(seconds: 2),
       ),
     );
 
-    final saved = await TripPlanService.saveTripPlan(plan, isDraft: true);
+    final saved = await TripPlanService.saveTripPlan(plan);
 
     if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Draf "${saved?.tripName ?? plan.tripName}" berhasil dibuat! Silakan tambah destinasi pilihan Anda.',
+        ),
+        backgroundColor: Colors.green,
+      ),
+    );
 
     final targetPlanId = (saved?.id != null && saved!.id.isNotEmpty)
         ? saved.id
@@ -576,8 +547,6 @@ class _CreateTripPlanPageState extends State<CreateTripPlanPage> {
                       (l) => l.name == loc,
                       orElse: () => _availableLocations.first,
                     );
-                    _selectedEndLocation = loc;
-                    _selectedEndLocationModel = _selectedLocationModel;
                   });
                 },
                 onSelectEndLocation: (loc) {
@@ -845,7 +814,7 @@ class TripBottomActionBar extends StatelessWidget {
         OutlinedButton(
           onPressed: onCancelOrBack,
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -854,24 +823,24 @@ class TripBottomActionBar extends StatelessWidget {
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.arrow_back, size: 15, color: AppColors.textPrimary),
-              SizedBox(width: 4),
+              Icon(Icons.arrow_back, size: 14, color: AppColors.textPrimary),
+              SizedBox(width: 3),
               Text(
                 'Kembali',
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: 11.5,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         OutlinedButton(
           onPressed: onSaveAsDraft ?? onSavePreferences,
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -880,27 +849,27 @@ class TripBottomActionBar extends StatelessWidget {
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.note_add_outlined, size: 15, color: AppColors.primary),
+              Icon(Icons.note_add_outlined, size: 14, color: AppColors.primary),
               SizedBox(width: 4),
               Text(
                 'Ke Draf',
                 style: TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: 11.5,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
           child: ElevatedButton(
             onPressed: onViewRecommendations,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
