@@ -579,6 +579,8 @@ class SavedTripPlan {
     (total, hari) => total + hari.itemPerjalanan.length,
   );
 
+  String get status => isDraft ? 'draf' : (isActive ? 'aktif' : 'selesai');
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'tripName': tripName,

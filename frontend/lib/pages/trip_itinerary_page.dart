@@ -117,7 +117,7 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
         if (plan != null) {
           // Langsung menggunakan relasi hari_perjalanan
           _days = plan.hariPerjalanan;
-          _isDraft = (!widget.isDraft || plan.status == 'aktif') ? false : plan.isDraft;
+          _isDraft = (!widget.isDraft || plan.status == 'aktif' || !plan.isDraft) ? false : plan.isDraft;
 
           // Pastikan index hari yang dipilih masih valid
           if (_days.isEmpty) {
@@ -393,7 +393,7 @@ class _TripItineraryPageState extends State<TripItineraryPage> {
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
-                        ),
+                        ),  
                       ),
                     ],
                   ),
