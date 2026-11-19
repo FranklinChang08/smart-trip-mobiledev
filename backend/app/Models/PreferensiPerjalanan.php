@@ -20,11 +20,9 @@ class PreferensiPerjalanan extends Model
         'id_pengguna',
         'type_food',
         'maks_budget_trip',
-        'kecamatan_pilihan',
     ];
 
     protected $casts = [
-        'kecamatan_pilihan' => 'array',
         'maks_budget_trip' => 'decimal:2',
     ];
 

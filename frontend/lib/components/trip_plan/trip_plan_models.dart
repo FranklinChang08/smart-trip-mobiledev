@@ -268,6 +268,40 @@ class HariPerjalananModel {
     this.backendEstimasiBiaya,
   });
 
+  HariPerjalananModel copyWith({
+    String? idHari,
+    String? idRencana,
+    int? urutanHari,
+    DateTime? tanggal,
+    String? lokasiAwal,
+    String? lokasiAwalId,
+    String? lokasiAwalType,
+    Map<String, dynamic>? lokasiAwalLocation,
+    String? lokasiAkhir,
+    String? lokasiAkhirId,
+    String? lokasiAkhirType,
+    Map<String, dynamic>? lokasiAkhirLocation,
+    List<ItemPerjalananModel>? itemPerjalanan,
+    double? backendEstimasiBiaya,
+  }) {
+    return HariPerjalananModel(
+      idHari: idHari ?? this.idHari,
+      idRencana: idRencana ?? this.idRencana,
+      urutanHari: urutanHari ?? this.urutanHari,
+      tanggal: tanggal ?? this.tanggal,
+      lokasiAwal: lokasiAwal ?? this.lokasiAwal,
+      lokasiAwalId: lokasiAwalId ?? this.lokasiAwalId,
+      lokasiAwalType: lokasiAwalType ?? this.lokasiAwalType,
+      lokasiAwalLocation: lokasiAwalLocation ?? this.lokasiAwalLocation,
+      lokasiAkhir: lokasiAkhir ?? this.lokasiAkhir,
+      lokasiAkhirId: lokasiAkhirId ?? this.lokasiAkhirId,
+      lokasiAkhirType: lokasiAkhirType ?? this.lokasiAkhirType,
+      lokasiAkhirLocation: lokasiAkhirLocation ?? this.lokasiAkhirLocation,
+      itemPerjalanan: itemPerjalanan ?? this.itemPerjalanan,
+      backendEstimasiBiaya: backendEstimasiBiaya ?? this.backendEstimasiBiaya,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     'id_hari': idHari,
     'id_rencana': idRencana,
@@ -347,6 +381,7 @@ class ItemPerjalananModel {
   final String departureTime;
   final String arrivalTime;
   final Map<String, dynamic>? destinasi;
+  final String? customDestinasiId;
 
   ItemPerjalananModel({
     required this.idItem,
@@ -355,7 +390,22 @@ class ItemPerjalananModel {
     required this.departureTime,
     required this.arrivalTime,
     this.destinasi,
+    this.customDestinasiId,
   });
+
+  String get destinasiId {
+    if (customDestinasiId != null && customDestinasiId!.isNotEmpty) {
+      return customDestinasiId!;
+    }
+    if (destinasi != null) {
+      return destinasi!['id_wisata']?.toString() ??
+          destinasi!['id_restoran']?.toString() ??
+          destinasi!['id_penginapan']?.toString() ??
+          destinasi!['id']?.toString() ??
+          '';
+    }
+    return '';
+  }
 
   // Nama destinasi berdasarkan tipe destinasi
   String get destinationName {
@@ -440,6 +490,8 @@ class ItemPerjalananModel {
       destinasi: rawDestination is Map
           ? Map<String, dynamic>.from(rawDestination)
           : null,
+      customDestinasiId:
+          (json['destinasi_id'] ?? json['destination_id'])?.toString(),
     );
   }
 }
@@ -574,12 +626,16 @@ class SavedTripPlan {
         json['budget'] ??
         '5.000.000';
 
+    final hariList = _extractHariPerjalanan(json);
+
     final startLoc = json['titik_awal']?.toString() ??
         json['startLocation']?.toString() ??
+        (hariList.isNotEmpty ? hariList.first.lokasiAwal : null) ??
         'Pelabuhan Ferry Batam Center';
 
     final endLoc = json['titik_akhir']?.toString() ??
         json['endLocation']?.toString() ??
+        (hariList.isNotEmpty ? hariList.last.lokasiAkhir : null) ??
         startLoc;
 
     final isDraftPlan = json['status'] == 'draf' ||
@@ -595,11 +651,15 @@ class SavedTripPlan {
       startDate: start,
       endDate: end,
       startLocation: startLoc,
-      titikAwalId: json['titik_awal_id']?.toString(),
-      titikAwalType: json['titik_awal_type']?.toString(),
+      titikAwalId: json['titik_awal_id']?.toString() ??
+          (hariList.isNotEmpty ? hariList.first.lokasiAwalId : null),
+      titikAwalType: json['titik_awal_type']?.toString() ??
+          (hariList.isNotEmpty ? hariList.first.lokasiAwalType : null),
       endLocation: endLoc,
-      titikAkhirId: json['titik_akhir_id']?.toString(),
-      titikAkhirType: json['titik_akhir_type']?.toString(),
+      titikAkhirId: json['titik_akhir_id']?.toString() ??
+          (hariList.isNotEmpty ? hariList.last.lokasiAkhirId : null),
+      titikAkhirType: json['titik_akhir_type']?.toString() ??
+          (hariList.isNotEmpty ? hariList.last.lokasiAkhirType : null),
       budget: _formatBudgetString(rawBudget.toString()),
       selectedThemes: _extractThemes(json, preferensi),
       selectedAreas: _extractAreas(json, preferensi),
@@ -612,13 +672,13 @@ class SavedTripPlan {
           ? Map<String, dynamic>.from(json['titik_awal_location'])
           : (json['titikAwalLocation'] is Map
               ? Map<String, dynamic>.from(json['titikAwalLocation'])
-              : null),
+              : (hariList.isNotEmpty ? hariList.first.lokasiAwalLocation : null)),
       titikAkhirLocation: json['titik_akhir_location'] is Map
           ? Map<String, dynamic>.from(json['titik_akhir_location'])
           : (json['titikAkhirLocation'] is Map
               ? Map<String, dynamic>.from(json['titikAkhirLocation'])
-              : null),
-      hariPerjalanan: _extractHariPerjalanan(json),
+              : (hariList.isNotEmpty ? hariList.last.lokasiAkhirLocation : null)),
+      hariPerjalanan: hariList,
       createdAt: _parseDate(
         json['created_at'] ?? json['createdAt'],
         fallback: DateTime.now(),

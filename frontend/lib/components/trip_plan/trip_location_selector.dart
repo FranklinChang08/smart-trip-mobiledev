@@ -640,26 +640,28 @@ class TripLocationModal {
 
 class TripLocationSection extends StatelessWidget {
   final String selectedStartLocation;
-  final String selectedEndLocation;
+  final String? selectedEndLocation;
   final TripLocationModel? selectedStartLocationModel;
   final TripLocationModel? selectedEndLocationModel;
   final List<TripLocationModel> availableLocations;
   final ValueChanged<TripLocationModel> onSelectStartLocation;
-  final ValueChanged<TripLocationModel> onSelectEndLocation;
+  final ValueChanged<TripLocationModel>? onSelectEndLocation;
   final ValueChanged<TripLocationModel>? onShowLocationDetail;
   final bool isRequired;
+  final bool showEndLocation;
 
   const TripLocationSection({
     super.key,
     required this.selectedStartLocation,
-    required this.selectedEndLocation,
+    this.selectedEndLocation,
     this.selectedStartLocationModel,
     this.selectedEndLocationModel,
     this.availableLocations = kBatamLocations,
     required this.onSelectStartLocation,
-    required this.onSelectEndLocation,
+    this.onSelectEndLocation,
     this.onShowLocationDetail,
     this.isRequired = true,
+    this.showEndLocation = false,
   });
 
   @override
@@ -692,31 +694,37 @@ class TripLocationSection extends StatelessWidget {
                   color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
-                    Icons.alt_route_rounded,
+                    showEndLocation
+                        ? Icons.alt_route_rounded
+                        : Icons.location_on_rounded,
                     color: AppColors.primary,
                     size: 20,
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ManropeFont(
-                      'Pilihan Lokasi Awal & Akhir',
-                      style: TextStyle(
+                      showEndLocation
+                          ? 'Pilihan Lokasi Awal & Akhir'
+                          : 'Lokasi Awal & Titik Kumpul',
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      'Titik penjemputan awal & kepulangan dari database',
-                      style: TextStyle(
+                      showEndLocation
+                          ? 'Titik penjemputan awal & kepulangan dari database'
+                          : 'Pilih titik penjemputan awal di Kota Batam',
+                      style: const TextStyle(
                         fontSize: 11.5,
                         color: AppColors.textSecondary,
                       ),
@@ -765,105 +773,111 @@ class TripLocationSection extends StatelessWidget {
             onQuickSelect: (loc) => onSelectStartLocation(loc),
           ),
 
-          // Divider Alur Perjalanan
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_downward_rounded,
-                    size: 15,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    height: 1,
-                    color: const Color(0xFFE2E8F0),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'Rute Wisata Batam',
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+          if (showEndLocation &&
+              onSelectEndLocation != null &&
+              selectedEndLocation != null) ...[
+            // Divider Alur Perjalanan
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_downward_rounded,
+                      size: 15,
+                      color: AppColors.primary,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          // 2. Lokasi Akhir
-          _buildLocationPickerBox(
-            context: context,
-            isEndLocation: true,
-            badgeTitle: 'LOKASI AKHIR (KEPULANGAN / TITIK SELESAI)',
-            selectedName: selectedEndLocation,
-            selectedModel: selectedEndLocationModel,
-            onTap: () {
-              TripLocationModal.showLocationDialog(
-                context: context,
-                availableLocations: availableLocations,
-                currentSelectedName: selectedEndLocation,
-                isEndLocation: true,
-                onLocationSelected: onSelectEndLocation,
-                onShowDetail: onShowLocationDetail,
-              );
-            },
-            onQuickSelect: (loc) => onSelectEndLocation(loc),
-            extraTrailingAction: selectedEndLocation != selectedStartLocation
-                ? InkWell(
-                    onTap: () {
-                      final startModel = selectedStartLocationModel ??
-                          availableLocations
-                              .where((l) => l.name == selectedStartLocation)
-                              .firstOrNull ??
-                          availableLocations.first;
-                      onSelectEndLocation(startModel);
-                    },
+                  const SizedBox(width: 10),
+                  Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.sync, size: 12, color: AppColors.primary),
-                          SizedBox(width: 4),
-                          Text(
-                            'Sama dgn awal',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      height: 1,
+                      color: const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Rute Wisata Batam',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
                       ),
                     ),
-                  )
-                : null,
-          ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 2. Lokasi Akhir
+            _buildLocationPickerBox(
+              context: context,
+              isEndLocation: true,
+              badgeTitle: 'LOKASI AKHIR (KEPULANGAN / TITIK SELESAI)',
+              selectedName: selectedEndLocation!,
+              selectedModel: selectedEndLocationModel,
+              onTap: () {
+                TripLocationModal.showLocationDialog(
+                  context: context,
+                  availableLocations: availableLocations,
+                  currentSelectedName: selectedEndLocation!,
+                  isEndLocation: true,
+                  onLocationSelected: onSelectEndLocation!,
+                  onShowDetail: onShowLocationDetail,
+                );
+              },
+              onQuickSelect: (loc) => onSelectEndLocation!(loc),
+              extraTrailingAction: selectedEndLocation != selectedStartLocation
+                  ? InkWell(
+                      onTap: () {
+                        final startModel = selectedStartLocationModel ??
+                            availableLocations
+                                .where((l) => l.name == selectedStartLocation)
+                                .firstOrNull ??
+                            availableLocations.first;
+                        onSelectEndLocation!(startModel);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.sync,
+                                size: 12, color: AppColors.primary),
+                            SizedBox(width: 4),
+                            Text(
+                              'Sama dgn awal',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+          ],
         ],
       ),
     );

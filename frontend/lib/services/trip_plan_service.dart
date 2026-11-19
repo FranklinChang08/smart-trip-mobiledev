@@ -545,4 +545,237 @@ class TripPlanService {
 
     return isSuccess;
   }
+
+  /// Generate rekomendasi itinerary AI untuk rencana yang sudah tersimpan
+  static Future<SavedTripPlan?> generateAiRecommendation(String planId) async {
+    try {
+      final token = await AuthService.getToken();
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/rencana-perjalanan/$planId/generate-ai'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 120));
+
+      debugPrint('Generate AI Status: ${response.statusCode}');
+      debugPrint('Generate AI Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final json = jsonDecode(response.body);
+        if (json is Map && json['success'] == true && json['data'] is Map) {
+          final updatedPlan = SavedTripPlan.fromJson(
+            Map<String, dynamic>.from(json['data']),
+          );
+
+          // Update cache lokal
+          try {
+            final storageKey = await _getStorageKey();
+            final prefs = await SharedPreferences.getInstance();
+            final plans = await getAllTripPlans();
+            final updatedList = plans
+                .map((p) => p.id == planId ? updatedPlan : p)
+                .toList();
+            await prefs.setString(
+              storageKey,
+              jsonEncode(updatedList.map((p) => p.toJson()).toList()),
+            );
+          } catch (_) {}
+
+          return updatedPlan;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error generate AI recommendation: $e');
+    }
+    return null;
+  }
+
+  /// Update Titik Awal atau Titik Akhir pada satu hari perjalanan
+  static Future<HariPerjalananModel?> updateDayLocation(
+    String planId,
+    String dayId, {
+    String? lokasiAwal,
+    String? lokasiAwalType,
+    String? lokasiAwalId,
+    String? lokasiAkhir,
+    String? lokasiAkhirType,
+    String? lokasiAkhirId,
+  }) async {
+    try {
+      final token = await AuthService.getToken();
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final body = <String, dynamic>{};
+      if (lokasiAwal != null) body['lokasi_awal'] = lokasiAwal;
+      if (lokasiAwalType != null) body['lokasi_awal_type'] = lokasiAwalType;
+      if (lokasiAwalId != null) body['lokasi_awal_id'] = lokasiAwalId;
+      if (lokasiAkhir != null) body['lokasi_akhir'] = lokasiAkhir;
+      if (lokasiAkhirType != null) body['lokasi_akhir_type'] = lokasiAkhirType;
+      if (lokasiAkhirId != null) body['lokasi_akhir_id'] = lokasiAkhirId;
+
+      final response = await http
+          .put(
+            Uri.parse('$_baseUrl/rencana-perjalanan/$planId/hari/$dayId/lokasi'),
+            headers: headers,
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json is Map && json['success'] == true && json['data'] is Map) {
+          return HariPerjalananModel.fromJson(
+            Map<String, dynamic>.from(json['data']),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error update day location: $e');
+    }
+    return null;
+  }
+
+  /// Tambah destinasi item manual ke hari perjalanan
+  static Future<bool> addItemToDay(
+    String planId,
+    String dayId, {
+    required String destinasiId,
+    required String destinasiType,
+    String? departureTime,
+    String? arrivalTime,
+  }) async {
+    try {
+      final token = await AuthService.getToken();
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final body = jsonEncode({
+        'destinasi_id': destinasiId,
+        'destinasi_type': destinasiType,
+        'departure_time': departureTime ?? '09:00',
+        'arrival_time': arrivalTime ?? '10:30',
+      });
+
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/rencana-perjalanan/$planId/hari/$dayId/item'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(const Duration(seconds: 10));
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      debugPrint('Error adding item to day: $e');
+      return false;
+    }
+  }
+
+  /// Hapus destinasi item dari jadwal hari perjalanan
+  static Future<bool> deleteItem(String itemId) async {
+    try {
+      final token = await AuthService.getToken();
+      final headers = <String, String>{'Accept': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await http
+          .delete(
+            Uri.parse('$_baseUrl/rencana-perjalanan/item/$itemId'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 6));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error deleting item: $e');
+      return false;
+    }
+  }
+
+  /// Mengambil seluruh data wisata dan restoran untuk dialog pilih destinasi
+  static Future<List<Map<String, dynamic>>> fetchAllDestinationsForPicker() async {
+    final results = <Map<String, dynamic>>[];
+    try {
+      final resWisata = await http
+          .get(
+            Uri.parse('$_baseUrl/wisata'),
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 8));
+      if (resWisata.statusCode == 200) {
+        final j = jsonDecode(resWisata.body);
+        if (j['data'] is List) {
+          for (final item in j['data']) {
+            results.add({
+              'id': item['id_wisata']?.toString() ?? '',
+              'name': item['nama_wisata']?.toString() ?? '',
+              'type': 'wisata',
+              'category': item['kategori']?.toString() ?? 'Wisata',
+              'area': item['kecamatan']?['nama_kecamatan']?.toString() ?? '',
+              'price': item['harga_tiket_masuk'] ?? 0,
+              'desc':
+                  item['deskripsi_singkat_wisata'] ?? item['deskripsi'] ?? '',
+              'photo':
+                  item['foto_destinasis'] is List &&
+                          (item['foto_destinasis'] as List).isNotEmpty
+                      ? item['foto_destinasis'][0]['url_foto_destinasi']
+                      : null,
+            });
+          }
+        }
+      }
+
+      final resResto = await http
+          .get(
+            Uri.parse('$_baseUrl/restoran'),
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 8));
+      if (resResto.statusCode == 200) {
+        final j = jsonDecode(resResto.body);
+        if (j['data'] is List) {
+          for (final item in j['data']) {
+            results.add({
+              'id': item['id_restoran']?.toString() ?? '',
+              'name': item['nama_restoran']?.toString() ?? '',
+              'type': 'restoran',
+              'category': 'Kuliner • ${item['type_food'] ?? 'Restoran'}',
+              'area': item['kecamatan']?['nama_kecamatan']?.toString() ?? '',
+              'price': item['harga_makan_per_orang'] ?? 0,
+              'desc': item['deskripsi'] ?? '',
+              'photo':
+                  item['foto_restorans'] is List &&
+                          (item['foto_restorans'] as List).isNotEmpty
+                      ? item['foto_restorans'][0]['url_foto_restoran']
+                      : null,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching destinations for picker: $e');
+    }
+    return results;
+  }
 }
