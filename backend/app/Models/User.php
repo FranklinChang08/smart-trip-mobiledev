@@ -17,9 +17,29 @@ class User extends Authenticatable
         'nama_pengguna',
         'email',
         'no_hp',
+        'foto_profil',
         'password',
         'role',
     ];
+
+    protected $appends = [
+        'foto_profil_url',
+    ];
+
+    public function getFotoProfilUrlAttribute(): ?string
+    {
+        if (!$this->foto_profil) {
+            return null;
+        }
+
+        if (str_starts_with($this->foto_profil, 'http://') || str_starts_with($this->foto_profil, 'https://')) {
+            return $this->foto_profil;
+        }
+
+        $filename = basename($this->foto_profil);
+        $root = request() ? request()->root() : config('app.url');
+        return rtrim($root, '/') . "/api/user/foto/{$filename}";
+    }
 
     /**
      * The attributes that should be hidden for serialization.
