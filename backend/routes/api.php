@@ -13,12 +13,21 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::prefix('forgot-password')->group(function () {
+    Route::post('/send-otp', [AuthController::class, 'forgotPasswordSendOtp']);
+    Route::post('/verify-otp', [AuthController::class, 'forgotPasswordVerifyOtp']);
+    Route::post('/reset', [AuthController::class, 'forgotPasswordReset']);
+});
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'profile']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::put('/user/password', [AuthController::class, 'updatePassword']);
+    Route::post('/user/foto', [AuthController::class, 'uploadFotoProfil']);
 });
+
+Route::get('/user/foto/{filename}', [AuthController::class, 'showFotoProfil']);
 
 Route::get('/kategori', function (Request $request) {
     $jenis = $request->query('jenis');

@@ -1,20 +1,24 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:frontend/components/app_notification.dart';
 import 'package:frontend/components/font/manrope_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/pages/profile/widgets/profile_text_field.dart';
 import 'package:frontend/services/auth_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileSettingsPage extends StatefulWidget {
   final String initialName;
   final String initialEmail;
   final String initialPhone;
+  final String? initialPhotoUrl;
 
   const ProfileSettingsPage({
     super.key,
     this.initialName = 'Nadira Safitri',
     this.initialEmail = 'nadira.safitri@gmail.com',
     this.initialPhone = '812-7890-8821',
+    this.initialPhotoUrl,
   });
 
   @override
@@ -27,10 +31,14 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   late final TextEditingController _phoneController;
 
   bool _isSaving = false;
+  bool _isUploadingPhoto = false;
+  Uint8List? _localPhotoBytes;
+  String? _currentPhotoUrl;
 
   @override
   void initState() {
     super.initState();
+    _currentPhotoUrl = widget.initialPhotoUrl;
     _nameController = TextEditingController(text: widget.initialName);
     _emailController = TextEditingController(text: widget.initialEmail);
 
@@ -40,6 +48,74 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       phone = phone.substring(1);
     }
     _phoneController = TextEditingController(text: phone);
+
+    _loadUserPhoto();
+  }
+
+  Future<void> _loadUserPhoto() async {
+    final user = await AuthService.getSavedUser();
+    if (user != null && mounted) {
+      final photo = user['foto_profil_url'] ?? user['foto_profil'];
+      if (photo != null && photo.toString().isNotEmpty) {
+        setState(() {
+          _currentPhotoUrl = photo.toString();
+        });
+      }
+    }
+  }
+
+  Future<void> _pickImageFromGallery() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (picked == null) return;
+
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _localPhotoBytes = bytes;
+        _isUploadingPhoto = true;
+      });
+
+      final res = await AuthService.uploadProfilePhoto(
+        bytes: bytes,
+        fileName: picked.name,
+      );
+
+      if (!mounted) return;
+      setState(() => _isUploadingPhoto = false);
+
+      if (res['success'] == true) {
+        final newUrl = res['foto_profil_url']?.toString() ?? res['user']?['foto_profil_url']?.toString();
+        setState(() {
+          _currentPhotoUrl = newUrl;
+        });
+        AppNotification.showSuccess(
+          context,
+          title: 'Foto Profil Diperbarui',
+          message: res['message'] ?? 'Foto profil berhasil disimpan.',
+        );
+      } else {
+        AppNotification.showError(
+          context,
+          title: 'Gagal Mengunggah',
+          message: res['message'] ?? 'Terjadi kesalahan saat mengunggah foto profil.',
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isUploadingPhoto = false);
+      AppNotification.showError(
+        context,
+        title: 'Kesalahan',
+        message: 'Gagal memilih atau mengunggah gambar: $e',
+      );
+    }
   }
 
   @override
@@ -48,6 +124,18 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  Map<String, dynamic> _getProfileResult() {
+    return {
+      'nama_pengguna': _nameController.text.trim(),
+      'email': _emailController.text.trim(),
+      'no_hp': _phoneController.text.trim(),
+      if (_currentPhotoUrl != null && _currentPhotoUrl!.isNotEmpty) ...{
+        'foto_profil_url': _currentPhotoUrl,
+        'foto_profil': _currentPhotoUrl,
+      },
+    };
   }
 
   Future<void> _handleSave() async {
@@ -113,11 +201,16 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       await Future.delayed(const Duration(milliseconds: 400));
       if (!mounted) return;
 
-      Navigator.pop(context, result['user'] ?? {
-        'nama_pengguna': name,
-        'email': email,
-        'no_hp': formattedPhone,
-      });
+      final userResult = _getProfileResult();
+      if (result['user'] is Map) {
+        userResult.addAll(Map<String, dynamic>.from(result['user']));
+      }
+      if (_currentPhotoUrl != null && _currentPhotoUrl!.isNotEmpty) {
+        userResult['foto_profil_url'] = _currentPhotoUrl;
+        userResult['foto_profil'] = _currentPhotoUrl;
+      }
+
+      Navigator.pop(context, userResult);
     } else {
       AppNotification.showError(
         context,
@@ -129,26 +222,32 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const ManropeFont(
-          'Profile Settings',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pop(context, _getProfileResult());
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+            onPressed: () => Navigator.pop(context, _getProfileResult()),
+          ),
+          title: const ManropeFont(
+            'Profile Settings',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
-      ),
-      body: Stack(
+        body: Stack(
         children: [
           // Soft gradient banner di background atas
           Container(
@@ -192,75 +291,104 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                     child: Column(
                       children: [
                         // Avatar dengan Tombol Ganti Foto
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Container(
-                              width: 96,
-                              height: 96,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFFE2E8F0),
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 3.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.08),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                                image: const DecorationImage(
-                                  image: AssetImage(
-                                    'assets/images/profile.jpg',
-                                  ),
-                                  fit: BoxFit.cover,
-                                  alignment: Alignment.topCenter,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onTap: () {
-                                  AppNotification.show(
-                                    context,
-                                    type: NotificationType.info,
-                                    title: 'Ganti Foto Profil',
-                                    message: 'Pilih foto baru dari galeri perangkat Anda.',
-                                  );
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(7),
+                        Builder(
+                          builder: (context) {
+                            ImageProvider avatarImage;
+                            if (_localPhotoBytes != null) {
+                              avatarImage = MemoryImage(_localPhotoBytes!);
+                            } else if (_currentPhotoUrl != null &&
+                                _currentPhotoUrl!.isNotEmpty) {
+                              avatarImage = NetworkImage(
+                                AuthService.getAvatarUrl(_currentPhotoUrl),
+                              );
+                            } else {
+                              avatarImage =
+                                  const AssetImage('assets/images/profile.jpg');
+                            }
+
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  width: 96,
+                                  height: 96,
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary,
                                     shape: BoxShape.circle,
+                                    color: const Color(0xFFE2E8F0),
                                     border: Border.all(
                                       color: Colors.white,
-                                      width: 2.5,
+                                      width: 3.5,
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
+                                        color: Colors.black.withValues(alpha: 0.08),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 3),
                                       ),
                                     ],
+                                    image: DecorationImage(
+                                      image: avatarImage,
+                                      fit: BoxFit.cover,
+                                      alignment: Alignment.topCenter,
+                                      onError: (_, __) {},
+                                    ),
                                   ),
-                                  child: const Icon(
-                                    Icons.camera_alt_outlined,
-                                    size: 16,
-                                    color: Colors.white,
+                                  child: _isUploadingPhoto
+                                      ? Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.45),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Center(
+                                            child: SizedBox(
+                                              width: 28,
+                                              height: 28,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2.5,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: _isUploadingPhoto
+                                        ? null
+                                        : _pickImageFromGallery,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(7),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            blurRadius: 6,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.camera_alt_outlined,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          ],
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 14),
                         ManropeFont(
@@ -462,7 +590,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
                   // Tombol Batalkan Perubahan
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(context, _getProfileResult()),
                     child: const ManropeFont(
                       'Batalkan Perubahan',
                       style: TextStyle(
@@ -480,6 +608,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

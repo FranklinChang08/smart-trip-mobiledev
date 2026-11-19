@@ -8,6 +8,7 @@ import 'package:frontend/core/theme/app_colors.dart';
 
 import '../services/auth_service.dart';
 import 'home_page.dart';
+import 'profile/change_password_page.dart';
 import 'register_page.dart';
 
 /// Halaman Login
@@ -377,7 +378,14 @@ class _LoginPageState extends State<LoginPage> {
           ],
         ),
         GestureDetector(
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ChangePasswordPage(isForgotPassword: true),
+              ),
+            );
+          },
           child: ManropeFont(
             'Lupa Kata Sandi?',
             style: TextStyle(

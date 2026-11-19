@@ -1,9 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:frontend/components/app_notification.dart';
 import 'package:frontend/components/font/manrope_font.dart';
-import 'package:frontend/components/font/noto_font.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/pages/login_page.dart';
 import 'package:frontend/pages/register_page.dart';
@@ -31,8 +31,74 @@ class _ProfileTabsState extends State<ProfileTabs> {
   String _name = 'Nadira Safitri';
   String _email = 'nadira.safitri@gmail.com';
   String _phone = '+62 812-7890-8821';
+  String? _photoUrl;
+  Uint8List? _localPhotoBytes;
+  bool _isUploadingPhoto = false;
   String _passwordUpdated = '2 bulan lalu';
   final String _preferenceUpdated = '2 bulan lalu';
+
+  Future<void> _pickImageFromGallery() async {
+    if (_isGuestMode) {
+      AppNotification.show(
+        context,
+        type: NotificationType.info,
+        title: 'Masuk Diperlukan',
+        message: 'Silakan masuk ke akun Anda terlebih dahulu untuk mengganti foto profil.',
+      );
+      return;
+    }
+
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (picked == null) return;
+
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _localPhotoBytes = bytes;
+        _isUploadingPhoto = true;
+      });
+
+      final res = await AuthService.uploadProfilePhoto(
+        bytes: bytes,
+        fileName: picked.name,
+      );
+
+      if (!mounted) return;
+      setState(() => _isUploadingPhoto = false);
+
+      if (res['success'] == true) {
+        setState(() {
+          _photoUrl = res['foto_profil_url'] ?? res['user']?['foto_profil_url'];
+        });
+        AppNotification.showSuccess(
+          context,
+          title: 'Foto Profil Diperbarui',
+          message: res['message'] ?? 'Foto profil berhasil disimpan.',
+        );
+      } else {
+        AppNotification.showError(
+          context,
+          title: 'Gagal Mengunggah',
+          message: res['message'] ?? 'Terjadi kesalahan saat mengunggah foto profil.',
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isUploadingPhoto = false);
+      AppNotification.showError(
+        context,
+        title: 'Kesalahan',
+        message: 'Gagal memilih gambar: $e',
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -77,6 +143,11 @@ class _ProfileTabsState extends State<ProfileTabs> {
         }
         if (user['no_hp'] != null) {
           _phone = user['no_hp'].toString();
+        }
+        final photo = user['foto_profil_url'] ?? user['foto_profil'];
+        if (photo != null && photo.toString().isNotEmpty) {
+          _photoUrl = photo.toString();
+          _localPhotoBytes = null;
         }
       }
     });
@@ -313,56 +384,81 @@ class _ProfileTabsState extends State<ProfileTabs> {
                 child: Row(
                   children: [
                     // Avatar dengan Camera Badge Overlay
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: 68,
-                          height: 68,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFE2E8F0),
-                              width: 2,
-                            ),
-                            image: const DecorationImage(
-                              image: AssetImage('assets/images/profile.jpg'),
-                              fit: BoxFit.cover,
-                              alignment: Alignment.topCenter,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: () {
-                              AppNotification.show(
-                                context,
-                                type: NotificationType.info,
-                                title: 'Ganti Foto',
-                                message: 'Pilih foto baru dari galeri perangkat Anda.',
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(5),
+                    Builder(
+                      builder: (context) {
+                        ImageProvider avatarImage;
+                        if (_localPhotoBytes != null) {
+                          avatarImage = MemoryImage(_localPhotoBytes!);
+                        } else if (_photoUrl != null && _photoUrl!.isNotEmpty) {
+                          avatarImage = NetworkImage(AuthService.getAvatarUrl(_photoUrl));
+                        } else {
+                          avatarImage = const AssetImage('assets/images/profile.jpg');
+                        }
+
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 68,
+                              height: 68,
                               decoration: BoxDecoration(
-                                color: AppColors.primary,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white,
+                                  color: const Color(0xFFE2E8F0),
                                   width: 2,
                                 ),
+                                image: DecorationImage(
+                                  image: avatarImage,
+                                  fit: BoxFit.cover,
+                                  alignment: Alignment.topCenter,
+                                  onError: (_, __) {},
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.camera_alt_outlined,
-                                size: 13,
-                                color: Colors.white,
+                              child: _isUploadingPhoto
+                                  ? Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.4),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2.2,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: _isUploadingPhoto ? null : _pickImageFromGallery,
+                                child: Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt_outlined,
+                                    size: 13,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ],
+                          ],
+                        );
+                      },
                     ),
 
                     const SizedBox(width: 16),
@@ -444,22 +540,30 @@ class _ProfileTabsState extends State<ProfileTabs> {
                               initialName: _name,
                               initialEmail: _email,
                               initialPhone: _phone,
+                              initialPhotoUrl: _photoUrl,
                             ),
                           ),
                         );
-                        if (res != null && mounted) {
-                          setState(() {
-                            if (res['nama_pengguna'] != null) {
-                              _name = res['nama_pengguna'].toString();
-                            }
-                            if (res['email'] != null) {
-                              _email = res['email'].toString();
-                            }
-                            if (res['no_hp'] != null) {
-                              _phone = res['no_hp'].toString();
-                            }
-                          });
-                          _loadProfile();
+                        if (mounted) {
+                          if (res != null) {
+                            setState(() {
+                              if (res['nama_pengguna'] != null) {
+                                _name = res['nama_pengguna'].toString();
+                              }
+                              if (res['email'] != null) {
+                                _email = res['email'].toString();
+                              }
+                              if (res['no_hp'] != null) {
+                                _phone = res['no_hp'].toString();
+                              }
+                              final newPhoto = res['foto_profil_url'] ?? res['foto_profil'];
+                              if (newPhoto != null && newPhoto.toString().isNotEmpty) {
+                                _photoUrl = newPhoto.toString();
+                                _localPhotoBytes = null;
+                              }
+                            });
+                          }
+                          await _loadProfile();
                         }
                       },
                     ),

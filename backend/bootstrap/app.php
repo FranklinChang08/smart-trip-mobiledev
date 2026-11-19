@@ -23,9 +23,20 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (\Illuminate\Database\QueryException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
+                $isConnectionError = in_array($e->getCode(), [2002, 1045, 'HY000']);
+                if ($isConnectionError) {
+                    return response()->json([
+                        'message' => 'Tidak dapat terhubung ke server database. Silakan pastikan database aktif atau coba beberapa saat lagi.',
+                    ], 503);
+                }
+                if (config('app.debug')) {
+                    return response()->json([
+                        'message' => $e->getMessage(),
+                    ], 500);
+                }
                 return response()->json([
-                    'message' => 'Tidak dapat terhubung ke server database. Silakan pastikan database aktif atau coba beberapa saat lagi.',
-                ], 503);
+                    'message' => 'Terjadi kesalahan pada database.',
+                ], 500);
             }
         });
     })->create();
